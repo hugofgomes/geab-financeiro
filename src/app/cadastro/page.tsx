@@ -14,10 +14,20 @@ import * as React from "react"
 
 const COOLDOWN = 60
 
+/** Máscara (48) 99999-8888 enquanto digita; números com + (internacionais) ficam como digitados. */
+function maskPhone(v: string) {
+  if (v.trim().startsWith("+")) return v.replace(/[^\d+ ()-]/g, "").slice(0, 20)
+  const d = v.replace(/\D/g, "").slice(0, 11)
+  if (d.length <= 2) return d
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh place-items-center bg-[#0b3d1e] p-4">
-      <div className="w-full max-w-md space-y-5 rounded-2xl bg-background p-6 shadow-xl">
+      <div className="w-full max-w-lg space-y-5 rounded-2xl bg-background p-6 shadow-xl">
         <div className="text-center">
           <Logo size={88} className="mx-auto" />
           <h1 className="mt-2 text-xl font-semibold">GEAB Futebol</h1>
@@ -115,21 +125,21 @@ export default function SignupPage() {
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="nascimento">Data de nascimento</Label>
-            <Input id="nascimento" type="date" required min="1900-01-01" max={new Date().toISOString().slice(0, 10)} autoComplete="bday" value={f.nascimento} onChange={set("nascimento")} />
-          </div>
-          <div className="space-y-1.5">
             <Label htmlFor="apelido">Apelido <span className="text-muted-foreground">(opcional)</span></Label>
             <Input id="apelido" maxLength={60} value={f.apelido} onChange={set("apelido")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="fone">WhatsApp</Label>
-            <Input id="fone" type="tel" inputMode="tel" autoComplete="tel" required placeholder="(48) 99999-8888" value={f.fone} onChange={set("fone")} />
+            <Label htmlFor="nascimento">Data de nascimento</Label>
+            <Input id="nascimento" type="date" required min="1900-01-01" max={new Date().toISOString().slice(0, 10)} autoComplete="bday" value={f.nascimento} onChange={set("nascimento")} />
           </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">E-mail</Label>
-          <Input id="email" type="email" autoComplete="email" required value={f.email} onChange={set("email")} />
+          <div className="space-y-1.5">
+            <Label htmlFor="fone">WhatsApp</Label>
+            <Input id="fone" type="tel" inputMode="tel" autoComplete="tel" required placeholder="(48) 99999-8888" value={f.fone} onChange={(e) => setF((x) => ({ ...x, fone: maskPhone(e.target.value) }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">E-mail</Label>
+            <Input id="email" type="email" autoComplete="email" required value={f.email} onChange={set("email")} />
+          </div>
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2">
           <div className="space-y-1.5">
