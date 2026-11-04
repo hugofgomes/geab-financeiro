@@ -3,20 +3,27 @@
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { CalendarCheck, FileUp, LayoutDashboard, LogOut, Users, Wallet } from "lucide-react"
+import { CalendarCheck, FileUp, LayoutDashboard, LogOut, UserPlus, Users, Wallet } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import * as React from "react"
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/atletas", label: "Atletas", icon: Users },
   { href: "/mensalidades", label: "Mensalidades", icon: CalendarCheck },
   { href: "/caixa", label: "Caixa", icon: Wallet },
+  { href: "/cadastros", label: "Cadastros", icon: UserPlus },
   { href: "/importar", label: "Importar", icon: FileUp },
 ]
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
+  const [pending, setPending] = React.useState(0)
+  React.useEffect(() => {
+    supabase().from("signup_requests").select("id", { count: "exact", head: true }).eq("status", "pendente")
+      .then((r) => setPending(r.count ?? 0), () => {})
+  }, [path])
   const signOut = async () => {
     await supabase().auth.signOut()
     window.location.href = "/login"
@@ -40,6 +47,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 >
                   <n.icon className="size-4" />
                   <span className="hidden sm:inline">{n.label}</span>
+                  {n.href === "/cadastros" && pending > 0 && (
+                    <span className="rounded-full bg-amber-400 px-1.5 text-[11px] font-semibold text-black" aria-label={`${pending} pendentes`}>{pending}</span>
+                  )}
                 </Link>
               )
             })}

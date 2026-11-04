@@ -25,10 +25,14 @@ export async function middleware(req: NextRequest) {
   }
   const path = req.nextUrl.pathname
   const { data: { user } } = await sb.auth.getUser()
-  if (!user) return path === "/login" ? res : go("/login")
+  // A confirmação de e-mail abre em qualquer navegador, logado ou não.
+  if (path === "/auth/confirmar") return res
+  if (!user) return path === "/login" || path === "/cadastro" ? res : go("/login")
 
   const { data: p } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()
-  if (!p?.active) return path === "/login" ? res : go("/login?erro=sem-perfil")
+  // Usuário confirmado, mas ainda sem perfil liberado (pré-cadastro aguardando aprovação).
+  if (!p?.active) return path === "/cadastro/status" ? res : go("/cadastro/status")
+  if (path === "/cadastro" || path === "/cadastro/status") return go(p.role === "admin" ? "/" : "/atleta")
   // A área do atleta é exatamente /atleta (e subrotas); /atletas é a lista do administrador.
   const inPortal = path === "/atleta" || path.startsWith("/atleta/")
   const home = p.role === "admin" ? "/" : "/atleta"

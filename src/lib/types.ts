@@ -52,3 +52,17 @@ export const STATUS_LABEL: Record<DisplayStatus, string> = {
   em_conferencia: "Em conferência",
   atrasado: "Atrasado",
 }
+
+export type SignupRequest = {
+  id: string
+  user_id: string
+  email: string
+  full_name: string
+  nickname: string | null
+  phone: string | null
+  whatsapp_consent: boolean
+  status: "pendente" | "aprovado" | "recusado"
+  athlete_id: string | null
+  created_at: string
+  decided_at: string | null
+}

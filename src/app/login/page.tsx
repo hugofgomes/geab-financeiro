@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import * as React from "react"
 
@@ -14,7 +15,7 @@ function Form() {
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [busy, setBusy] = React.useState(false)
-  const [error, setError] = React.useState(params.get("erro") === "sem-perfil" ? "Seu usuário ainda não foi liberado. Fale com a administração do GEAB." : "")
+  const [error, setError] = React.useState(params.get("erro") === "link-invalido" ? "Link de confirmação inválido ou expirado. Faça login, ou cadastre-se de novo para receber outro e-mail." : "")
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,7 +23,7 @@ function Form() {
     setError("")
     const { error } = await supabase().auth.signInWithPassword({ email, password })
     if (error) {
-      setError("E-mail ou senha inválidos.")
+      setError(error.message.toLowerCase().includes("not confirmed") ? "Confirme seu e-mail pelo link que enviamos antes de entrar." : "E-mail ou senha inválidos.")
       setBusy(false)
       return
     }
@@ -43,6 +44,7 @@ function Form() {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy && <Loader2 className="animate-spin" />} Entrar
       </Button>
+      <p className="text-center text-sm text-muted-foreground">Primeiro acesso? <Link href="/cadastro" className="underline">Cadastre-se</Link></p>
     </form>
   )
 }
