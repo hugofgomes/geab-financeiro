@@ -1,6 +1,5 @@
 "use client"
 
-import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 
@@ -14,7 +13,7 @@ export function BirthdayCard({ names, self, onClose }: { names: string[]; self: 
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-2 flex justify-between px-5 text-2xl motion-safe:animate-bounce">
             <span>🎈</span><span>🎉</span><span>🎈</span>
           </div>
-          <div className="mt-4 flex items-center justify-center gap-3"><Logo size={56} /><span aria-hidden className="text-6xl">🎂</span></div>
+          <div aria-hidden className="mt-4 text-6xl">🎂</div>
           <DialogTitle className="mt-3 text-2xl font-bold tracking-tight text-white">
             {self ? `Feliz aniversário, ${names[0]}!` : names.length === 1 ? "Aniversário hoje!" : "Aniversariantes de hoje!"}
           </DialogTitle>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Logo } from "@/components/logo"
+import { NameCard, PasswordCard } from "@/components/account-cards"
 import { BirthdayCard } from "@/components/birthday-card"
 import { SetupNotice } from "@/components/setup-notice"
 import { StatusBadge } from "@/components/status-badge"
@@ -54,7 +54,7 @@ export default function AthletePortal() {
   return (
     <div className="min-h-dvh">
       <header className="border-b bg-[#0b3d1e] text-white">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="flex items-center gap-2 font-semibold"><Logo size={34} /> GEAB Futebol</span>
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-semibold">⚽ GEAB Futebol</span>
           <Button variant="ghost" size="sm" onClick={signOut} className="text-green-100 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
       </header>
       {data && (
@@ -94,6 +94,25 @@ export default function AthletePortal() {
                 )}
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Meu cadastro</CardTitle></CardHeader>
+              <CardContent>
+                <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                  {([
+                    ["Nome", data.athlete.full_name],
+                    ["Apelido", data.athlete.nickname || "—"],
+                    ["Nascimento", data.athlete.birth_date ? formatDate(data.athlete.birth_date) : "—"],
+                    ["E-mail", data.athlete.email || "—"],
+                    ["WhatsApp", data.athlete.phone ? `+${data.athlete.phone}` : "—"],
+                    ["Mensalidade", `${formatBRL(data.athlete.monthly_fee)} · vence dia ${data.athlete.due_day}`],
+                    ["Situação", data.athlete.active ? "Ativo" : "Inativo"],
+                    ["No GEAB desde", formatDate(data.athlete.joined_at)],
+                  ] as const).map(([k, v]) => <div key={k} className="flex justify-between gap-3 border-b py-1.5 sm:block sm:border-0"><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd></div>)}
+                </dl>
+              </CardContent>
+            </Card>
+            <NameCard fullName={data.athlete.full_name} nickname={data.athlete.nickname} withNickname onSaved={reload} />
+            <PasswordCard />
             <Card>
               <CardHeader><CardTitle className="text-base">Meus contatos</CardTitle></CardHeader>
               <CardContent>

@@ -1,12 +1,11 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Logo } from "@/components/logo"
 import { BirthdayCard } from "@/components/birthday-card"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { CalendarCheck, FileUp, LayoutDashboard, LogOut, UserPlus, Users, Wallet } from "lucide-react"
+import { CalendarCheck, FileUp, LayoutDashboard, LogOut, ShieldCheck, UserCog, UserPlus, Users, Wallet } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import * as React from "react"
@@ -18,6 +17,8 @@ const NAV = [
   { href: "/caixa", label: "Caixa", icon: Wallet },
   { href: "/cadastros", label: "Cadastros", icon: UserPlus },
   { href: "/importar", label: "Importar", icon: FileUp },
+  { href: "/usuarios", label: "Usuários", icon: ShieldCheck },
+  { href: "/conta", label: "Minha conta", icon: UserCog },
 ]
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -47,7 +48,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 border-b bg-[#0b3d1e] text-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
           <div className="flex items-center gap-2 font-semibold tracking-tight">
-            <Logo size={34} /> GEAB <span className="font-normal text-green-200">Financeiro</span>
+            <span aria-hidden>⚽</span> GEAB <span className="font-normal text-green-200">Financeiro</span>
           </div>
           <nav className="ml-2 flex flex-1 gap-1 overflow-x-auto" aria-label="Principal">
             {NAV.map((n) => {

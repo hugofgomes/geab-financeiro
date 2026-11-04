@@ -1,6 +1,5 @@
 "use client"
 
-import { Logo } from "@/components/logo"
 import { SetupNotice } from "@/components/setup-notice"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,8 +28,8 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="grid min-h-dvh place-items-center bg-[#0b3d1e] p-4">
       <div className="w-full max-w-lg space-y-5 rounded-2xl bg-background p-6 shadow-xl">
         <div className="text-center">
-          <Logo size={88} className="mx-auto" />
-          <h1 className="mt-2 text-xl font-semibold">GEAB Futebol</h1>
+          <div className="text-3xl" aria-hidden>⚽</div>
+          <h1 className="mt-1 text-xl font-semibold">GEAB Futebol</h1>
           <p className="text-sm text-muted-foreground">Cadastro de atleta</p>
         </div>
         {children}
