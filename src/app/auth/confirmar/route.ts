@@ -8,12 +8,10 @@ export async function GET(req: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const tokenHash = req.nextUrl.searchParams.get("token_hash")
   const type = req.nextUrl.searchParams.get("type") as EmailOtpType | null
-  const to = (path: string) => {
-    const u = req.nextUrl.clone()
-    u.pathname = path.split("?")[0]
-    u.search = path.includes("?") ? "?" + path.split("?")[1] : ""
-    return u
-  }
+  // Atrás do proxy do Coolify, nextUrl aponta para o endereço interno do container (0.0.0.0:3000).
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? req.nextUrl.host
+  const proto = req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")
+  const to = (path: string) => new URL(path, `${proto}://${host}`)
   if (!url || !key || !tokenHash || type !== "email") return NextResponse.redirect(to("/login?erro=link-invalido"))
 
   const res = NextResponse.redirect(to("/cadastro/status?confirmado=1"))
