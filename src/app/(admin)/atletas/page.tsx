@@ -13,7 +13,7 @@ import { useLoad } from "@/hooks/use-load"
 import { formatBRL } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete } from "@/lib/types"
-import { Pencil, Plus } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 import { toast } from "sonner"
@@ -42,6 +42,17 @@ export default function AthletesPage() {
     reload()
   }
 
+  async function remove(a: Athlete) {
+    const ok = window.confirm(
+      `Excluir definitivamente "${a.full_name}"?\n\nSerão apagados o cadastro, as mensalidades em aberto, as mensagens registradas e o acesso ao portal. Esta ação não pode ser desfeita.\n\nSe o atleta já tem pagamentos, a exclusão é bloqueada (use "Ativo" para desativar).`,
+    )
+    if (!ok) return
+    const { error } = await supabase().rpc("admin_delete_athlete", { p_athlete: a.id })
+    if (error) return toast.error(error.message, { duration: 8000 })
+    toast.success(`${a.full_name} excluído.`)
+    reload()
+  }
+
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -58,7 +69,7 @@ export default function AthletesPage() {
       {loading && !data ? <Skeleton className="h-48" /> : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
-            <TableHeader><TableRow><TableHead>Atleta</TableHead><TableHead>Telefone</TableHead><TableHead className="text-right">Mensalidade</TableHead><TableHead>Venc.</TableHead><TableHead>Ativo</TableHead><TableHead className="w-12" /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Atleta</TableHead><TableHead>Telefone</TableHead><TableHead className="text-right">Mensalidade</TableHead><TableHead>Venc.</TableHead><TableHead>Ativo</TableHead><TableHead className="w-20" /></TableRow></TableHeader>
             <TableBody>
               {rows.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">{data?.length ? "Nenhum atleta encontrado." : "Nenhum atleta cadastrado ainda."}</TableCell></TableRow>}
               {rows.map((a) => (
@@ -71,7 +82,12 @@ export default function AthletesPage() {
                   <TableCell className="text-right tabular-nums">{formatBRL(a.monthly_fee)}</TableCell>
                   <TableCell>dia {a.due_day}</TableCell>
                   <TableCell><Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label={`Ativo: ${a.full_name}`} /></TableCell>
-                  <TableCell><Button variant="ghost" size="icon-sm" onClick={() => { setEditing(a); setOpen(true) }} aria-label={`Editar ${a.full_name}`}><Pencil /></Button></TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-0.5">
+                      <Button variant="ghost" size="icon-sm" onClick={() => { setEditing(a); setOpen(true) }} aria-label={`Editar ${a.full_name}`}><Pencil /></Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => remove(a)} aria-label={`Excluir ${a.full_name}`} className="text-destructive hover:text-destructive"><Trash2 /></Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
