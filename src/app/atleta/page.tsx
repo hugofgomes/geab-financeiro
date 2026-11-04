@@ -1,5 +1,6 @@
 "use client"
 
+import { Logo } from "@/components/logo"
 import { BirthdayCard } from "@/components/birthday-card"
 import { SetupNotice } from "@/components/setup-notice"
 import { StatusBadge } from "@/components/status-badge"
@@ -53,7 +54,7 @@ export default function AthletePortal() {
   return (
     <div className="min-h-dvh">
       <header className="border-b bg-[#0b3d1e] text-white">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-semibold">⚽ GEAB Futebol</span>
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="flex items-center gap-2 font-semibold"><Logo size={34} /> GEAB Futebol</span>
           <Button variant="ghost" size="sm" onClick={signOut} className="text-green-100 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
       </header>
       {data && (

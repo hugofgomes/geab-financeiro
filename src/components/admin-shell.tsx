@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/logo"
 import { BirthdayCard } from "@/components/birthday-card"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { supabase } from "@/lib/supabase/client"
@@ -46,7 +47,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 border-b bg-[#0b3d1e] text-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
           <div className="flex items-center gap-2 font-semibold tracking-tight">
-            <span aria-hidden>⚽</span> GEAB <span className="font-normal text-green-200">Financeiro</span>
+            <Logo size={34} /> GEAB <span className="font-normal text-green-200">Financeiro</span>
           </div>
           <nav className="ml-2 flex flex-1 gap-1 overflow-x-auto" aria-label="Principal">
             {NAV.map((n) => {
