@@ -1,5 +1,6 @@
 "use client"
 
+import { BirthdayCard } from "@/components/birthday-card"
 import { SetupNotice } from "@/components/setup-notice"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLoad } from "@/hooks/use-load"
+import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { formatBRL, formatCompetence, formatDate } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, Charge, Payment } from "@/lib/types"
@@ -30,6 +32,10 @@ export default function AthletePortal() {
   const [phone, setPhone] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [busy, setBusy] = React.useState(false)
+  const [showCard, setShowCard] = React.useState(false)
+  React.useEffect(() => {
+    if (data && isBirthday(data.athlete.birth_date) && !seenToday(`atleta.${data.athlete.id}`)) setShowCard(true)
+  }, [data])
   React.useEffect(() => { if (data) { setPhone(data.athlete.phone ? `+${data.athlete.phone}` : ""); setEmail(data.athlete.email ?? "") } }, [data])
   if (!supabaseConfigured) return <SetupNotice />
 
@@ -50,6 +56,13 @@ export default function AthletePortal() {
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-semibold">⚽ GEAB Futebol</span>
           <Button variant="ghost" size="sm" onClick={signOut} className="text-green-100 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
       </header>
+      {data && (
+        <BirthdayCard
+          names={showCard ? [data.athlete.nickname || data.athlete.full_name.split(" ")[0]] : []}
+          self
+          onClose={() => { markSeen(`atleta.${data.athlete.id}`); setShowCard(false) }}
+        />
+      )}
       <main className="mx-auto max-w-3xl space-y-5 px-4 py-6">
         {error && <p role="alert" className="text-sm text-destructive">{error.includes("multiple") || error.includes("0 rows") ? "Seu usuário ainda não está vinculado a um atleta. Fale com a administração." : `Erro ao carregar: ${error}`}</p>}
         {loading && !data && <Skeleton className="h-64" />}

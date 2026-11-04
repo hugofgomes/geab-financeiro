@@ -1,6 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { BirthdayCard } from "@/components/birthday-card"
+import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { CalendarCheck, FileUp, LayoutDashboard, LogOut, UserPlus, Users, Wallet } from "lucide-react"
@@ -20,6 +22,17 @@ const NAV = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   const [pending, setPending] = React.useState(0)
+  const [birthdays, setBirthdays] = React.useState<string[]>([])
+  React.useEffect(() => {
+    if (seenToday("admin")) return
+    supabase().from("athletes").select("full_name, nickname, birth_date").eq("active", true).not("birth_date", "is", null)
+      .then((r) => {
+        const names = ((r.data ?? []) as { full_name: string; nickname: string | null; birth_date: string }[])
+          .filter((a) => isBirthday(a.birth_date))
+          .map((a) => a.nickname ? `${a.full_name} (${a.nickname})` : a.full_name)
+        if (names.length) setBirthdays(names)
+      }, () => {})
+  }, [])
   React.useEffect(() => {
     supabase().from("signup_requests").select("id", { count: "exact", head: true }).eq("status", "pendente")
       .then((r) => setPending(r.count ?? 0), () => {})
@@ -60,6 +73,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">{children}</main>
+      <BirthdayCard names={birthdays} self={false} onClose={() => { markSeen("admin"); setBirthdays([]) }} />
     </div>
   )
 }

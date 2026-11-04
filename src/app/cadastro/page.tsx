@@ -64,7 +64,7 @@ function Sent({ email }: { email: string }) {
 }
 
 export default function SignupPage() {
-  const [f, setF] = React.useState({ nome: "", apelido: "", fone: "", email: "", senha: "", senha2: "", site: "" })
+  const [f, setF] = React.useState({ nome: "", apelido: "", nascimento: "", fone: "", email: "", senha: "", senha2: "", site: "" })
   const [wa, setWa] = React.useState(false)
   const [lgpd, setLgpd] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
@@ -81,6 +81,8 @@ export default function SignupPage() {
     const email = f.email.trim().toLowerCase()
     const fone = normalizePhone(f.fone)
     if (nome.length < 3 || !nome.includes(" ")) return setError("Informe seu nome completo.")
+    const hoje = new Date().toISOString().slice(0, 10)
+    if (!f.nascimento || f.nascimento > hoje || f.nascimento < "1900-01-01") return setError("Informe uma data de nascimento válida.")
     if (!fone || fone.length < 12 || fone.length > 15) return setError("Informe o WhatsApp com DDD, por exemplo (48) 99999-8888.")
     if (f.senha.length < 8) return setError("A senha precisa ter pelo menos 8 caracteres.")
     if (f.senha !== f.senha2) return setError("As senhas não conferem.")
@@ -90,7 +92,7 @@ export default function SignupPage() {
     const { error: err } = await supabase().auth.signUp({
       email,
       password: f.senha,
-      options: { data: { signup_form: "true", full_name: nome, nickname: f.apelido.trim(), phone: fone, whatsapp_consent: String(wa) } },
+      options: { data: { signup_form: "true", full_name: nome, nickname: f.apelido.trim(), phone: fone, birth_date: f.nascimento, whatsapp_consent: String(wa) } },
     })
     setBusy(false)
     if (err) {
@@ -111,6 +113,10 @@ export default function SignupPage() {
           <Input id="nome" autoComplete="name" required maxLength={120} value={f.nome} onChange={set("nome")} />
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="nascimento">Data de nascimento</Label>
+            <Input id="nascimento" type="date" required min="1900-01-01" max={new Date().toISOString().slice(0, 10)} autoComplete="bday" value={f.nascimento} onChange={set("nascimento")} />
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="apelido">Apelido <span className="text-muted-foreground">(opcional)</span></Label>
             <Input id="apelido" maxLength={60} value={f.apelido} onChange={set("apelido")} />
@@ -144,7 +150,7 @@ export default function SignupPage() {
         </label>
         <label className="flex items-start gap-2 text-sm">
           <Checkbox checked={lgpd} onCheckedChange={(v) => setLgpd(v === true)} className="mt-0.5" />
-          <span>Autorizo o GEAB a guardar meus dados (nome, contato e pagamentos) apenas para o controle das mensalidades.</span>
+          <span>Autorizo o GEAB a guardar meus dados (nome, contato, data de nascimento e pagamentos) apenas para o controle das mensalidades.</span>
         </label>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={busy}>

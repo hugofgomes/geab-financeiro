@@ -9,6 +9,7 @@ export interface Athlete {
   due_day: number
   active: boolean
   whatsapp_consent: boolean
+  birth_date: string | null
   joined_at: string
 }
 
@@ -61,6 +62,7 @@ export type SignupRequest = {
   nickname: string | null
   phone: string | null
   whatsapp_consent: boolean
+  birth_date: string | null
   status: "pendente" | "aprovado" | "recusado"
   athlete_id: string | null
   created_at: string

@@ -75,7 +75,7 @@ export default function SignupsPage() {
               <div key={r.id} className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div className="space-y-0.5 text-sm">
                   <div className="font-medium">{r.full_name} {r.nickname && <span className="text-xs font-normal text-muted-foreground">({r.nickname})</span>}</div>
-                  <div className="text-muted-foreground">{r.email} · {r.phone ? `+${r.phone}` : "sem WhatsApp"} · {formatDate(r.created_at.slice(0, 10))}</div>
+                  <div className="text-muted-foreground">{r.email} · {r.phone ? `+${r.phone}` : "sem WhatsApp"} · {r.birth_date ? `nasc. ${formatDate(r.birth_date)}` : "sem data de nascimento"} · {formatDate(r.created_at.slice(0, 10))}</div>
                   {r.whatsapp_consent && <Badge variant="outline" className="text-[10px]">aceita WhatsApp</Badge>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
