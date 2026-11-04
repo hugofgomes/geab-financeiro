@@ -1,0 +1,9 @@
+import { createBrowserClient } from "@supabase/ssr"
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+/** Sem as variáveis de ambiente o app mostra a tela de configuração, nunca dados falsos. */
+export const supabaseConfigured = Boolean(url && key)
+
+export const supabase = () => createBrowserClient(url!, key!)
