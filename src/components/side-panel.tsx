@@ -1,5 +1,6 @@
 "use client"
 
+import { ScorersCard } from "@/components/scorers-panel"
 import { Skeleton } from "@/components/ui/skeleton"
 import { brToday, dayMonth, hhmm, monthNameOf, MATCHES_CHANGED, shortDate, splitMatches, teamDot, weekdayOf, winnerOf } from "@/lib/matches"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
@@ -176,13 +177,13 @@ export function SidePanel() {
 
   if (!supabaseConfigured) return null
   return (
-    <aside aria-label="Placar e aniversariantes" className={cn("w-full shrink-0 transition-[width] duration-200 motion-reduce:transition-none xl:sticky xl:top-[5.5rem] xl:self-start", open ? "xl:w-80" : "xl:w-11")}>
+    <aside aria-label="Placar, aniversariantes e artilharia" className={cn("w-full shrink-0 transition-[width] duration-200 motion-reduce:transition-none xl:sticky xl:top-[5.5rem] xl:self-start", open ? "xl:w-80" : "xl:w-11")}>
       {/* telas menores: seção expansível abaixo do conteúdo */}
       <button
         type="button" onClick={toggle} aria-expanded={open} aria-controls="painel-corpo"
         className={cn("flex w-full items-center justify-between gap-2 rounded-xl border bg-card px-4 py-3 text-sm font-semibold text-primary shadow-sm outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring xl:hidden")}
       >
-        <span className="flex items-center gap-2"><Trophy className="size-4 text-[#F32329]" aria-hidden /> Placar e aniversariantes</span>
+        <span className="flex items-center gap-2"><Trophy className="size-4 text-[#F32329]" aria-hidden /> Placar, aniversariantes e artilharia</span>
         <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
       </button>
       {/* desktop largo: barra à direita, recolhível */}
@@ -203,6 +204,7 @@ export function SidePanel() {
           <>
             <Scores matches={data.matches} />
             <Birthdays list={data.birthdays} />
+            <ScorersCard />
             {error && <p className="text-xs text-muted-foreground">Sem conexão no momento; exibindo os últimos dados carregados.</p>}
           </>
         )}

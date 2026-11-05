@@ -19,18 +19,39 @@ import { toast } from "sonner"
 
 const STATUS: Record<MatchStatus, string> = { agendado: "Agendado", em_andamento: "Em andamento", finalizado: "Finalizado" }
 type Form = { date: string; time: string; a: string; b: string; sa: string; sb: string; status: MatchStatus }
+type Row = { athlete_id: string; goals: string }
+type Ath = { id: string; full_name: string; nickname: string | null }
 const blank = (): Form => ({ date: brToday(), time: "", a: "Equipe Azul", b: "Equipe Branca", sa: "", sb: "", status: "agendado" })
+const label = (a: Ath) => a.nickname ? `${a.nickname} (${a.full_name})` : a.full_name
 
 function MatchDialog({ m, onClose, onSaved }: { m: Match | "novo" | null; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = React.useState<Form>(blank())
+  const [rows, setRows] = React.useState<Row[]>([])
+  const [athletes, setAthletes] = React.useState<Ath[]>([])
+  const [loadedRows, setLoadedRows] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
-    if (m === "novo") setF(blank())
-    else if (m) setF({ date: m.match_date, time: hhmm(m.match_time) ?? "", a: m.team_a, b: m.team_b, sa: m.score_a == null ? "" : String(m.score_a), sb: m.score_b == null ? "" : String(m.score_b), status: m.status })
+    setRows([]); setLoadedRows(false)
+    if (!m) return
+    if (m === "novo") { setF(blank()); setLoadedRows(true) }
+    else setF({ date: m.match_date, time: hhmm(m.match_time) ?? "", a: m.team_a, b: m.team_b, sa: m.score_a == null ? "" : String(m.score_a), sb: m.score_b == null ? "" : String(m.score_b), status: m.status })
+    const sb = supabase()
+    sb.from("athletes").select("id, full_name, nickname").eq("active", true).order("full_name").then((r) => r.data && setAthletes(r.data as Ath[]))
+    if (m !== "novo") {
+      sb.from("match_players").select("athlete_id, goals").eq("match_id", m.id).then((r) => {
+        if (r.error) return toast.error("Não foi possível carregar os gols: " + r.error.message)
+        setRows((r.data as { athlete_id: string; goals: number }[]).map((x) => ({ athlete_id: x.athlete_id, goals: String(x.goals) })))
+        setLoadedRows(true)
+      })
+    }
   }, [m])
   if (!m) return null
   const cur = m
   const set = (k: keyof Form, v: string) => setF((x) => ({ ...x, [k]: v }))
+  const used = new Set(rows.map((r) => r.athlete_id))
+  const free = athletes.filter((a) => !used.has(a.id))
+  const sumGoals = rows.reduce((a, r) => a + (Number(r.goals) || 0), 0)
+
   async function save(e: React.FormEvent) {
     e.preventDefault()
     const hasScore = f.sa !== "" || f.sb !== ""
@@ -39,18 +60,45 @@ function MatchDialog({ m, onClose, onSaved }: { m: Match | "novo" | null; onClos
     if (f.status === "finalizado" && (sa == null || sb == null)) return toast.error("Informe o placar das duas equipes para finalizar o jogo.")
     if (hasScore && (sa == null || sb == null)) return toast.error("Preencha o placar das duas equipes (ou deixe ambos vazios).")
     for (const v of [sa, sb]) if (v != null && (!Number.isInteger(v) || v < 0 || v > 99)) return toast.error("O placar deve ser um número inteiro de 0 a 99.")
+    for (const r of rows) {
+      const g = Number(r.goals)
+      if (!r.athlete_id) return toast.error("Escolha o atleta em todas as linhas de gols (ou remova a linha).")
+      if (r.goals === "" || !Number.isInteger(g) || g < 0 || g > 30) return toast.error("Os gols de cada atleta devem ser um número inteiro de 0 a 30.")
+    }
+    if (sumGoals > 0 && sa == null) return toast.error("Informe o placar antes de registrar gols dos atletas.")
+    if (sa != null && sb != null && sumGoals > sa + sb) return toast.error(`A soma dos gols dos atletas (${sumGoals}) passa do total do placar (${sa + sb}).`)
+
     const row = { match_date: f.date, match_time: f.time || null, team_a: f.a.trim(), team_b: f.b.trim(), score_a: sa, score_b: sb, status: f.status }
+    const payload = rows.map((r) => ({ athlete_id: r.athlete_id, goals: Number(r.goals) }))
+    const db = supabase()
+    const savePlayers = (id: string) => db.rpc("set_match_players", { p_match: id, p_rows: payload })
     setBusy(true)
-    const sb_ = supabase()
-    const { error } = cur === "novo" ? await sb_.from("matches").insert(row) : await sb_.from("matches").update(row).eq("id", cur.id)
+    let err: string | undefined
+    if (cur === "novo") {
+      const ins = await db.from("matches").insert(row).select("id").single()
+      err = ins.error?.message
+      if (!err && payload.length) err = (await savePlayers(ins.data!.id)).error?.message
+    } else {
+      // A ordem evita o bloqueio do banco quando o total do placar diminui ou os gols mudam junto.
+      const oldTotal = (cur.score_a ?? 0) + (cur.score_b ?? 0)
+      const newTotal = sa == null || sb == null ? -1 : sa + sb
+      if (!loadedRows) { err = (await db.from("matches").update(row).eq("id", cur.id)).error?.message }
+      else if (newTotal < oldTotal) {
+        err = (await savePlayers(cur.id)).error?.message
+        if (!err) err = (await db.from("matches").update(row).eq("id", cur.id)).error?.message
+      } else {
+        err = (await db.from("matches").update(row).eq("id", cur.id)).error?.message
+        if (!err) err = (await savePlayers(cur.id)).error?.message
+      }
+    }
     setBusy(false)
-    if (error) return toast.error(error.message)
-    toast.success(m === "novo" ? "Jogo cadastrado." : "Jogo atualizado.")
+    if (err) return toast.error(err)
+    toast.success(cur === "novo" ? "Jogo cadastrado." : "Jogo atualizado.")
     onSaved(); onClose()
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[92dvh] max-w-lg overflow-y-auto">
         <DialogHeader><DialogTitle>{m === "novo" ? "Novo jogo" : "Editar jogo"}</DialogTitle></DialogHeader>
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5"><Label htmlFor="jd">Data</Label><Input id="jd" type="date" value={f.date} onChange={(e) => set("date", e.target.value)} required /></div>
@@ -63,9 +111,29 @@ function MatchDialog({ m, onClose, onSaved }: { m: Match | "novo" | null; onClos
             <NativeSelect id="js" className="w-full" value={f.status} onChange={(e) => set("status", e.target.value)}>
               {(Object.keys(STATUS) as MatchStatus[]).map((k) => <option key={k} value={k}>{STATUS[k]}</option>)}
             </NativeSelect></div>
+
+          <fieldset className="space-y-2 rounded-xl border p-3 sm:col-span-2" disabled={!loadedRows}>
+            <legend className="px-1 text-sm font-semibold text-primary">Quem jogou e gols (artilharia)</legend>
+            <p className="text-xs text-muted-foreground">Inclua todos que jogaram (0 gol para quem não marcou): isso corrige as partidas e a média de cada atleta. Os gols só contam na artilharia com o jogo <b>Finalizado</b>.</p>
+            {rows.map((r, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <NativeSelect aria-label={`Atleta ${i + 1}`} className="min-w-0 flex-1" value={r.athlete_id} onChange={(e) => setRows((x) => x.map((y, j) => j === i ? { ...y, athlete_id: e.target.value } : y))}>
+                  <option value="">Escolha o atleta…</option>
+                  {athletes.filter((a) => a.id === r.athlete_id || !used.has(a.id)).map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
+                </NativeSelect>
+                <Input aria-label={`Gols do atleta ${i + 1}`} className="w-16 shrink-0" type="number" inputMode="numeric" min={0} max={30} value={r.goals} onChange={(e) => setRows((x) => x.map((y, j) => j === i ? { ...y, goals: e.target.value } : y))} />
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remover atleta ${i + 1}`} onClick={() => setRows((x) => x.filter((_, j) => j !== i))}><Trash2 /></Button>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-2">
+              <Button type="button" variant="outline" size="sm" disabled={!free.length} onClick={() => setRows((x) => [...x, { athlete_id: "", goals: "0" }])}><Plus /> Adicionar atleta</Button>
+              {rows.length > 0 && <span className="text-xs text-muted-foreground">{sumGoals} gol(s) de atletas{f.sa !== "" && f.sb !== "" ? ` · placar total ${Number(f.sa) + Number(f.sb)}` : ""}</span>}
+            </div>
+          </fieldset>
+
           <DialogFooter className="sm:col-span-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar</Button>
+            <Button type="submit" disabled={busy || !loadedRows}>{busy && <Loader2 className="animate-spin" />} Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

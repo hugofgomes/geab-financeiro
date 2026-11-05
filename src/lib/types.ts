@@ -82,3 +82,15 @@ export type Match = {
   status: MatchStatus
 }
 export type MonthBirthday = { display_name: string; bday: number; bmonth: number; turning_age: number; is_today: boolean }
+
+export type Scorer = { athlete_id: string; display_name: string; goals: number; games: number; pos: number }
+export type ScorerStats = {
+  name: string
+  season: number
+  goals: number
+  games: number
+  avg: number
+  month_goals: number | null
+  position: number | null
+  history: { date: string; team_a: string; team_b: string; score_a: number | null; score_b: number | null; goals: number }[]
+}
