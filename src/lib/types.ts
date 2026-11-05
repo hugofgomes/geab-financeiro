@@ -69,3 +69,16 @@ export type SignupRequest = {
   created_at: string
   decided_at: string | null
 }
+
+export type MatchStatus = "agendado" | "em_andamento" | "finalizado"
+export type Match = {
+  id: string
+  match_date: string
+  match_time: string | null
+  team_a: string
+  team_b: string
+  score_a: number | null
+  score_b: number | null
+  status: MatchStatus
+}
+export type MonthBirthday = { display_name: string; bday: number; bmonth: number; turning_age: number; is_today: boolean }

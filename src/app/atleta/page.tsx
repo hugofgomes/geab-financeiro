@@ -2,6 +2,7 @@
 
 import { NameCard, PasswordCard } from "@/components/account-cards"
 import { BirthdayCard } from "@/components/birthday-card"
+import { SidePanel } from "@/components/side-panel"
 import { SetupNotice } from "@/components/setup-notice"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
@@ -64,7 +65,8 @@ export default function AthletePortal() {
           onClose={() => { markSeen(`atleta.${data.athlete.id}`); setShowCard(false) }}
         />
       )}
-      <main className="mx-auto max-w-3xl space-y-5 px-4 py-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 xl:flex-row">
+      <main className="min-w-0 flex-1 space-y-5">
         {error && <p role="alert" className="text-sm text-destructive">{error.includes("multiple") || error.includes("0 rows") ? "Seu usuário ainda não está vinculado a um atleta. Fale com a administração." : `Erro ao carregar: ${error}`}</p>}
         {loading && !data && <Skeleton className="h-64" />}
         {data && (
@@ -126,6 +128,8 @@ export default function AthletePortal() {
           </>
         )}
       </main>
+      <SidePanel />
+      </div>
     </div>
   )
 }

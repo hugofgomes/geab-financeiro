@@ -2,10 +2,11 @@
 
 import { Menu } from "@base-ui/react/menu"
 import { BirthdayCard } from "@/components/birthday-card"
+import { SidePanel } from "@/components/side-panel"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, CalendarCheck, ChevronDown, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -15,6 +16,7 @@ const NAV = [
   { href: "/atletas", label: "Atletas", icon: Users },
   { href: "/mensalidades", label: "Mensalidades", icon: CalendarCheck },
   { href: "/caixa", label: "Caixa", icon: Wallet },
+  { href: "/jogos", label: "Jogos", icon: Trophy },
   { href: "/cadastros", label: "Cadastros", icon: UserPlus },
 ]
 
@@ -178,7 +180,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
           <UserMenu name={me} onSignOut={signOut} />
         </header>
-        <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">{children}</main>
+        <div className="mx-auto flex max-w-[90rem] flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
+          <main className="min-w-0 flex-1 space-y-6">{children}</main>
+          <SidePanel />
+        </div>
       </div>
       <BirthdayCard names={birthdays} self={false} onClose={() => { markSeen("admin"); setBirthdays([]) }} />
     </div>
