@@ -16,28 +16,44 @@ import { formatBRL, formatCompetence, formatDate } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, Charge, Payment, PixCharge } from "@/lib/types"
 import { normalizePhone } from "@/lib/whatsapp"
+import { brCodeForAmount } from "@/lib/brcode"
 import { Copy, ExternalLink, Loader2, LogOut } from "lucide-react"
+import QRCode from "qrcode"
 import * as React from "react"
 import { toast } from "sonner"
 
 export default function AthletePortal() {
   const { data, error, loading, reload } = useLoad(async () => {
     const sb = supabase()
-    const [a, c, p, x] = await Promise.all([
+    const [a, c, p, x, st] = await Promise.all([
       sb.from("athletes").select("*").single(),   // RLS: só o próprio cadastro
       sb.from("charges_view").select("*").order("competence", { ascending: false }),
       sb.from("payments").select("*").order("paid_at", { ascending: false }),
       sb.from("pix_charges").select("*").eq("status", "ativa").order("created_at", { ascending: false }),
+      sb.from("app_settings").select("value").eq("key", "pix_br_code").maybeSingle(),
     ])
     for (const r of [a, c, p, x]) if (r.error) throw new Error(r.error.message)
     const pix = new Map<string, PixCharge>()
     for (const q of x.data as PixCharge[]) if (!pix.has(q.charge_id) && (!q.expires_at || new Date(q.expires_at) > new Date())) pix.set(q.charge_id, q)
-    return { athlete: a.data as Athlete, charges: c.data as Charge[], payments: p.data as Payment[], pix }
+    return { athlete: a.data as Athlete, charges: c.data as Charge[], payments: p.data as Payment[], pix, staticCode: (st.data?.value as string | undefined) ?? null }
   }, [])
   const [phone, setPhone] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [busy, setBusy] = React.useState(false)
   const [showCard, setShowCard] = React.useState(false)
+  // Pix estático da Diretoria: um código (e QR) com o valor exato de cada mensalidade em aberto
+  const [staticPix, setStaticPix] = React.useState<{ id: string; competence: string; cents: number; code: string; qr: string }[]>([])
+  React.useEffect(() => {
+    if (!data?.staticCode) { setStaticPix([]); return }
+    let alive = true
+    const open = data.charges.filter((c) => c.balance > 0 && !data.pix.has(c.id))
+    Promise.all(open.map(async (c) => {
+      const cents = Math.round(c.balance * 100)
+      const code = brCodeForAmount(data.staticCode!, cents, "GEAB" + c.id.replace(/-/g, "").slice(0, 12))
+      return code ? { id: c.id, competence: c.competence, cents, code, qr: await QRCode.toDataURL(code, { margin: 1, width: 240 }) } : null
+    })).then((r) => alive && setStaticPix(r.filter((x): x is NonNullable<typeof x> => !!x)))
+    return () => { alive = false }
+  }, [data])
   React.useEffect(() => {
     if (data && isBirthday(data.athlete.birth_date) && !seenToday(`atleta.${data.athlete.id}`)) setShowCard(true)
   }, [data])
@@ -110,6 +126,21 @@ export default function AthletePortal() {
                       )
                     })}
                     <p className="text-xs text-muted-foreground">Depois de pagar, a confirmação é automática: sua mensalidade passa para “Pago” em instantes.</p>
+                  </div>
+                ) : staticPix.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-primary">Pagar com Pix</h3>
+                    {staticPix.map((q) => (
+                      <div key={q.id} className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={q.qr} alt={`QR Code Pix da mensalidade de ${formatCompetence(q.competence)}`} width={140} height={140} className="size-[140px] rounded-lg border bg-white p-1" />
+                        <div className="min-w-0 space-y-2 text-sm">
+                          <p><span className="font-medium capitalize">{formatCompetence(q.competence)}</span> · {formatBRL(q.cents / 100)}</p>
+                          <Button type="button" size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(q.code).then(() => toast.success("Pix Copia e Cola copiado."), () => toast.error("Não foi possível copiar."))}><Copy /> Copiar código Pix</Button>
+                        </div>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">Pague pelo app do seu banco. Seu pagamento é conferido pela Diretoria e a mensalidade passa para “Pago” depois da conferência (não é instantâneo).</p>
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-muted-foreground">Quando o GEAB gerar o Pix da sua mensalidade, o QR Code e o Pix Copia e Cola aparecerão aqui. Enquanto isso, siga as instruções de pagamento do grupo.</p>

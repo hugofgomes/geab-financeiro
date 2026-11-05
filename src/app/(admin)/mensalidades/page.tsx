@@ -1,6 +1,7 @@
 "use client"
 
 import { NativeSelect } from "@/components/native-select"
+import { PixSettings } from "@/components/pix-settings"
 import { SetupNotice } from "@/components/setup-notice"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
@@ -161,6 +162,7 @@ export default function ChargesPage() {
         {pixOn && <Button variant="outline" onClick={genPix} disabled={pixBusy || !data?.rows.length}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>}
         {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => r.balance))}</span>}
       </div>
+      <PixSettings />
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {data && data.review.length > 0 && (
         <div role="alert" className="space-y-1 rounded-xl border border-[#F32329]/40 bg-[#F32329]/5 p-3 text-sm">
