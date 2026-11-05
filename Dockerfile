@@ -13,7 +13,8 @@ ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Identifica esta versão (usada para detectar atualizações no navegador)
+RUN BUILD_ID=$(date +%s) npm run build
 
 FROM node:22-alpine AS run
 WORKDIR /app
