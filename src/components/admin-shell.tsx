@@ -6,7 +6,7 @@ import { SidePanel } from "@/components/side-panel"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, ReceiptText, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/atletas", label: "Atletas", icon: Users },
   { href: "/mensalidades", label: "Mensalidades", icon: CalendarCheck },
   { href: "/caixa", label: "Caixa", icon: Wallet },
+  { href: "/extrato", label: "Extrato", icon: ReceiptText },
   { href: "/jogos", label: "Jogos", icon: Trophy },
   { href: "/cadastros", label: "Cadastros", icon: UserPlus },
 ]
