@@ -43,6 +43,7 @@ export interface Expense {
   spent_at: string
   description: string
   category: string | null
+  location: string | null
   amount: number
 }
 
