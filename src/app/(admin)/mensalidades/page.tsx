@@ -15,7 +15,7 @@ import { addMonths, formatBRL, formatCompetence, formatDate, monthKey } from "@/
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, Charge, DisplayStatus, PixCharge } from "@/lib/types"
 import { confirmationMessage, waLink } from "@/lib/whatsapp"
-import { ChevronLeft, ChevronRight, Copy, Loader2, MessageCircle, Plus, QrCode, TriangleAlert, Wand2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Copy, Loader2, MessageCircle, Pencil, Plus, QrCode, Trash2, TriangleAlert, Wand2 } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -73,10 +73,51 @@ function PaymentDialog({ row, onClose, onSaved }: { row: Row | null; onClose: ()
   )
 }
 
+/** Edição de uma mensalidade: valor e vencimento (o valor não pode ficar abaixo do que já foi pago). */
+function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () => void; onSaved: () => void }) {
+  const [amount, setAmount] = React.useState("")
+  const [due, setDue] = React.useState("")
+  const [busy, setBusy] = React.useState(false)
+  React.useEffect(() => { if (row) { setAmount(String(row.amount).replace(".", ",")); setDue(row.due_date) } }, [row])
+  if (!row) return null
+  const cur = row
+  async function save(e: React.FormEvent) {
+    e.preventDefault()
+    const v = Number(amount.replace(",", "."))
+    if (!Number.isFinite(v) || v <= 0) return toast.error("Informe um valor maior que zero.")
+    if (v + 0.001 < cur.paid_total) return toast.error(`O valor não pode ser menor que o já pago (${formatBRL(cur.paid_total)}).`)
+    setBusy(true)
+    const { error } = await supabase().rpc("admin_update_charge", { p_charge: cur.id, p_amount: v, p_due: due })
+    setBusy(false)
+    if (error) return toast.error(error.message)
+    toast.success("Mensalidade atualizada.")
+    onSaved(); onClose()
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Editar mensalidade</DialogTitle></DialogHeader>
+        <form onSubmit={save} className="space-y-3">
+          <p className="text-sm text-muted-foreground">{cur.athlete.full_name} · {formatCompetence(cur.competence)}{cur.paid_total > 0 ? ` · já pago ${formatBRL(cur.paid_total)}` : ""}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label htmlFor="cv">Valor (R$)</Label><Input id="cv" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
+            <div className="space-y-1.5"><Label htmlFor="cd">Vencimento</Label><Input id="cd" type="date" value={due} onChange={(e) => setDue(e.target.value)} required /></div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function ChargesPage() {
   const [month, setMonth] = React.useState(monthKey())
   const [filter, setFilter] = React.useState<"todos" | DisplayStatus>("todos")
   const [paying, setPaying] = React.useState<Row | null>(null)
+  const [editing, setEditing] = React.useState<Row | null>(null)
   const [generating, setGenerating] = React.useState(false)
   const [pixOn, setPixOn] = React.useState(false)
   const [pixBusy, setPixBusy] = React.useState(false)
@@ -137,6 +178,16 @@ export default function ChargesPage() {
     ;(n("falhou") ? toast.error : toast.success)(`${n("criada")} Pix gerado(s), ${n("existente")} já existia(m)${n("falhou") ? `, ${n("falhou")} com falha: ${fail?.detail ?? ""}` : "."}`)
     reload()
   }
+  async function removeCharge(r: Row) {
+    const base = `Excluir a mensalidade de ${r.athlete.full_name} (${formatCompetence(r.competence)}, ${formatBRL(r.amount)})?`
+    const withPay = r.paid_total > 0
+    const msg = withPay ? `${base}\n\nATENÇÃO: ela tem ${formatBRL(r.paid_total)} em pagamentos. Eles também serão EXCLUÍDOS e o saldo do caixa diminui nesse valor. Esta ação fica registrada na auditoria e não pode ser desfeita.` : `${base}\n\nEsta ação fica registrada na auditoria.`
+    if (!window.confirm(msg)) return
+    const { error } = await supabase().rpc("admin_delete_charge", { p_charge: r.id, p_with_payments: withPay })
+    if (error) return toast.error(error.message)
+    toast.success("Mensalidade excluída.")
+    reload()
+  }
   async function copyPix(code: string) {
     try { await navigator.clipboard.writeText(code); toast.success("Pix Copia e Cola copiado.") } catch { toast.error("Não foi possível copiar. Use o link do Pix.") }
   }
@@ -188,6 +239,8 @@ export default function ChargesPage() {
                     <div className="flex justify-end gap-1">
                       {r.balance > 0 && data?.pix.get(r.id)?.br_code && <Button size="sm" variant="ghost" onClick={() => copyPix(data.pix.get(r.id)!.br_code!)} title="Copiar o Pix Copia e Cola desta mensalidade"><Copy /> Pix</Button>}
                       {r.balance > 0 && <Button size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
+                      <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`} title="Editar valor e vencimento"><Pencil /></Button>
+                      <Button size="icon-sm" variant="ghost" onClick={() => removeCharge(r)} aria-label={`Excluir mensalidade de ${r.athlete.full_name}`} title="Excluir mensalidade"><Trash2 /></Button>
                       {r.display_status === "pago" && <Button size="sm" variant="ghost" onClick={() => sendThanks(r)} title={data?.sent.get(r.id) ? `Agradecimento aberto em ${new Date(data.sent.get(r.id)!).toLocaleString("pt-BR")}` : "Abrir mensagem de agradecimento no WhatsApp"}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
                     </div>
                   </TableCell>
@@ -199,6 +252,7 @@ export default function ChargesPage() {
       )}
       <p className="text-xs text-muted-foreground">O agradecimento abre no WhatsApp com o texto pronto, só para mensalidades pagas; quem envia é você. O registro guarda que a mensagem foi aberta, não que foi entregue.</p>
       <PaymentDialog row={paying} onClose={() => setPaying(null)} onSaved={reload} />
+      <EditChargeDialog row={editing} onClose={() => setEditing(null)} onSaved={reload} />
     </>
   )
 }
