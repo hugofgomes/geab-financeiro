@@ -12,9 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useLoad } from "@/hooks/use-load"
 import { addMonths, formatBRL, formatCompetence, formatDate, monthKey } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
-import type { Athlete, Charge, DisplayStatus } from "@/lib/types"
+import type { Athlete, Charge, DisplayStatus, PixCharge } from "@/lib/types"
 import { confirmationMessage, waLink } from "@/lib/whatsapp"
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Plus, Wand2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Copy, Loader2, MessageCircle, Plus, QrCode, TriangleAlert, Wand2 } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -77,6 +77,9 @@ export default function ChargesPage() {
   const [filter, setFilter] = React.useState<"todos" | DisplayStatus>("todos")
   const [paying, setPaying] = React.useState<Row | null>(null)
   const [generating, setGenerating] = React.useState(false)
+  const [pixOn, setPixOn] = React.useState(false)
+  const [pixBusy, setPixBusy] = React.useState(false)
+  React.useEffect(() => { fetch("/api/pix/cobrancas").then((r) => r.json()).then((j) => setPixOn(!!j.configured), () => setPixOn(false)) }, [])
 
   const { data, error, loading, reload } = useLoad(async () => {
     const sb = supabase()
@@ -90,7 +93,12 @@ export default function ChargesPage() {
     const rows = (c.data as Charge[]).map((x) => ({ ...x, athlete: ath.get(x.athlete_id)! })).filter((x) => x.athlete)
     rows.sort((x, y) => x.athlete.full_name.localeCompare(y.athlete.full_name))
     const sent = new Map((n.data as { charge_id: string; created_at: string }[]).map((x) => [x.charge_id, x.created_at]))
-    return { rows: rows as Row[], sent }
+    const ids = (c.data as Charge[]).map((x) => x.id)
+    const px = ids.length ? await sb.from("pix_charges").select("*").in("charge_id", ids).order("created_at", { ascending: false }) : { data: [] as PixCharge[], error: null }
+    if (px.error) throw new Error(px.error.message)
+    const pix = new Map<string, PixCharge>()
+    for (const x of px.data as PixCharge[]) if (x.status === "ativa" && !pix.has(x.charge_id) && (!x.expires_at || new Date(x.expires_at) > new Date())) pix.set(x.charge_id, x)
+    return { rows: rows as Row[], sent, pix, review: (px.data as PixCharge[]).filter((x) => x.review) }
   }, [month])
 
   if (!supabaseConfigured) return <SetupNotice />
@@ -115,6 +123,23 @@ export default function ChargesPage() {
     else reload()
   }
 
+  async function genPix() {
+    const ids = (data?.rows ?? []).filter((r) => r.balance > 0).map((r) => r.id)
+    if (!ids.length) return toast.info("Não há mensalidades em aberto neste mês.")
+    setPixBusy(true)
+    const res = await fetch("/api/pix/cobrancas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ charge_ids: ids }) })
+    const j = (await res.json().catch(() => ({}))) as { error?: string; results?: { status: string; detail?: string }[] }
+    setPixBusy(false)
+    if (!res.ok) return toast.error(j.error ?? "Não foi possível gerar os Pix.")
+    const n = (s: string) => (j.results ?? []).filter((x) => x.status === s).length
+    const fail = (j.results ?? []).find((x) => x.status === "falhou")
+    ;(n("falhou") ? toast.error : toast.success)(`${n("criada")} Pix gerado(s), ${n("existente")} já existia(m)${n("falhou") ? `, ${n("falhou")} com falha: ${fail?.detail ?? ""}` : "."}`)
+    reload()
+  }
+  async function copyPix(code: string) {
+    try { await navigator.clipboard.writeText(code); toast.success("Pix Copia e Cola copiado.") } catch { toast.error("Não foi possível copiar. Use o link do Pix.") }
+  }
+
   const rows = (data?.rows ?? []).filter((r) => filter === "todos" || r.display_status === filter)
   const sum = (f: (r: Row) => number) => (data?.rows ?? []).reduce((a, r) => a + f(r), 0)
 
@@ -133,9 +158,17 @@ export default function ChargesPage() {
         <NativeSelect value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar por situação">
           <option value="todos">Todas as situações</option><option value="pendente">Pendentes</option><option value="atrasado">Atrasadas</option><option value="parcial">Parcialmente pagas</option><option value="pago">Pagas</option><option value="em_conferencia">Em conferência</option>
         </NativeSelect>
+        {pixOn && <Button variant="outline" onClick={genPix} disabled={pixBusy || !data?.rows.length}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>}
         {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => r.balance))}</span>}
       </div>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
+      {data && data.review.length > 0 && (
+        <div role="alert" className="space-y-1 rounded-xl border border-[#F32329]/40 bg-[#F32329]/5 p-3 text-sm">
+          <p className="flex items-center gap-2 font-semibold text-[#B4151B]"><TriangleAlert className="size-4" /> Pix recebido que precisa de conferência</p>
+          <ul className="list-disc pl-6">{data.review.map((x) => <li key={x.id}>{x.note ?? "Conferir pagamento."} <span className="text-muted-foreground">(cobrança de {formatBRL(x.value_cents / 100)})</span></li>)}</ul>
+          <p className="text-xs text-muted-foreground">Estes valores caíram na conta do BTG, mas o sistema não os registrou sozinho. Confira no extrato e registre ou estorne.</p>
+        </div>
+      )}
       {loading && !data ? <Skeleton className="h-48" /> : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
@@ -151,6 +184,7 @@ export default function ChargesPage() {
                   <TableCell><StatusBadge status={r.display_status} /></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      {r.balance > 0 && data?.pix.get(r.id)?.br_code && <Button size="sm" variant="ghost" onClick={() => copyPix(data.pix.get(r.id)!.br_code!)} title="Copiar o Pix Copia e Cola desta mensalidade"><Copy /> Pix</Button>}
                       {r.balance > 0 && <Button size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
                       {r.display_status === "pago" && <Button size="sm" variant="ghost" onClick={() => sendThanks(r)} title={data?.sent.get(r.id) ? `Agradecimento aberto em ${new Date(data.sent.get(r.id)!).toLocaleString("pt-BR")}` : "Abrir mensagem de agradecimento no WhatsApp"}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
                     </div>

@@ -14,22 +14,25 @@ import { useLoad } from "@/hooks/use-load"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { formatBRL, formatCompetence, formatDate } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
-import type { Athlete, Charge, Payment } from "@/lib/types"
+import type { Athlete, Charge, Payment, PixCharge } from "@/lib/types"
 import { normalizePhone } from "@/lib/whatsapp"
-import { Loader2, LogOut } from "lucide-react"
+import { Copy, ExternalLink, Loader2, LogOut } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
 export default function AthletePortal() {
   const { data, error, loading, reload } = useLoad(async () => {
     const sb = supabase()
-    const [a, c, p] = await Promise.all([
+    const [a, c, p, x] = await Promise.all([
       sb.from("athletes").select("*").single(),   // RLS: só o próprio cadastro
       sb.from("charges_view").select("*").order("competence", { ascending: false }),
       sb.from("payments").select("*").order("paid_at", { ascending: false }),
+      sb.from("pix_charges").select("*").eq("status", "ativa").order("created_at", { ascending: false }),
     ])
-    for (const r of [a, c, p]) if (r.error) throw new Error(r.error.message)
-    return { athlete: a.data as Athlete, charges: c.data as Charge[], payments: p.data as Payment[] }
+    for (const r of [a, c, p, x]) if (r.error) throw new Error(r.error.message)
+    const pix = new Map<string, PixCharge>()
+    for (const q of x.data as PixCharge[]) if (!pix.has(q.charge_id) && (!q.expires_at || new Date(q.expires_at) > new Date())) pix.set(q.charge_id, q)
+    return { athlete: a.data as Athlete, charges: c.data as Charge[], payments: p.data as Payment[], pix }
   }, [])
   const [phone, setPhone] = React.useState("")
   const [email, setEmail] = React.useState("")
@@ -85,7 +88,32 @@ export default function AthletePortal() {
                     ))}
                   </ul>
                 )}
-                <p className="mt-3 text-xs text-muted-foreground">QR Code Pix e Pix Copia e Cola ficarão disponíveis quando a cobrança Pix do GEAB for configurada. Por enquanto, siga as instruções de pagamento do grupo.</p>
+                {data.charges.some((c) => c.balance > 0 && data.pix.has(c.id)) ? (
+                  <div className="mt-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-primary">Pagar com Pix</h3>
+                    {data.charges.filter((c) => c.balance > 0 && data.pix.has(c.id)).map((c) => {
+                      const q = data.pix.get(c.id)!
+                      return (
+                        <div key={c.id} className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-3">
+                          {q.qr_image && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={q.qr_image} alt={`QR Code Pix da mensalidade de ${formatCompetence(c.competence)}`} width={120} height={120} className="size-[120px] rounded-lg border bg-white p-1" />
+                          )}
+                          <div className="min-w-0 space-y-2 text-sm">
+                            <p><span className="font-medium capitalize">{formatCompetence(c.competence)}</span> · {formatBRL(q.value_cents / 100)}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {q.br_code && <Button type="button" size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(q.br_code!).then(() => toast.success("Pix Copia e Cola copiado."), () => toast.error("Não foi possível copiar."))}><Copy /> Copiar código Pix</Button>}
+                              {q.payment_link && <a href={q.payment_link} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[0.8rem] hover:bg-secondary"><ExternalLink className="size-3.5" /> Abrir link</a>}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <p className="text-xs text-muted-foreground">Depois de pagar, a confirmação é automática: sua mensalidade passa para “Pago” em instantes.</p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-muted-foreground">Quando o GEAB gerar o Pix da sua mensalidade, o QR Code e o Pix Copia e Cola aparecerão aqui. Enquanto isso, siga as instruções de pagamento do grupo.</p>
+                )}
               </CardContent>
             </Card>
             <Card>

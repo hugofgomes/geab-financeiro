@@ -94,3 +94,18 @@ export type ScorerStats = {
   position: number | null
   history: { date: string; team_a: string; team_b: string; score_a: number | null; score_b: number | null; goals: number }[]
 }
+
+export type PixCharge = {
+  id: string
+  charge_id: string
+  athlete_id: string
+  status: "ativa" | "paga" | "divergente" | "conferir"
+  br_code: string | null
+  payment_link: string | null
+  qr_image: string | null
+  expires_at: string | null
+  review: boolean
+  note: string | null
+  value_cents: number
+  created_at: string
+}
