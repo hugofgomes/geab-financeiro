@@ -118,6 +118,7 @@ export default function CashPage() {
         </div>
       )}
       <form onSubmit={add} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[9rem_1fr_9rem_11rem_8rem_auto] lg:items-end">
+        <h2 className="text-base font-semibold sm:col-span-2 lg:col-span-full">Registrar despesa</h2>
         <div className="space-y-1.5"><Label htmlFor="xd">Data</Label><Input id="xd" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
         <div className="space-y-1.5"><Label htmlFor="xs">Descrição</Label><Input id="xs" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex.: Aluguel da quadra" required /></div>
         <div className="space-y-1.5"><Label htmlFor="xc">Categoria</Label><Input id="xc" value={cat} onChange={(e) => setCat(e.target.value)} placeholder="Quadra, Goleiro…" /></div>
