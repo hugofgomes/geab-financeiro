@@ -113,7 +113,7 @@ export default function CashPage() {
       {data && (
         <div className="grid gap-3 sm:grid-cols-3">
           <Card><CardContent className="pt-4"><div className="text-xs text-muted-foreground">Entradas (mensalidades e outras)</div><div className="text-2xl font-semibold tabular-nums text-green-700">{formatBRL(data.totalIn)}</div></CardContent></Card>
-          <Card><CardContent className="pt-4"><div className="text-xs text-muted-foreground">Despesas</div><div className="text-2xl font-semibold tabular-nums text-red-700">{formatBRL(data.totalOut)}</div></CardContent></Card>
+          <Card><CardContent className="pt-4"><div className="text-xs text-muted-foreground">Despesas</div><div className="text-2xl font-semibold tabular-nums text-[#B4151B]">{formatBRL(data.totalOut)}</div></CardContent></Card>
           <Card><CardContent className="pt-4"><div className="text-xs text-muted-foreground">Saldo em caixa</div><div className="text-2xl font-semibold tabular-nums">{formatBRL(data.totalIn - data.totalOut)}</div></CardContent></Card>
         </div>
       )}

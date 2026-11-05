@@ -52,11 +52,10 @@ function Form() {
 export default function LoginPage() {
   if (!supabaseConfigured) return <SetupNotice />
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#0b3d1e] p-4">
-      <div className="w-full max-w-sm space-y-6 rounded-2xl bg-background p-6 shadow-xl">
+    <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
+      <div className="w-full max-w-sm space-y-6 rounded-xl bg-card p-6 shadow-xl">
         <div className="text-center">
-          <div className="text-3xl" aria-hidden>⚽</div>
-          <h1 className="mt-1 text-xl font-semibold">GEAB Futebol</h1>
+          <h1 className="text-xl font-bold tracking-wide uppercase">GEAB Futebol</h1>
           <p className="text-sm text-muted-foreground">Financeiro · desde 1998</p>
         </div>
         <React.Suspense>

@@ -8,6 +8,7 @@ import { useLoad } from "@/hooks/use-load"
 import { addMonths, formatBRL, formatCompetence, formatDate, monthKey } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Charge, Payment } from "@/lib/types"
+import { AlertTriangle, CalendarClock, CircleDollarSign, Hourglass, Landmark, Users, type LucideIcon } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 async function loadDashboard() {
@@ -29,13 +30,16 @@ async function loadDashboard() {
   }
 }
 
-function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "bad" | "good" }) {
+function Kpi({ label, value, hint, tone, icon: Icon }: { label: string; value: string; hint?: string; tone?: "bad" | "good"; icon: LucideIcon }) {
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="text-xs font-medium text-muted-foreground">{label}</div>
-        <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone === "bad" ? "text-red-700" : tone === "good" ? "text-green-700" : ""}`}>{value}</div>
-        {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
+    <Card className="hover:shadow-md">
+      <CardContent className="flex items-start justify-between gap-3 pt-4">
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-muted-foreground">{label}</div>
+          <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone === "bad" ? "text-[#B4151B]" : tone === "good" ? "text-green-700" : "text-primary"}`}>{value}</div>
+          {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
+        </div>
+        <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl ${tone === "bad" ? "bg-[#F32329]/10 text-[#F32329]" : "bg-secondary text-primary"}`}><Icon className="size-5" /></span>
       </CardContent>
     </Card>
   )
@@ -69,14 +73,14 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Dashboard <span className="text-base font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Visão geral <span className="text-base font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Kpi label="Atletas ativos" value={String(data.athletes.filter((a) => a.active).length)} />
-        <Kpi label="Previsto no mês" value={formatBRL(planned)} hint={cur.length ? `${cur.length} mensalidades` : "Nenhuma mensalidade gerada neste mês"} />
-        <Kpi label="Recebido no mês" value={formatBRL(receivedMonth)} hint={planned ? `${Math.round((paidCur / planned) * 100)}% do previsto` : undefined} tone="good" />
-        <Kpi label="Pendente no mês" value={formatBRL(pending)} />
-        <Kpi label="Atletas inadimplentes" value={String(lateByAthlete.size)} hint={late.length ? `${late.length} mensalidade(s) em atraso` : "Ninguém em atraso"} tone={lateByAthlete.size ? "bad" : undefined} />
-        <Kpi label="Saldo em caixa" value={formatBRL(data.totalIn - data.totalOut)} hint="Pagamentos − despesas (total)" />
+        <Kpi icon={Users} label="Atletas ativos" value={String(data.athletes.filter((a) => a.active).length)} />
+        <Kpi icon={CalendarClock} label="Previsto no mês" value={formatBRL(planned)} hint={cur.length ? `${cur.length} mensalidades` : "Nenhuma mensalidade gerada neste mês"} />
+        <Kpi icon={CircleDollarSign} label="Recebido no mês" value={formatBRL(receivedMonth)} hint={planned ? `${Math.round((paidCur / planned) * 100)}% do previsto` : undefined} tone="good" />
+        <Kpi icon={Hourglass} label="Pendente no mês" value={formatBRL(pending)} />
+        <Kpi icon={AlertTriangle} label="Atletas inadimplentes" value={String(lateByAthlete.size)} hint={late.length ? `${late.length} mensalidade(s) em atraso` : "Ninguém em atraso"} tone={lateByAthlete.size ? "bad" : undefined} />
+        <Kpi icon={Landmark} label="Saldo em caixa" value={formatBRL(data.totalIn - data.totalOut)} hint="Pagamentos − despesas (total)" />
       </div>
 
       <Card>
@@ -84,13 +88,13 @@ export default function Dashboard() {
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chart} margin={{ left: 4, right: 8 }}>
-              <CartesianGrid vertical={false} stroke="rgb(0 0 0 / 0.08)" />
+              <CartesianGrid vertical={false} stroke="#E2E8F0" />
               <XAxis dataKey="mes" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={(v) => formatBRL(Number(v)).replace(",00", "")} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={72} />
-              <Tooltip formatter={(v) => formatBRL(Number(v))} cursor={{ fill: "rgb(0 0 0 / 0.04)" }} />
+              <Tooltip formatter={(v) => formatBRL(Number(v))} cursor={{ fill: "rgb(28 61 99 / 0.06)" }} contentStyle={{ borderRadius: 12, border: "1px solid #DCE3EC", boxShadow: "0 4px 12px rgb(0 0 0 / 0.08)" }} />
               <Legend iconType="circle" />
-              <Bar dataKey="Previsto" fill="#94a3b8" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-              <Bar dataKey="Recebido" fill="#15803d" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="Previsto" fill="#B6C3D4" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="Recebido" fill="#1C3D63" radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

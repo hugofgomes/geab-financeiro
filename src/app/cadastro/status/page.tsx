@@ -32,7 +32,7 @@ function Content() {
         </>
       ) : data ? (
         <>
-          {confirmed ? <CheckCircle2 className="mx-auto size-10 text-green-700" aria-hidden /> : <Clock className="mx-auto size-10 text-amber-600" aria-hidden />}
+          {confirmed ? <CheckCircle2 className="mx-auto size-10 text-green-600" aria-hidden /> : <Clock className="mx-auto size-10 text-amber-600" aria-hidden />}
           <h2 className="text-lg font-semibold">{confirmed ? "E-mail confirmado!" : "Cadastro recebido"}</h2>
           <p className="text-sm text-muted-foreground">
             Recebemos o cadastro de <strong className="text-foreground">{data.full_name}</strong> em {formatDate(data.created_at.slice(0, 10))}.
@@ -55,11 +55,10 @@ function Content() {
 export default function SignupStatusPage() {
   if (!supabaseConfigured) return <SetupNotice />
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#0b3d1e] p-4">
-      <div className="w-full max-w-md space-y-5 rounded-2xl bg-background p-6 shadow-xl">
+    <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
+      <div className="w-full max-w-md space-y-5 rounded-xl bg-card p-6 shadow-xl">
         <div className="text-center">
-          <div className="text-3xl" aria-hidden>⚽</div>
-          <h1 className="mt-1 text-xl font-semibold">GEAB Futebol</h1>
+          <h1 className="text-xl font-bold tracking-wide uppercase">GEAB Futebol</h1>
         </div>
         <React.Suspense><Content /></React.Suspense>
       </div>

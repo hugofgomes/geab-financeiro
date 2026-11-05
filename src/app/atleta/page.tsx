@@ -53,9 +53,9 @@ export default function AthletePortal() {
 
   return (
     <div className="min-h-dvh">
-      <header className="border-b bg-[#0b3d1e] text-white">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-semibold">⚽ GEAB Futebol</span>
-          <Button variant="ghost" size="sm" onClick={signOut} className="text-green-100 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
+      <header className="border-b bg-[#1C3D63] text-white shadow-sm">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-bold tracking-wide uppercase">GEAB Futebol</span>
+          <Button variant="ghost" size="sm" onClick={signOut} className="text-white/80 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
       </header>
       {data && (
         <BirthdayCard

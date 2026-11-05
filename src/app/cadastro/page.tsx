@@ -25,11 +25,10 @@ function maskPhone(v: string) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#0b3d1e] p-4">
-      <div className="w-full max-w-lg space-y-5 rounded-2xl bg-background p-6 shadow-xl">
+    <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
+      <div className="w-full max-w-lg space-y-5 rounded-xl bg-card p-6 shadow-xl">
         <div className="text-center">
-          <div className="text-3xl" aria-hidden>⚽</div>
-          <h1 className="mt-1 text-xl font-semibold">GEAB Futebol</h1>
+          <h1 className="text-xl font-bold tracking-wide uppercase">GEAB Futebol</h1>
           <p className="text-sm text-muted-foreground">Cadastro de atleta</p>
         </div>
         {children}
@@ -56,7 +55,7 @@ function Sent({ email }: { email: string }) {
   return (
     <Shell>
       <div className="space-y-3 text-center">
-        <MailCheck className="mx-auto size-10 text-green-700" aria-hidden />
+        <MailCheck className="mx-auto size-10 text-green-600" aria-hidden />
         <h2 className="text-lg font-semibold">Confira seu e-mail</h2>
         <p className="text-sm text-muted-foreground">
           Enviamos uma mensagem de confirmação para <strong className="text-foreground">{email}</strong>.

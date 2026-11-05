@@ -1,19 +1,21 @@
 import { Toaster } from "@/components/ui/sonner"
-import type { Metadata } from "next"
-import { Geist } from "next/font/google"
+import type { Metadata, Viewport } from "next"
+import { Inter } from "next/font/google"
 import { AutoUpdate } from "@/components/auto-update"
 import "./globals.css"
 
-const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" })
 
 export const metadata: Metadata = {
   title: "GEAB Futebol · Financeiro",
   description: "Controle de mensalidades e caixa do GEAB Futebol",
 }
 
+export const viewport: Viewport = { themeColor: "#1C3D63" }
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={geist.variable}>
+    <html lang="pt-BR" className={inter.variable}>
       <body className="antialiased">
         {children}
         <AutoUpdate />

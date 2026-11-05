@@ -8,7 +8,7 @@ export function BirthdayCard({ names, self, onClose }: { names: string[]; self: 
   const open = names.length > 0
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent showCloseButton={false} className="max-w-sm overflow-hidden border-0 bg-gradient-to-b from-[#0b3d1e] to-[#14632f] p-0 text-center text-white sm:max-w-sm">
+      <DialogContent showCloseButton={false} className="max-w-sm overflow-hidden border-0 bg-gradient-to-b from-[#1C3D63] to-[#2A5A8C] p-0 text-center text-white sm:max-w-sm">
         <div className="relative px-6 pb-6 pt-8">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-2 flex justify-between px-5 text-2xl motion-safe:animate-bounce">
             <span>🎈</span><span>🎉</span><span>🎈</span>
@@ -22,14 +22,14 @@ export function BirthdayCard({ names, self, onClose }: { names: string[]; self: 
               {names.map((n) => <li key={n}>{n}</li>)}
             </ul>
           )}
-          <DialogDescription className="mt-3 text-sm leading-relaxed text-green-50/90">
+          <DialogDescription className="mt-3 text-sm leading-relaxed text-blue-50/90">
             {self
               ? "O GEAB Futebol deseja muita saúde, alegria e muitos gols neste novo ano de vida. Obrigado por fazer parte da nossa história!"
               : "Que tal mandar um parabéns? Em nome de todo o GEAB, muita saúde, alegria e muitos gols!"}
           </DialogDescription>
-          <div aria-hidden className="mt-4 text-2xl">⚽ 🥳 ⚽</div>
-          <p className="mt-1 text-xs text-green-100/70">GEAB Futebol · Desde 1998</p>
-          <Button onClick={onClose} className="mt-5 bg-yellow-400 text-black hover:bg-yellow-300">
+          <div aria-hidden className="mt-4 text-2xl">🥳 🎊 🥳</div>
+          <p className="mt-1 text-xs text-blue-100/70">GEAB Futebol · Desde 1998</p>
+          <Button onClick={onClose} className="mt-5 bg-[#F32329] text-white hover:bg-[#F32329]/90">
             {self ? "Obrigado!" : "Fechar"}
           </Button>
         </div>

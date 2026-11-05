@@ -5,12 +5,11 @@ import { BirthdayCard } from "@/components/birthday-card"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { CalendarCheck, ChevronDown, FileUp, LayoutDashboard, LogOut, ShieldCheck, UserCog, UserPlus, Users, Wallet } from "lucide-react"
+import { Bell, CalendarCheck, ChevronDown, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
 
-/** Uso diário: ficam sempre visíveis na barra. */
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/atletas", label: "Atletas", icon: Users },
@@ -19,44 +18,61 @@ const NAV = [
   { href: "/cadastros", label: "Cadastros", icon: UserPlus },
 ]
 
-/** Administração e conta: ficam no menu do usuário. */
-const MORE = [
+const ADMIN = [
   { href: "/importar", label: "Importar planilha", icon: FileUp },
   { href: "/usuarios", label: "Usuários e privilégios", icon: ShieldCheck },
-  { href: "/conta", label: "Minha conta", icon: UserCog },
 ]
+
+const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
+
+const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
+const titleOf = (path: string) => [...NAV, ...ADMIN, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? "GEAB Futebol"
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
 
-function UserMenu({ path, name, onSignOut }: { path: string; name: string; onSignOut: () => void }) {
+function SideLink({ href, label, icon: Icon, path, badge }: { href: string; label: string; icon: typeof Users; path: string; badge?: number }) {
+  const active = isActive(path, href)
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/80 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70",
+        active && "bg-[#F32329] text-white shadow-sm hover:bg-[#F32329]",
+      )}
+    >
+      <Icon className="size-[18px] shrink-0" aria-hidden />
+      <span className="flex-1 truncate">{label}</span>
+      {!!badge && <span className={cn("rounded-full px-1.5 text-[11px] font-semibold", active ? "bg-white text-[#F32329]" : "bg-[#F32329] text-white")} aria-label={`${badge} pendentes`}>{badge}</span>}
+    </Link>
+  )
+}
+
+function UserMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) {
   const router = useRouter()
-  const inMore = MORE.some((m) => path.startsWith(m.href))
   const first = name.split(" ")[0]
   return (
     <Menu.Root>
       <Menu.Trigger
         aria-label="Menu do usuário"
-        className={cn("flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-sm text-green-100 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 data-[popup-open]:bg-white/15", inMore && "bg-white/15 text-white")}
+        className="flex h-10 shrink-0 items-center gap-2 rounded-lg px-2 text-sm text-foreground outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-secondary"
       >
-        <span aria-hidden className="grid size-6 place-items-center rounded-full bg-white/20 text-xs font-semibold uppercase">{(first[0] ?? "D")}</span>
-        <span className="hidden max-w-28 truncate md:inline">{first || "Diretoria"}</span>
-        <ChevronDown className="size-4 opacity-70" />
+        <span aria-hidden className="grid size-8 place-items-center rounded-full bg-primary text-xs font-semibold text-white uppercase">{first[0] ?? "D"}</span>
+        <span className="hidden max-w-32 truncate font-medium sm:inline">{first || "Diretoria"}</span>
+        <ChevronDown className="size-4 opacity-60" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="end" sideOffset={8} className="z-50">
-          <Menu.Popup className="min-w-56 rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg outline-none">
+          <Menu.Popup className="min-w-56 rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg outline-none">
             <div className="px-2.5 py-2">
               <div className="truncate text-sm font-medium">{name || "Diretoria"}</div>
-              {name && <div className="text-xs text-muted-foreground">Diretoria</div>}
+              <div className="text-xs text-muted-foreground">Diretoria</div>
             </div>
             <Menu.Separator className="my-1 h-px bg-border" />
-            {MORE.map((m) => (
-              <Menu.Item key={m.href} onClick={() => router.push(m.href)} className={itemCls}>
-                <m.icon className="size-4 text-muted-foreground" /> {m.label}
-              </Menu.Item>
-            ))}
-            <Menu.Separator className="my-1 h-px bg-border" />
-            <Menu.Item onClick={onSignOut} className={cn(itemCls, "text-destructive data-[highlighted]:text-destructive")}>
+            <Menu.Item onClick={() => router.push(ACCOUNT.href)} className={itemCls}>
+              <ACCOUNT.icon className="size-4 text-muted-foreground" /> {ACCOUNT.label}
+            </Menu.Item>
+            <Menu.Item onClick={onSignOut} className={cn(itemCls, "text-[#B4151B] data-[highlighted]:bg-[#F32329]/10 data-[highlighted]:text-[#B4151B]")}>
               <LogOut className="size-4" /> Sair
             </Menu.Item>
           </Menu.Popup>
@@ -68,6 +84,7 @@ function UserMenu({ path, name, onSignOut }: { path: string; name: string; onSig
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
+  const [open, setOpen] = React.useState(false)
   const [pending, setPending] = React.useState(0)
   const [birthdays, setBirthdays] = React.useState<string[]>([])
   const [me, setMe] = React.useState("")
@@ -94,38 +111,75 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     await supabase().auth.signOut()
     window.location.href = "/login"
   }
+  // Fecha o menu lateral ao navegar ou pressionar Esc (telas pequenas).
+  React.useEffect(() => { setOpen(false) }, [path])
+  React.useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [open])
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-10 border-b bg-[#0b3d1e] text-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-4 sm:px-4">
-          <div className="flex items-center gap-2 font-semibold tracking-tight">
-            <span aria-hidden>⚽</span> GEAB <span className="hidden font-normal text-green-200 md:inline">Financeiro</span>
-          </div>
-          <nav className="flex flex-1 justify-center gap-0.5 overflow-x-auto sm:ml-2 sm:justify-start sm:gap-1 lg:overflow-visible" aria-label="Principal">
-            {NAV.map((n) => {
-              const active = n.href === "/" ? path === "/" : path.startsWith(n.href)
-              return (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  title={n.label}
-                  aria-label={n.label}
-                  aria-current={active ? "page" : undefined}
-                  className={cn("flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-sm sm:px-3 text-green-100/80 hover:bg-white/10 hover:text-white", active && "bg-white/15 text-white")}
-                >
-                  <n.icon className="size-4" />
-                  <span className="hidden lg:inline">{n.label}</span>
-                  {n.href === "/cadastros" && pending > 0 && (
-                    <span className="rounded-full bg-amber-400 px-1.5 text-[11px] font-semibold text-black" aria-label={`${pending} pendentes`}>{pending}</span>
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-          <UserMenu path={path} name={me} onSignOut={signOut} />
+      {open && <div className="fixed inset-0 z-30 bg-[#0f2540]/50 backdrop-blur-[1px] lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
+      <aside
+        id="menu-lateral"
+        aria-label="Menu principal"
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#1C3D63] text-white shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
+          open ? "translate-x-0" : "max-lg:invisible max-lg:-translate-x-full",
+        )}
+      >
+        <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
+          <span className="text-[15px] font-bold tracking-[0.14em] uppercase">GEAB Futebol</span>
+          <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="grid size-8 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden">
+            <X className="size-5" />
+          </button>
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6">{children}</main>
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Principal">
+          <div className="space-y-1">
+            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">Gestão</p>
+            {NAV.map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
+          </div>
+          <div className="space-y-1">
+            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">Administração</p>
+            {ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
+            <SideLink {...ACCOUNT} path={path} />
+          </div>
+        </nav>
+        <div className="border-t border-white/10 p-3">
+          <button type="button" onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/80 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70">
+            <LogOut className="size-[18px]" aria-hidden /> Sair
+          </button>
+        </div>
+      </aside>
+
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-white px-4 shadow-sm sm:px-6">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Abrir menu"
+            aria-expanded={open}
+            aria-controls="menu-lateral"
+            className="grid size-10 place-items-center rounded-lg text-primary outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          >
+            <MenuIcon className="size-5" />
+          </button>
+          <div className="flex-1 truncate text-lg font-semibold tracking-tight text-primary">{titleOf(path)}</div>
+          <Link
+            href="/cadastros"
+            aria-label={pending > 0 ? `Notificações: ${pending} cadastro(s) pendente(s)` : "Notificações: nenhuma pendência"}
+            title={pending > 0 ? `${pending} cadastro(s) aguardando aprovação` : "Sem pendências"}
+            className="relative grid size-10 place-items-center rounded-lg text-primary outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Bell className="size-5" />
+            {pending > 0 && <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-[#F32329] px-1 text-[10px] leading-4 font-semibold text-white">{pending}</span>}
+          </Link>
+          <UserMenu name={me} onSignOut={signOut} />
+        </header>
+        <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">{children}</main>
+      </div>
       <BirthdayCard names={birthdays} self={false} onClose={() => { markSeen("admin"); setBirthdays([]) }} />
     </div>
   )
