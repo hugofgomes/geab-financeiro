@@ -15,7 +15,7 @@ import { addMonths, formatBRL, formatCompetence, formatDate, monthKey } from "@/
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, Charge, DisplayStatus, PixCharge } from "@/lib/types"
 import { confirmationMessage, waLink } from "@/lib/whatsapp"
-import { ChevronLeft, ChevronRight, Copy, Loader2, MessageCircle, Pencil, Plus, QrCode, Trash2, TriangleAlert, Wand2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Copy, Loader2, MessageCircle, Pencil, Plus, Trash2, TriangleAlert, Wand2 } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -127,23 +127,6 @@ export default function ChargesPage() {
   const [paying, setPaying] = React.useState<Row | null>(null)
   const [editing, setEditing] = React.useState<Row | null>(null)
   const [generating, setGenerating] = React.useState(false)
-  const [pixOn, setPixOn] = React.useState(false)
-  const [pixMissing, setPixMissing] = React.useState<string[]>([])
-  const [btg, setBtg] = React.useState<{ configured: boolean; connected: boolean }>({ configured: false, connected: false })
-  const [pixBusy, setPixBusy] = React.useState(false)
-  React.useEffect(() => {
-    fetch("/api/pix/cobrancas").then((r) => r.json()).then((j) => {
-      setBtg({ configured: j.provider === "btg", connected: !!j.connected })
-      setPixOn(!!j.configured && !!j.connected)
-      setPixMissing(Array.isArray(j.missing) ? j.missing : [])
-    }, () => setPixOn(false))
-    const q = new URLSearchParams(window.location.search).get("btg")
-    if (q === "ok") toast.success("BTG conectado. Já dá para gerar os Pix.")
-    else if (q === "negado") toast.error("Você não autorizou o acesso no BTG.")
-    else if (q === "erro") toast.error("Não foi possível conectar o BTG. Tente novamente.")
-    else if (q === "nao-configurado") toast.error("O BTG ainda não está configurado no servidor.")
-    if (q) window.history.replaceState(null, "", window.location.pathname)
-  }, [])
 
   const { data, error, loading, reload } = useLoad(async () => {
     const sb = supabase()
@@ -187,19 +170,6 @@ export default function ChargesPage() {
     else reload()
   }
 
-  async function genPix() {
-    const ids = (data?.rows ?? []).filter((r) => r.balance > 0).map((r) => r.id)
-    if (!ids.length) return toast.info("Não há mensalidades em aberto neste mês.")
-    setPixBusy(true)
-    const res = await fetch("/api/pix/cobrancas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ charge_ids: ids }) })
-    const j = (await res.json().catch(() => ({}))) as { error?: string; results?: { status: string; detail?: string }[] }
-    setPixBusy(false)
-    if (!res.ok) return toast.error(j.error ?? "Não foi possível gerar os Pix.")
-    const n = (s: string) => (j.results ?? []).filter((x) => x.status === s).length
-    const fail = (j.results ?? []).find((x) => x.status === "falhou")
-    ;(n("falhou") ? toast.error : toast.success)(`${n("criada")} Pix gerado(s), ${n("existente")} já existia(m)${n("falhou") ? `, ${n("falhou")} com falha: ${fail?.detail ?? ""}` : "."}`)
-    reload()
-  }
   async function removeCharge(r: Row) {
     const base = `Excluir a mensalidade de ${r.athlete.full_name} (${formatCompetence(r.competence)}, ${formatBRL(r.amount)})?`
     const withPay = r.paid_total > 0
@@ -232,8 +202,6 @@ export default function ChargesPage() {
         <NativeSelect value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar por situação">
           <option value="todos">Todas as situações</option><option value="pendente">Pendentes</option><option value="atrasado">Atrasadas</option><option value="parcial">Parcialmente pagas</option><option value="pago">Pagas</option><option value="em_conferencia">Em conferência</option>
         </NativeSelect>
-        {btg.configured && !btg.connected && <a href="/api/btg/conectar" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand/90"><QrCode className="size-4" /> Conectar BTG</a>}
-        <Button variant="outline" onClick={pixOn ? genPix : () => toast.error(btg.configured ? "Conecte o BTG primeiro: clique em “Conectar BTG”." : `Pix automático ainda não configurado no servidor. Faltam no Coolify: ${(pixMissing.length ? pixMissing : ["BTG_CLIENT_ID", "BTG_COMPANY_ID", "BTG_PIX_KEY"]).join(", ")}.`, { duration: 9000 })} disabled={pixBusy || (pixOn && !data?.rows.length)} className={pixOn ? "" : "opacity-70"}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>
         {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => Math.max(0, r.balance)))}</span>}
       </div>
       <PixSettings />
