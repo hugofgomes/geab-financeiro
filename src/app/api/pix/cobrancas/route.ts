@@ -13,7 +13,9 @@ const provider = () => (btgConfigured() ? "btg" : openpixConfigured() ? "openpix
 export async function GET() {
   if (!(await adminClient())) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
   const p = provider()
-  return NextResponse.json({ configured: !!p, provider: p, connected: p === "btg" ? (await btgStatus()).connected : p === "openpix" })
+  // Só os NOMES das variáveis que faltam (nunca valores), para a tela dizer o que fazer.
+  const missing = p ? [] : ["BTG_CLIENT_ID", "BTG_COMPANY_ID", "BTG_PIX_KEY"].filter((k) => (k === "BTG_COMPANY_ID" ? !/^\d{14}$/.test((process.env[k] || "").replace(/\D/g, "")) : !process.env[k]))
+  return NextResponse.json({ configured: !!p, provider: p, missing, connected: p === "btg" ? (await btgStatus()).connected : p === "openpix" })
 }
 
 type Result = { charge_id: string; status: "criada" | "existente" | "ignorada" | "falhou"; detail?: string }

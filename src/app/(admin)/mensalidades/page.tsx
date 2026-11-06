@@ -128,12 +128,14 @@ export default function ChargesPage() {
   const [editing, setEditing] = React.useState<Row | null>(null)
   const [generating, setGenerating] = React.useState(false)
   const [pixOn, setPixOn] = React.useState(false)
+  const [pixMissing, setPixMissing] = React.useState<string[]>([])
   const [btg, setBtg] = React.useState<{ configured: boolean; connected: boolean }>({ configured: false, connected: false })
   const [pixBusy, setPixBusy] = React.useState(false)
   React.useEffect(() => {
     fetch("/api/pix/cobrancas").then((r) => r.json()).then((j) => {
       setBtg({ configured: j.provider === "btg", connected: !!j.connected })
       setPixOn(!!j.configured && !!j.connected)
+      setPixMissing(Array.isArray(j.missing) ? j.missing : [])
     }, () => setPixOn(false))
     const q = new URLSearchParams(window.location.search).get("btg")
     if (q === "ok") toast.success("BTG conectado. Já dá para gerar os Pix.")
@@ -231,7 +233,7 @@ export default function ChargesPage() {
           <option value="todos">Todas as situações</option><option value="pendente">Pendentes</option><option value="atrasado">Atrasadas</option><option value="parcial">Parcialmente pagas</option><option value="pago">Pagas</option><option value="em_conferencia">Em conferência</option>
         </NativeSelect>
         {btg.configured && !btg.connected && <a href="/api/btg/conectar" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand/90"><QrCode className="size-4" /> Conectar BTG</a>}
-        {pixOn && <Button variant="outline" onClick={genPix} disabled={pixBusy || !data?.rows.length}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>}
+        <Button variant="outline" onClick={pixOn ? genPix : () => toast.error(btg.configured ? "Conecte o BTG primeiro: clique em “Conectar BTG”." : `Pix automático ainda não configurado no servidor. Faltam no Coolify: ${(pixMissing.length ? pixMissing : ["BTG_CLIENT_ID", "BTG_COMPANY_ID", "BTG_PIX_KEY"]).join(", ")}.`, { duration: 9000 })} disabled={pixBusy || (pixOn && !data?.rows.length)} className={pixOn ? "" : "opacity-70"}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>
         {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => Math.max(0, r.balance)))}</span>}
       </div>
       <PixSettings />
