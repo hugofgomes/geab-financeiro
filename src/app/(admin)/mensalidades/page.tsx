@@ -120,8 +120,20 @@ export default function ChargesPage() {
   const [editing, setEditing] = React.useState<Row | null>(null)
   const [generating, setGenerating] = React.useState(false)
   const [pixOn, setPixOn] = React.useState(false)
+  const [btg, setBtg] = React.useState<{ configured: boolean; connected: boolean }>({ configured: false, connected: false })
   const [pixBusy, setPixBusy] = React.useState(false)
-  React.useEffect(() => { fetch("/api/pix/cobrancas").then((r) => r.json()).then((j) => setPixOn(!!j.configured), () => setPixOn(false)) }, [])
+  React.useEffect(() => {
+    fetch("/api/pix/cobrancas").then((r) => r.json()).then((j) => {
+      setBtg({ configured: j.provider === "btg", connected: !!j.connected })
+      setPixOn(!!j.configured && !!j.connected)
+    }, () => setPixOn(false))
+    const q = new URLSearchParams(window.location.search).get("btg")
+    if (q === "ok") toast.success("BTG conectado. Já dá para gerar os Pix.")
+    else if (q === "negado") toast.error("Você não autorizou o acesso no BTG.")
+    else if (q === "erro") toast.error("Não foi possível conectar o BTG. Tente novamente.")
+    else if (q === "nao-configurado") toast.error("O BTG ainda não está configurado no servidor.")
+    if (q) window.history.replaceState(null, "", window.location.pathname)
+  }, [])
 
   const { data, error, loading, reload } = useLoad(async () => {
     const sb = supabase()
@@ -210,6 +222,7 @@ export default function ChargesPage() {
         <NativeSelect value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar por situação">
           <option value="todos">Todas as situações</option><option value="pendente">Pendentes</option><option value="atrasado">Atrasadas</option><option value="parcial">Parcialmente pagas</option><option value="pago">Pagas</option><option value="em_conferencia">Em conferência</option>
         </NativeSelect>
+        {btg.configured && !btg.connected && <a href="/api/btg/conectar" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand/90"><QrCode className="size-4" /> Conectar BTG</a>}
         {pixOn && <Button variant="outline" onClick={genPix} disabled={pixBusy || !data?.rows.length}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>}
         {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => r.balance))}</span>}
       </div>
