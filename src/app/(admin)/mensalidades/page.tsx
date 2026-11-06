@@ -81,6 +81,52 @@ function PaymentDialog({ row, onClose, onSaved }: { row: Row | null; onClose: ()
   )
 }
 
+/** Pagamentos já registrados da mensalidade: a Diretoria pode corrigir valor/data ou excluir (auditado; o caixa acompanha). */
+function PaymentsEditor({ chargeId, onChanged }: { chargeId: string; onChanged: () => void }) {
+  type P = { id: string; amount: number; paid_at: string }
+  const [list, setList] = React.useState<P[] | null>(null)
+  const [edit, setEdit] = React.useState<Record<string, { amount: string; date: string }>>({})
+  const [busy, setBusy] = React.useState<string | null>(null)
+  const load = React.useCallback(async () => {
+    const { data } = await supabase().from("payments").select("id, amount, paid_at").eq("charge_id", chargeId).order("paid_at")
+    const l = (data ?? []).map((x) => ({ id: x.id as string, amount: Number(x.amount), paid_at: x.paid_at as string }))
+    setList(l)
+    setEdit(Object.fromEntries(l.map((x) => [x.id, { amount: String(x.amount).replace(".", ","), date: x.paid_at }])))
+  }, [chargeId])
+  React.useEffect(() => { void load() }, [load])
+  if (!list?.length) return null
+  async function save(id: string) {
+    const v = Number(edit[id].amount.replace(",", "."))
+    if (!Number.isFinite(v) || v <= 0) return toast.error("Informe um valor maior que zero.")
+    setBusy(id)
+    const { error } = await supabase().from("payments").update({ amount: v, paid_at: edit[id].date }).eq("id", id)
+    setBusy(null)
+    if (error) return toast.error(error.message.includes("excede") ? "O pagamento ficaria acima do valor da mensalidade. Aumente o valor da mensalidade primeiro." : error.message)
+    toast.success("Pagamento atualizado."); await load(); onChanged()
+  }
+  async function del(id: string) {
+    if (!window.confirm("Excluir este pagamento? O saldo do caixa diminui nesse valor.")) return
+    setBusy(id)
+    const { error } = await supabase().from("payments").delete().eq("id", id)
+    setBusy(null)
+    if (error) return toast.error(error.message)
+    toast.success("Pagamento excluído."); await load(); onChanged()
+  }
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      <p className="text-sm font-medium">Pagamentos registrados</p>
+      {list.map((p) => (
+        <div key={p.id} className="flex items-center gap-2">
+          <Input aria-label="Valor pago" className="w-24" inputMode="decimal" value={edit[p.id]?.amount ?? ""} onChange={(e) => setEdit({ ...edit, [p.id]: { ...edit[p.id], amount: e.target.value } })} />
+          <Input aria-label="Data do pagamento" type="date" className="flex-1" value={edit[p.id]?.date ?? ""} onChange={(e) => setEdit({ ...edit, [p.id]: { ...edit[p.id], date: e.target.value } })} />
+          <Button type="button" size="sm" variant="outline" disabled={busy === p.id} onClick={() => save(p.id)}>Salvar</Button>
+          <Button type="button" size="icon-sm" variant="ghost" disabled={busy === p.id} onClick={() => del(p.id)} aria-label="Excluir pagamento"><Trash2 /></Button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Edição de uma mensalidade pela Diretoria: qualquer valor (0 = isenção) e vencimento. */
 function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () => void; onSaved: () => void }) {
   const [amount, setAmount] = React.useState("")
@@ -102,7 +148,7 @@ function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose:
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Editar mensalidade</DialogTitle></DialogHeader>
         <form onSubmit={save} className="space-y-3">
           <p className="text-sm text-muted-foreground">{cur.athlete.full_name} · {formatCompetence(cur.competence)}{cur.paid_total > 0 ? ` · já pago ${formatBRL(cur.paid_total)}` : ""}</p>
@@ -111,8 +157,9 @@ function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose:
             <div className="space-y-1.5"><Label htmlFor="cd">Vencimento</Label><Input id="cd" type="date" value={due} onChange={(e) => setDue(e.target.value)} required /></div>
           </div>
           {cur.paid_total > 0 && Number(amount.replace(",", ".")) < cur.paid_total && <p className="text-xs text-amber-600">O novo valor é menor que o já pago ({formatBRL(cur.paid_total)}): a mensalidade ficará como paga e os pagamentos registrados serão mantidos.</p>}
+          <PaymentsEditor chargeId={cur.id} onChanged={onSaved} />
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={onClose}>Fechar</Button>
             <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar</Button>
           </DialogFooter>
         </form>
@@ -230,7 +277,7 @@ export default function ChargesPage() {
                     <div className="flex justify-end gap-1">
                       {r.balance > 0 && data?.pix.get(r.id)?.br_code && <Button size="sm" variant="ghost" onClick={() => copyPix(data.pix.get(r.id)!.br_code!)} title="Copiar o Pix Copia e Cola desta mensalidade"><Copy /> Pix</Button>}
                       {r.balance > 0 && <Button size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
-                      <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`} title="Editar valor e vencimento"><Pencil /></Button>
+                      <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`} title="Editar valor, vencimento e pagamentos"><Pencil /></Button>
                       <Button size="icon-sm" variant="ghost" onClick={() => removeCharge(r)} aria-label={`Excluir mensalidade de ${r.athlete.full_name}`} title="Excluir mensalidade"><Trash2 /></Button>
                       {r.display_status === "pago" && <Button size="sm" variant="ghost" onClick={() => sendThanks(r)} title={data?.sent.get(r.id) ? `Agradecimento aberto em ${new Date(data.sent.get(r.id)!).toLocaleString("pt-BR")}` : "Abrir mensagem de agradecimento no WhatsApp"}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
                     </div>
