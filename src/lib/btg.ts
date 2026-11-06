@@ -32,8 +32,10 @@ async function tokenRequest(form: Record<string, string>): Promise<Required<Pick
     body: new URLSearchParams(form).toString(),
     signal: AbortSignal.timeout(20_000),
   })
-  const j = (await r.json().catch(() => ({}))) as TokenResponse & { error?: string; error_description?: string }
-  if (!r.ok || !j.access_token) throw new Error(`BTG Id recusou o pedido de acesso (${j.error_description || j.error || r.status}).`)
+  const raw = await r.text()
+  let j: TokenResponse & { error?: string; error_description?: string } = {}
+  try { j = JSON.parse(raw) } catch {}
+  if (!r.ok || !j.access_token) throw new Error(`BTG Id recusou o pedido de acesso (${j.error_description || j.error || r.status})${r.ok ? "" : " " + raw.slice(0, 300)}.`)
   return j as Required<Pick<TokenResponse, "access_token">> & TokenResponse
 }
 
