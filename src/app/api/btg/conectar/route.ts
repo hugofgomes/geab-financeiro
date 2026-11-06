@@ -1,4 +1,4 @@
-import { authorizeUrl, btgConfigured } from "@/lib/btg"
+import { authorizeUrl, btgConfigured, newPkce } from "@/lib/btg"
 import { adminClient } from "@/lib/server-auth"
 import { btgRedirectUri, publicOrigin } from "@/lib/origin"
 import { randomBytes } from "node:crypto"
@@ -10,7 +10,10 @@ export async function GET(req: Request) {
   if (!(await adminClient())) return NextResponse.redirect(`${publicOrigin(req)}/login`)
   if (!btgConfigured()) return back("btg=nao-configurado")
   const state = randomBytes(16).toString("hex")
-  const res = NextResponse.redirect(authorizeUrl(btgRedirectUri(req), state))
-  res.cookies.set("btg_state", state, { httpOnly: true, sameSite: "lax", secure: publicOrigin(req).startsWith("https"), path: "/api/btg", maxAge: 600 })
+  const { verifier, challenge } = newPkce()
+  const res = NextResponse.redirect(authorizeUrl(btgRedirectUri(req), state, challenge))
+  const cookie = { httpOnly: true, sameSite: "lax" as const, secure: publicOrigin(req).startsWith("https"), path: "/api/btg", maxAge: 600 }
+  res.cookies.set("btg_state", state, cookie)
+  res.cookies.set("btg_verifier", verifier, cookie)
   return res
 }
