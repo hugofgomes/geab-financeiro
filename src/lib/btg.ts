@@ -1,6 +1,7 @@
+import { createHash, randomBytes } from "node:crypto"
 import { serviceClient } from "@/lib/supabase/service"
 
-/** Integração direta com o BTG Pactual Empresas (Pix Cobrança dinâmico). Fluxo OAuth 2.0 Authorization Code (BTG Id). */
+/** Integração direta com o BTG Pactual Empresas (Pix Cobrança dinâmico). Fluxo OAuth 2.0 Authorization Code com PKCE (BTG Id): o app é do tipo público, então não há Client Secret. */
 const sandbox = () => (process.env.BTG_ENV || "production").toLowerCase() === "sandbox"
 const idBase = () => (process.env.BTG_ID_BASE || (sandbox() ? "https://id.sandbox.btgpactual.com" : "https://id.btgpactual.com")).replace(/\/$/, "")
 const apiBase = () => (process.env.BTG_API_BASE || (sandbox() ? "https://api.sandbox.empresas.btgpactual.com" : "https://api.empresas.btgpactual.com")).replace(/\/$/, "")
@@ -9,15 +10,24 @@ const company = () => (process.env.BTG_COMPANY_ID || "").replace(/\D/g, "")
 export const BTG_SCOPE = "openid empresas.btgpactual.com/pix-cash-in"
 
 export const btgConfigured = () =>
-  !!(process.env.BTG_CLIENT_ID && process.env.BTG_CLIENT_SECRET && process.env.BTG_PIX_KEY && /^\d{14}$/.test(company()))
+  !!(process.env.BTG_CLIENT_ID && process.env.BTG_PIX_KEY && /^\d{14}$/.test(company()))
 
-export function authorizeUrl(redirectUri: string, state: string) {
+/** PKCE (S256): o verificador fica num cookie do navegador e só volta ao BTG na troca do código. */
+export function newPkce() {
+  const verifier = randomBytes(32).toString("base64url")
+  const challenge = createHash("sha256").update(verifier).digest("base64url")
+  return { verifier, challenge }
+}
+
+export function authorizeUrl(redirectUri: string, state: string, codeChallenge: string) {
   const u = new URL(`${idBase()}/oauth2/authorize`)
   u.searchParams.set("client_id", process.env.BTG_CLIENT_ID!)
   u.searchParams.set("response_type", "code")
   u.searchParams.set("redirect_uri", redirectUri)
   u.searchParams.set("scope", BTG_SCOPE)
   u.searchParams.set("state", state)
+  u.searchParams.set("code_challenge", codeChallenge)
+  u.searchParams.set("code_challenge_method", "S256")
   u.searchParams.set("prompt", "login")
   return u.toString()
 }
@@ -25,11 +35,10 @@ export function authorizeUrl(redirectUri: string, state: string) {
 type TokenResponse = { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string }
 
 async function tokenRequest(form: Record<string, string>): Promise<Required<Pick<TokenResponse, "access_token">> & TokenResponse> {
-  const basic = Buffer.from(`${process.env.BTG_CLIENT_ID}:${process.env.BTG_CLIENT_SECRET}`).toString("base64")
   const r = await fetch(`${idBase()}/oauth2/token`, {
     method: "POST",
-    headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(form).toString(),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: process.env.BTG_CLIENT_ID!, ...form }).toString(),
     signal: AbortSignal.timeout(20_000),
   })
   const raw = await r.text()
@@ -54,8 +63,8 @@ async function saveTokens(t: TokenResponse & { access_token: string }, previousR
 }
 
 /** Troca o código de autorização pelos tokens e guarda no banco (só o servidor lê). */
-export async function connectWithCode(code: string, redirectUri: string, userId: string) {
-  const t = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri })
+export async function connectWithCode(code: string, redirectUri: string, userId: string, codeVerifier: string) {
+  const t = await tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri, code_verifier: codeVerifier })
   await saveTokens(t, undefined, userId)
 }
 
