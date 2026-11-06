@@ -117,15 +117,15 @@ export default function CashPage() {
           <Card><CardContent className="pt-4"><div className="text-xs text-muted-foreground">Saldo em caixa</div><div className="text-2xl font-semibold tabular-nums">{formatBRL(data.totalIn - data.totalOut)}</div></CardContent></Card>
         </div>
       )}
-      <form onSubmit={add} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[9rem_1fr_9rem_11rem_8rem_auto] lg:items-end">
-        <h2 className="text-base font-semibold sm:col-span-2 lg:col-span-full">Registrar despesa</h2>
-        <div className="space-y-1.5"><Label htmlFor="xd">Data</Label><Input id="xd" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
-        <div className="space-y-1.5"><Label htmlFor="xs">Descrição</Label><Input id="xs" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex.: Aluguel da quadra" required /></div>
-        <div className="space-y-1.5"><Label htmlFor="xc">Categoria</Label><Input id="xc" value={cat} onChange={(e) => setCat(e.target.value)} placeholder="Quadra, Goleiro…" /></div>
-        <div className="space-y-1.5"><Label htmlFor="xl">Local</Label><Input id="xl" list="geab-locais-novo" maxLength={80} value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="Ex.: Quadra Trindade" />
-          <datalist id="geab-locais-novo">{places.map((p) => <option key={p} value={p} />)}</datalist></div>
-        <div className="space-y-1.5"><Label htmlFor="xv">Valor (R$)</Label><Input id="xv" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
-        <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Adicionar</Button>
+      <form onSubmit={add} className="grid grid-cols-2 gap-x-3 gap-y-4 rounded-xl border bg-card p-4 md:grid-cols-12">
+        <h2 className="col-span-full text-base font-semibold">Registrar despesa</h2>
+        <div className="flex flex-col gap-1.5 md:col-span-3"><Label htmlFor="xd">Data</Label><Input id="xd" type="date" className="h-9" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
+        <div className="col-span-2 flex flex-col gap-1.5 md:col-span-9"><Label htmlFor="xs">Descrição</Label><Input id="xs" className="h-9" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex.: Aluguel da quadra" required /></div>
+        <div className="flex flex-col gap-1.5 md:col-span-4"><Label htmlFor="xc">Categoria</Label><Input id="xc" className="h-9" value={cat} onChange={(e) => setCat(e.target.value)} placeholder="Quadra, Goleiro…" /></div>
+        <div className="flex flex-col gap-1.5 md:col-span-4"><Label htmlFor="xl">Local</Label><Input id="xl" className="h-9" list="geab-locais-novo" maxLength={80} value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="Ex.: Quadra Trindade" /></div>
+        <div className="flex flex-col gap-1.5 md:col-span-2"><Label htmlFor="xv">Valor (R$)</Label><Input id="xv" className="h-9" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" required /></div>
+        <div className="col-span-2 flex flex-col gap-1.5 md:col-span-2"><span aria-hidden className="hidden h-3.5 md:block" /><Button type="submit" className="h-9 w-full" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Adicionar</Button></div>
+        <datalist id="geab-locais-novo">{places.map((p) => <option key={p} value={p} />)}</datalist>
       </form>
       {data && data.expenses.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 text-sm">
