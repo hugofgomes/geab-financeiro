@@ -22,7 +22,8 @@ export async function GET(req: Request) {
     const { data: { user } } = await sb.auth.getUser()
     await connectWithCode(code, btgRedirectUri(req), user!.id)
     return done("btg=ok")
-  } catch {
-    return done("btg=erro")
-  }
+     } catch (e) {
+     console.error("[btg/callback]", e instanceof Error ? e.message : e)
+     return done("btg=erro")
+   }
 }
