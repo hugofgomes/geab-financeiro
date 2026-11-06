@@ -35,6 +35,9 @@ export default function AthletesPage() {
     (filter === "todos" || (filter === "ativos") === a.active) &&
     `${a.full_name} ${a.nickname ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()))
 
+  const nAtivos = (data ?? []).filter((a) => a.active).length
+  const nInativos = (data ?? []).length - nAtivos
+
   async function toggle(a: Athlete) {
     const { error } = await supabase().from("athletes").update({ active: !a.active }).eq("id", a.id)
     if (error) return toast.error(error.message)
@@ -56,13 +59,16 @@ export default function AthletesPage() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Atletas</h1>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Atletas</h1>
+          {data && <p className="text-sm text-muted-foreground">{data.length} cadastrado{data.length === 1 ? "" : "s"} · {nAtivos} ativo{nAtivos === 1 ? "" : "s"} · {nInativos} inativo{nInativos === 1 ? "" : "s"}</p>}
+        </div>
         <Button onClick={() => { setEditing(null); setOpen(true) }}><Plus /> Novo atleta</Button>
       </div>
       <div className="flex flex-wrap gap-2">
         <Input className="max-w-xs" placeholder="Buscar por nome ou apelido" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar atleta" />
         <NativeSelect value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Situação">
-          <option value="ativos">Ativos</option><option value="inativos">Inativos</option><option value="todos">Todos</option>
+          <option value="ativos">Ativos ({nAtivos})</option><option value="inativos">Inativos ({nInativos})</option><option value="todos">Todos ({(data ?? []).length})</option>
         </NativeSelect>
       </div>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
