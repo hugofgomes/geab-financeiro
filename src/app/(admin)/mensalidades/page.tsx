@@ -81,7 +81,7 @@ function PaymentDialog({ row, onClose, onSaved }: { row: Row | null; onClose: ()
   )
 }
 
-/** Edição de uma mensalidade: valor e vencimento (o valor não pode ficar abaixo do que já foi pago). */
+/** Edição de uma mensalidade pela Diretoria: qualquer valor (0 = isenção) e vencimento. */
 function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () => void; onSaved: () => void }) {
   const [amount, setAmount] = React.useState("")
   const [due, setDue] = React.useState("")
@@ -92,8 +92,7 @@ function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose:
   async function save(e: React.FormEvent) {
     e.preventDefault()
     const v = Number(amount.replace(",", "."))
-    if (!Number.isFinite(v) || v <= 0) return toast.error("Informe um valor maior que zero.")
-    if (v + 0.001 < cur.paid_total) return toast.error(`O valor não pode ser menor que o já pago (${formatBRL(cur.paid_total)}).`)
+    if (!Number.isFinite(v) || v < 0) return toast.error("Informe um valor válido (0 ou mais).")
     setBusy(true)
     const { error } = await supabase().rpc("admin_update_charge", { p_charge: cur.id, p_amount: v, p_due: due })
     setBusy(false)
@@ -111,6 +110,7 @@ function EditChargeDialog({ row, onClose, onSaved }: { row: Row | null; onClose:
             <div className="space-y-1.5"><Label htmlFor="cv">Valor (R$)</Label><Input id="cv" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
             <div className="space-y-1.5"><Label htmlFor="cd">Vencimento</Label><Input id="cd" type="date" value={due} onChange={(e) => setDue(e.target.value)} required /></div>
           </div>
+          {cur.paid_total > 0 && Number(amount.replace(",", ".")) < cur.paid_total && <p className="text-xs text-amber-600">O novo valor é menor que o já pago ({formatBRL(cur.paid_total)}): a mensalidade ficará como paga e os pagamentos registrados serão mantidos.</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar</Button>
@@ -232,7 +232,7 @@ export default function ChargesPage() {
         </NativeSelect>
         {btg.configured && !btg.connected && <a href="/api/btg/conectar" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand/90"><QrCode className="size-4" /> Conectar BTG</a>}
         {pixOn && <Button variant="outline" onClick={genPix} disabled={pixBusy || !data?.rows.length}>{pixBusy ? <Loader2 className="animate-spin" /> : <QrCode />} Gerar Pix das pendentes</Button>}
-        {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => r.balance))}</span>}
+        {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => Math.max(0, r.balance)))}</span>}
       </div>
       <PixSettings />
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
