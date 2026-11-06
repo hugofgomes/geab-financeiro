@@ -45,6 +45,14 @@ function PaymentDialog({ row, onClose, onSaved }: { row: Row | null; onClose: ()
     setBusy(false)
     if (error) return toast.error(error.message.includes("payments_bank_txid_uniq") ? "Este identificador bancário já foi usado em outro pagamento." : error.message)
     toast.success("Pagamento registrado.")
+    // Aviso por e-mail ao atleta (só envia se a mensalidade ficou quitada e o servidor tem e-mail configurado).
+    fetch("/api/email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ charge_ids: [row.id] }) })
+      .then((r) => r.json()).then((j) => {
+        const x = j.results?.[0]
+        if (x?.status === "enviado") toast.success("E-mail de pagamento enviado ao atleta.")
+        else if (x?.status === "falhou") toast.error(`E-mail não enviado: ${x.detail ?? "erro"}`)
+        else if (x?.detail === "Atleta sem e-mail válido.") toast.message("Atleta sem e-mail cadastrado: aviso não enviado.")
+      }).catch(() => {})
     onSaved()
     onClose()
   }
@@ -140,7 +148,7 @@ export default function ChargesPage() {
     const [c, a, n] = await Promise.all([
       sb.from("charges_view").select("*").eq("competence", month),
       sb.from("athletes").select("id, full_name, nickname, phone, whatsapp_consent"),
-      sb.from("notifications").select("charge_id, kind, created_at").eq("kind", "confirmacao"),
+      sb.from("notifications").select("charge_id, kind, created_at").eq("kind", "confirmacao").neq("channel", "email"),
     ])
     for (const r of [c, a, n]) if (r.error) throw new Error(r.error.message)
     const ath = new Map((a.data as (Athlete & { id: string })[]).map((x) => [x.id, x]))

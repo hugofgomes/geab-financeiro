@@ -112,6 +112,15 @@ export default function ExtratoPage() {
     }
     let msg = `${ok.length} pagamento(s) registrado(s).`
     if (fails.length) msg += ` ${fails.length} falhou(aram): ${fails.join("; ")}`
+    if (ok.length) {
+      // Aviso por e-mail (ignorado se o servidor não tiver e-mail configurado).
+      const er = await fetch("/api/email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ charge_ids: [...new Set(ok.map((d) => d.chargeId))] }) }).catch(() => null)
+      if (er?.ok) {
+        const ej = (await er.json().catch(() => ({}))) as { results?: { status: string }[] }
+        const n = (ej.results ?? []).filter((x) => x.status === "enviado").length
+        if (n) msg += ` E-mail: ${n} enviado(s).`
+      }
+    }
     if (ok.length && auto && sendAuto) {
       const res = await fetch("/api/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ charge_ids: [...new Set(ok.map((d) => d.chargeId))] }) })
       const j = (await res.json().catch(() => ({}))) as { error?: string; results?: { status: string; detail?: string }[] }

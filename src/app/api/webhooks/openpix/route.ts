@@ -1,5 +1,6 @@
 import { verifyWebhook } from "@/lib/openpix"
 import { serviceClient } from "@/lib/supabase/service"
+import { emailConfigured, sendPaymentEmails } from "@/lib/email-send"
 import { sendPaymentConfirmations, whatsappConfigured } from "@/lib/whatsapp-send"
 import { NextResponse } from "next/server"
 
@@ -40,6 +41,9 @@ export async function POST(req: Request) {
   let whatsapp: unknown = null
   if (res.result === "ok" && res.charge_id && whatsappConfigured()) {
     try { whatsapp = await sendPaymentConfirmations(sb, [res.charge_id]) } catch { whatsapp = "falha" }
+  }
+  if (res.result === "ok" && res.charge_id && emailConfigured()) {
+    try { await sendPaymentEmails(sb, [res.charge_id]) } catch {}
   }
   return NextResponse.json({ result: res.result, whatsapp })
 }

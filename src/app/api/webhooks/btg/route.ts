@@ -1,4 +1,5 @@
 import { serviceClient } from "@/lib/supabase/service"
+import { emailConfigured, sendPaymentEmails } from "@/lib/email-send"
 import { sendPaymentConfirmations, whatsappConfigured } from "@/lib/whatsapp-send"
 import { timingSafeEqual } from "node:crypto"
 import { NextResponse } from "next/server"
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
   // WhatsApp em segundo plano: não segura a resposta ao BTG.
   if (res.result === "ok" && res.charge_id && whatsappConfigured()) {
     void sendPaymentConfirmations(sb, [res.charge_id]).catch(() => {})
+  }
+  if (res.result === "ok" && res.charge_id && emailConfigured()) {
+    void sendPaymentEmails(sb, [res.charge_id]).catch(() => {})
   }
   return NextResponse.json({ result: res.result })
 }

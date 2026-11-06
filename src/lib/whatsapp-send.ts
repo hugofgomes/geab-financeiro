@@ -29,7 +29,7 @@ export async function sendPaymentConfirmations(sb: SupabaseClient, ids: string[]
     if (ch.status !== "pago") { done("ignorado", "Mensalidade ainda não quitada."); continue }
     const { data: ath } = await sb.from("athletes").select("full_name, nickname, phone, whatsapp_consent").eq("id", ch.athlete_id).maybeSingle()
     if (!ath?.phone || !ath.whatsapp_consent || !/^\d{10,15}$/.test(ath.phone)) { done("ignorado", "Atleta sem telefone válido ou sem consentimento."); continue }
-    const { data: sent } = await sb.from("notifications").select("id").eq("charge_id", id).eq("kind", "confirmacao").eq("status", "enviada").limit(1)
+    const { data: sent } = await sb.from("notifications").select("id").eq("charge_id", id).eq("kind", "confirmacao").neq("channel", "email").eq("status", "enviada").limit(1)
     if (sent?.length) { done("ignorado", "Confirmação já enviada."); continue }
     const { data: pay } = await sb.from("payments").select("amount").eq("charge_id", id)
     const total = (pay ?? []).reduce((a, p) => a + Number(p.amount), 0)
