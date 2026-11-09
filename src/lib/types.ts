@@ -80,6 +80,8 @@ export type Match = {
   score_a: number | null
   score_b: number | null
   status: MatchStatus
+  venue?: string | null // migration 0015
+  lineup_confirmed?: boolean // migration 0015
 }
 export type MonthBirthday = { display_name: string; bday: number; bmonth: number; turning_age: number; is_today: boolean }
 

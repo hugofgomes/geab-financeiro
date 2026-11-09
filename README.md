@@ -16,6 +16,11 @@ Atletas, geração de mensalidades, baixa manual (parcial/total), status (penden
 histórico individual, caixa (despesas e saldo), dashboard, área do atleta, mensagem de agradecimento pelo pagamento da mensalidade, aberta no WhatsApp por link (`wa.me`) com
 histórico de aberturas, auditoria, RLS (admin × atleta).
 
+## Gols ao vivo e Escalação
+- **Gols ao vivo** (`/ao-vivo`): marca gols durante o jogo (placar + artilharia), com desfazer e correção. Sem migration.
+- **Escalação** (`/escalacao`): monta Azul × Branco (arrastar ou botões, goleiros, reservas, número), salva por jogo, confirma, duplica
+  e gera o card PNG (1080×1350 ou 1080×1080) para WhatsApp. Exige rodar `supabase/migrations/0015_lineups.sql`.
+
 ## O que NÃO existe ainda
 Importação da planilha, conciliação por extrato OFX/CSV, Pix com identificador por cobrança (depende de provedor),
 WhatsApp Business API (depende de aprovação da Meta), fluxos n8n, Docker/VPS, backups automáticos.
