@@ -44,6 +44,8 @@ async function load(): Promise<Data> {
 export default function LivePage() {
   const { data, error, loading, reload } = useLoad(load, [])
   const [picking, setPicking] = React.useState<Side | null>(null)
+  const [removing, setRemoving] = React.useState<string | null>(null) // atleta cujo gol será tirado (pergunta a equipe)
+  const [swapping, setSwapping] = React.useState<string | null>(null) // atleta cujo gol será passado para outro
   const [history, setHistory] = React.useState<Goal[]>([])
   const [busy, setBusy] = React.useState(false)
   if (!supabaseConfigured) return <SetupNotice />
@@ -62,7 +64,7 @@ export default function LivePage() {
   }
 
   /** Soma (ou tira) 1 gol do placar da equipe e do atleta. Só grava se o placar ainda for o que a tela mostra. */
-  async function apply(g: Goal, delta: 1 | -1) {
+  async function apply(g: Goal, delta: 1 | -1, fromUndo = false) {
     if (!live || busy) return
     const col = g.side === "a" ? "score_a" : "score_b"
     const cur = live[col] ?? 0
@@ -102,7 +104,31 @@ export default function LivePage() {
     }
     setBusy(false)
     if (err) { toast.error(err); reload(); return }
-    setHistory((h) => (delta === 1 ? [...h, g] : h.slice(0, -1)))
+    setHistory((h) => (delta === 1 ? [...h, g] : fromUndo ? h.slice(0, -1) : []))
+    changed()
+  }
+
+  /** Corrige o autor: passa 1 gol de um atleta para outro, sem mexer no placar. */
+  async function swap(from: string, to: string) {
+    if (!live || busy) return
+    const goals = data!.goals
+    const a = goals[from] ?? 0, b = goals[to] ?? 0
+    if (a < 1) return
+    if (b + 1 > MAX_GOALS) return toast.error(`Máximo de ${MAX_GOALS} gols por atleta.`)
+    const db = supabase()
+    setBusy(true)
+    const first = a - 1 <= 0
+      ? await db.from("match_players").delete().eq("match_id", live.id).eq("athlete_id", from)
+      : await db.from("match_players").upsert({ match_id: live.id, athlete_id: from, goals: a - 1 }, { onConflict: "match_id,athlete_id" })
+    let err = first.error?.message
+    if (!err) {
+      err = (await db.from("match_players").upsert({ match_id: live.id, athlete_id: to, goals: b + 1 }, { onConflict: "match_id,athlete_id" })).error?.message
+      if (err) await db.from("match_players").upsert({ match_id: live.id, athlete_id: from, goals: a }, { onConflict: "match_id,athlete_id" })
+    }
+    setBusy(false)
+    if (err) { toast.error(err); reload(); return }
+    setHistory([])
+    toast.success("Autor do gol corrigido.")
     changed()
   }
 
@@ -118,6 +144,7 @@ export default function LivePage() {
     changed()
   }
 
+  const scorers = (data?.athletes ?? []).filter((a) => (data?.goals[a.id] ?? 0) > 0)
   const last = history[history.length - 1]
   const name = (id: string | null) => (id ? shown(data!.athletes.find((a) => a.id === id) ?? { id, full_name: "?", nickname: null }) : "gol contra")
 
@@ -160,11 +187,25 @@ export default function LivePage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button variant="outline" disabled={!last || busy} onClick={() => last && apply(last, -1)}>
+            <Button variant="outline" disabled={!last || busy} onClick={() => last && apply(last, -1, true)}>
               {busy ? <Loader2 className="animate-spin" /> : <Undo2 />} Desfazer{last ? `: ${name(last.athlete)}` : ""}
             </Button>
             <Button variant="outline" disabled={busy} onClick={finish}>Finalizar jogo</Button>
           </div>
+          {scorers.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold tracking-wide text-primary uppercase">Corrigir gols (Diretoria)</h2>
+              <ul className="divide-y rounded-xl border">
+                {scorers.map((a) => (
+                  <li key={a.id} className="flex items-center gap-2 px-3 py-2">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{shown(a)} <span className="text-muted-foreground">⚽ {data.goals[a.id]}</span></span>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => setSwapping(a.id)}>Trocar autor</Button>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => setRemoving(a.id)}>Excluir 1 gol</Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">Para corrigir gols de antes ou incluir quem jogou sem marcar, use “Jogos → Editar”.</p>
         </div>
       )}
@@ -184,6 +225,35 @@ export default function LivePage() {
               onClick={async () => { const s = picking!; setPicking(null); await apply({ side: s, athlete: null }, 1) }}>
               Gol contra / sem autor
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!removing && !!live} onOpenChange={(o) => !o && setRemoving(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Excluir 1 gol de {removing ? name(removing) : ""}: de qual equipe era?</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">O placar dessa equipe também diminui 1.</p>
+          <div className="grid grid-cols-2 gap-2">
+            {live && (["a", "b"] as Side[]).map((sd) => (
+              <Button key={sd} variant="outline" className="h-14 whitespace-normal" disabled={busy || (sd === "a" ? live.score_a : live.score_b) === 0}
+                onClick={async () => { const id = removing!; setRemoving(null); await apply({ side: sd, athlete: id }, -1) }}>
+                {sd === "a" ? live.team_a : live.team_b}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!swapping && !!live} onOpenChange={(o) => !o && setSwapping(null)}>
+        <DialogContent className="max-h-[92dvh] max-w-md overflow-y-auto">
+          <DialogHeader><DialogTitle>Quem fez o gol de verdade? (tirar de {swapping ? name(swapping) : ""})</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {data?.athletes.filter((a) => a.id !== swapping).map((a) => (
+              <Button key={a.id} variant="outline" className="h-12" disabled={busy}
+                onClick={async () => { const f = swapping!; setSwapping(null); await swap(f, a.id) }}>
+                <span className="truncate">{shown(a)}</span>
+              </Button>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
