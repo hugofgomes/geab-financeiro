@@ -54,7 +54,7 @@ export default function LineupPage() {
   const [busy, setBusy] = React.useState(false)
   const [loadingLineup, setLoadingLineup] = React.useState(false)
   const [showCard, setShowCard] = React.useState(false)
-  const [format, setFormat] = React.useState<CardFormat>("vertical")
+  const [format, setFormat] = React.useState<CardFormat>("status")
   const [hover, setHover] = React.useState<Zone | null>(null)
   const canvasRef = React.useRef<HTMLCanvasElement>(null)
 
@@ -99,7 +99,7 @@ export default function LineupPage() {
   React.useEffect(() => {
     if (!showCard || !match || !canvasRef.current) return
     let alive = true
-    drawLineupCard(canvasRef.current, { orgName: org?.name ?? "", tagline: org?.tagline ?? null, website: org?.website ?? null, logoUrl: org?.logo_url ?? null, format, date: match.match_date, time: match.match_time, venue: venue || match.venue || null, azul: toPlayers("a"), branco: toPlayers("b"), reservas: toPlayers("reserva") })
+    drawLineupCard(canvasRef.current, { orgName: org?.name ?? "", footer: org?.card_footer ?? null, tagline: org?.tagline ?? null, website: org?.website ?? null, logoUrl: org?.logo_url ?? null, format, date: match.match_date, time: match.match_time, venue: venue || match.venue || null, azul: toPlayers("a"), branco: toPlayers("b"), reservas: toPlayers("reserva") })
       .catch((e) => alive && toast.error(e instanceof Error ? e.message : "Erro ao desenhar o card"))
     return () => { alive = false }
   }, [showCard, match, format, venue, toPlayers, org])
@@ -371,6 +371,7 @@ export default function LineupPage() {
                     <Card><CardContent className="space-y-3 pt-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <NativeSelect aria-label="Formato" className="h-8" value={format} onChange={(e) => setFormat(e.target.value as CardFormat)}>
+                          <option value="status">WhatsApp status {CARD_SIZE.status.w}×{CARD_SIZE.status.h}</option>
                           <option value="vertical">Vertical {CARD_SIZE.vertical.w}×{CARD_SIZE.vertical.h}</option>
                           <option value="quadrado">Quadrado {CARD_SIZE.quadrado.w}×{CARD_SIZE.quadrado.h}</option>
                         </NativeSelect>

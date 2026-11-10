@@ -17,17 +17,17 @@ const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", susp
 /** Identidade do grupo: nome, logotipo (endereço https), cor, site e lema. Aparecem no painel, no login e no card da escalação. */
 export default function GroupPage() {
   const org = useOrg()
-  const [f, setF] = React.useState({ name: "", logo: "", color: "", website: "", tagline: "" })
+  const [f, setF] = React.useState({ name: "", logo: "", color: "", website: "", tagline: "", footer: "" })
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
-    if (org) setF({ name: org.name, logo: org.logo_url ?? "", color: org.primary_color ?? "", website: org.website ?? "", tagline: org.tagline ?? "" })
+    if (org) setF({ name: org.name, logo: org.logo_url ?? "", color: org.primary_color ?? "", website: org.website ?? "", tagline: org.tagline ?? "", footer: org.card_footer ?? "" })
   }, [org])
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }))
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
-    const { error } = await supabase().rpc("update_organization", { p_name: f.name, p_logo_url: f.logo, p_primary_color: f.color, p_website: f.website, p_tagline: f.tagline })
+    const { error } = await supabase().rpc("update_organization", { p_name: f.name, p_logo_url: f.logo, p_primary_color: f.color, p_website: f.website, p_tagline: f.tagline, p_card_footer: f.footer })
     setBusy(false)
     if (error) return toast.error(error.message)
     toast.success("Dados do grupo salvos.")
@@ -55,6 +55,8 @@ export default function GroupPage() {
           <div className="space-y-1.5"><Label htmlFor="gw">Site</Label><Input id="gw" maxLength={120} placeholder="seugrupo.com.br" value={f.website} onChange={set("website")} /></div>
           <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="gt">Lema <span className="font-normal text-muted-foreground">(aparece no card da escalação)</span></Label>
             <Input id="gt" maxLength={80} placeholder="Tradição, amizade e futebol" value={f.tagline} onChange={set("tagline")} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="gf">Rodapé do card da escalação <span className="font-normal text-muted-foreground">(se vazio, usa o nome do grupo e o lema)</span></Label>
+            <Input id="gf" maxLength={100} placeholder="Ex.: GEAB - Grêmio Amigos da Bola" value={f.footer} onChange={set("footer")} /></div>
           <div className="sm:col-span-2"><Button type="submit" variant="brand" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar</Button></div>
         </form>
       </CardContent></Card>

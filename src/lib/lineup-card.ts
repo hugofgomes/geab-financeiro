@@ -2,9 +2,10 @@ import { kitDataUrl, type KitColor } from "@/lib/kit"
 import { hhmm, shortDate, weekdayOf } from "@/lib/matches"
 
 export type CardPlayer = { name: string; keeper: boolean; number: string }
-export type CardFormat = "vertical" | "quadrado"
+export type CardFormat = "status" | "vertical" | "quadrado"
 export type CardData = {
   orgName: string
+  footer: string | null      // texto do rodapé (se vazio: nome do grupo + lema)
   tagline: string | null
   website: string | null
   logoUrl: string | null
@@ -17,7 +18,7 @@ export type CardData = {
   reservas: CardPlayer[]
 }
 
-export const CARD_SIZE: Record<CardFormat, { w: number; h: number }> = { vertical: { w: 1080, h: 1350 }, quadrado: { w: 1080, h: 1080 } }
+export const CARD_SIZE: Record<CardFormat, { w: number; h: number }> = { status: { w: 1080, h: 1920 }, vertical: { w: 1080, h: 1350 }, quadrado: { w: 1080, h: 1080 } }
 
 const C = { navy: "#071D3A", blue: "#0057B8", light: "#F3F6FA", gold: "#FFC83D", sky: "#5FA8FF" }
 const FONT = `system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`
@@ -68,7 +69,7 @@ function drawFitted(ctx: Ctx, text: string, cx: number, top: number, maxW: numbe
   ctx.fillText(t.length < text.length ? t + "…" : t, cx, top + min)
 }
 
-function drawTeam(ctx: Ctx, imgs: Map<string, HTMLImageElement>, color: KitColor, players: CardPlayer[], x: number, w: number, top: number, bottom: number, cols: number, rows: number) {
+function drawTeam(ctx: Ctx, imgs: Map<string, HTMLImageElement>, color: KitColor, players: CardPlayer[], x: number, w: number, top: number, cellH: number, cols: number, nameFont: number) {
   const label = color === "azul" ? "TIME AZUL" : "TIME BRANCO"
   const bandH = 58
   ctx.fillStyle = color === "azul" ? C.blue : "#FFFFFF"
@@ -80,13 +81,12 @@ function drawTeam(ctx: Ctx, imgs: Map<string, HTMLImageElement>, color: KitColor
 
   const gridTop = top + bandH + 12
   const cellW = w / cols
-  const cellH = Math.min(215, (bottom - gridTop) / rows)
   players.forEach((p, i) => {
     const col = i % cols, row = Math.floor(i / cols)
     const cx = x + col * cellW + cellW / 2, cy = gridTop + row * cellH
     ctx.fillStyle = "rgba(255,255,255,0.05)"
     roundRect(ctx, x + col * cellW + 4, cy + 3, cellW - 8, cellH - 6, 14); ctx.fill()
-    const nameH = Math.max(34, cellH * 0.3)
+    const nameH = Math.max(34, Math.min(cellH * 0.3, nameFont * 2.4))
     const kitH = Math.min(cellH - nameH - 14, cellW * 0.72 * 1.32)
     const kitW = kitH * 100 / 132
     const img = imgs.get(`${color}|${p.number}`)
@@ -95,7 +95,7 @@ function drawTeam(ctx: Ctx, imgs: Map<string, HTMLImageElement>, color: KitColor
       ctx.fillStyle = C.gold; roundRect(ctx, cx + kitW / 2 - 6, cy + 8, 46, 24, 7); ctx.fill()
       ctx.fillStyle = C.navy; ctx.font = font(16, 900); ctx.textAlign = "center"; ctx.fillText("GOL", cx + kitW / 2 + 17, cy + 25)
     }
-    drawFitted(ctx, p.name.toUpperCase(), cx, cy + 8 + kitH + 6, cellW - 14, nameH, p.keeper ? C.gold : "#FFFFFF", 26, 12)
+    drawFitted(ctx, p.name.toUpperCase(), cx, cy + 8 + kitH + 6, cellW - 14, nameH, p.keeper ? C.gold : "#FFFFFF", nameFont, 12)
   })
 }
 
@@ -135,17 +135,18 @@ export async function drawLineupCard(canvas: HTMLCanvasElement, d: CardData) {
     const k = Math.min(logoBox / logo.width, logoBox / logo.height)
     ctx.drawImage(logo, 40, 24 + (logoBox - logo.height * k) / 2, logo.width * k, logo.height * k)
   }
-  drawFitted(ctx, d.orgName.toUpperCase(), W / 2, 22, W - 2 * (logoBox ? logoBox + 60 : 60), 80, "#FFFFFF", 70, 26, 900)
-  ctx.fillStyle = C.sky; ctx.font = font(34, 800)
+  const big = d.format === "status"      // 1080×1920: mais espaço, textos e uniformes maiores
+  drawFitted(ctx, d.orgName.toUpperCase(), W / 2, big ? 40 : 22, W - 2 * (logoBox ? logoBox + 60 : 60), big ? 100 : 80, "#FFFFFF", big ? 88 : 70, 26, 900)
+  ctx.fillStyle = C.sky; ctx.font = font(big ? 42 : 34, 800)
   if ("letterSpacing" in ctx) (ctx as unknown as { letterSpacing: string }).letterSpacing = "6px"
-  ctx.fillText("ESCALAÇÃO OFICIAL", W / 2, 142)
+  ctx.fillText("ESCALAÇÃO OFICIAL", W / 2, big ? 196 : 142)
   if ("letterSpacing" in ctx) (ctx as unknown as { letterSpacing: string }).letterSpacing = "0px"
-  ctx.fillStyle = C.blue; ctx.fillRect(W / 2 - 60, 160, 120, 5)
+  ctx.fillStyle = C.blue; ctx.fillRect(W / 2 - 60, big ? 216 : 160, 120, 5)
   const parts = [`${weekdayOf(d.date).toUpperCase()} ${shortDate(d.date)}`, hhmm(d.time), d.venue?.trim() || null].filter(Boolean) as string[]
-  drawFitted(ctx, parts.join("  ·  "), W / 2, 178, W - 80, 44, C.light, 30, 16, 700)
+  drawFitted(ctx, parts.join("  ·  "), W / 2, big ? 240 : 178, W - 80, big ? 56 : 44, C.light, big ? 38 : 30, 16, 700)
 
   // Corpo
-  const top = 250, footerH = 104
+  const top = big ? 340 : 250, footerH = big ? 150 : 104
   let bottom = H - footerH - 6
   if (d.reservas.length) {
     const rsH = 112
@@ -159,16 +160,26 @@ export async function drawLineupCard(canvas: HTMLCanvasElement, d: CardData) {
   const cols = most > 10 ? 3 : 2
   const rows = Math.max(1, Math.ceil(most / cols))
   const colW = (W - 36 * 2 - 36) / 2
-  drawTeam(ctx, imgs, "azul", d.azul, 36, colW, top, bottom, cols, rows)
-  drawTeam(ctx, imgs, "branco", d.branco, W - 36 - colW, colW, top, bottom, cols, rows)
+  const bandBlock = 58 + 12
+  const cellH = Math.min(big ? 300 : 215, (bottom - top - bandBlock) / rows)
+  const blockH = bandBlock + rows * cellH
+  const y0 = big ? top + Math.max(0, (bottom - top - blockH) * 0.4) : top      // formato grande: bloco mais centralizado
+  const nameFont = big ? 32 : 26
+  drawTeam(ctx, imgs, "azul", d.azul, 36, colW, y0, cellH, cols, nameFont)
+  drawTeam(ctx, imgs, "branco", d.branco, W - 36 - colW, colW, y0, cellH, cols, nameFont)
   ctx.save(); ctx.setLineDash([8, 10]); ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2
-  ctx.beginPath(); ctx.moveTo(W / 2, top); ctx.lineTo(W / 2, bottom); ctx.stroke(); ctx.restore()
+  ctx.beginPath(); ctx.moveTo(W / 2, y0); ctx.lineTo(W / 2, y0 + blockH); ctx.stroke(); ctx.restore()
 
   // Rodapé
   ctx.fillStyle = C.blue; ctx.fillRect(0, H - footerH, W, 3)
-  const foot = d.tagline ? `${d.orgName}  ·  ${d.tagline}` : d.orgName
-  drawFitted(ctx, foot, W / 2, d.website ? H - 82 : H - 66, W - 80, 36, "#FFFFFF", 28, 14, 800)
-  if (d.website) drawFitted(ctx, d.website, W / 2, H - 44, W - 80, 30, C.sky, 26, 14, 700)
+  const foot = d.footer?.trim() || (d.tagline ? `${d.orgName}  ·  ${d.tagline}` : d.orgName)
+  if (big) {
+    drawFitted(ctx, foot, W / 2, d.website ? H - 112 : H - 90, W - 80, 48, "#FFFFFF", 36, 16, 800)
+    if (d.website) drawFitted(ctx, d.website, W / 2, H - 62, W - 80, 40, C.sky, 30, 14, 700)
+  } else {
+    drawFitted(ctx, foot, W / 2, d.website ? H - 82 : H - 66, W - 80, 36, "#FFFFFF", 28, 14, 800)
+    if (d.website) drawFitted(ctx, d.website, W / 2, H - 44, W - 80, 30, C.sky, 26, 14, 700)
+  }
 }
 
 export function canvasToBlob(canvas: HTMLCanvasElement) {

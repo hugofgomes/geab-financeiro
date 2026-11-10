@@ -381,6 +381,18 @@ await as(U.geabAtleta, async () => { ok("(ex-atleta agora diretoria) vê as áre
 await db.query(`update public.profiles set role='atleta' where id=$1`, [U.geabAtleta])
 await as(U.geabAtleta, async () => { ok("atleta continua vendo só o que é dele", (await one(`select count(*)::int from public.athletes`)) === 1 && (await one(`select count(*)::int from public.expenses`)) === 0) })
 
+section("Rodapé do card (0021)")
+ok("GEAB já nasce com o rodapé 'GEAB - Grêmio Amigos da Bola'", (await one(`select card_footer from public.organizations where slug='geab'`)) === "GEAB - Grêmio Amigos da Bola")
+await as(U.geabAdmin, async () => {
+  await db.query(`select public.update_organization('GEAB Futebol', null, null, 'geabfutebol.com.br', 'Lema', 'Rodapé Novo')`)
+  ok("administrador edita o rodapé do próprio grupo", (await one(`select card_footer from public.organizations`)) === "Rodapé Novo")
+  await db.query(`select public.update_organization('GEAB Futebol', null, null, null, null)`)
+  ok("chamada antiga com 5 argumentos continua valendo (limpa o rodapé)", (await one(`select card_footer from public.organizations`)) === null)
+  ok("rodapé acima de 100 caracteres é cortado", (await db.query(`select public.update_organization('GEAB Futebol', null, null, null, null, repeat('x', 300))`), (await one(`select length(card_footer)::int from public.organizations`)) === 100))
+})
+await as(D, async () => { ok("diretoria não edita o rodapé", /Apenas/.test(await err(`select public.update_organization('X', null, null, null, null, 'hack')`) ?? "")) })
+ok("rodapé de outro grupo não é afetado", (await one(`select card_footer from public.organizations where slug='geab'`) ) === "GEAB - Grêmio Amigos da Bola")
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)
