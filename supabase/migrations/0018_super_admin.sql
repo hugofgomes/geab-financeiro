@@ -229,4 +229,6 @@ revoke execute on function public.is_platform_admin(), public.sa_guard(), public
 grant execute on function public.is_platform_admin(), public.sa_overview(), public.sa_orgs(), public.sa_set_org_status(uuid, text, text),
   public.sa_set_org_plan(uuid, text), public.sa_extend_trial(uuid, int), public.sa_set_notes(uuid, text), public.sa_plans(),
   public.sa_upsert_plan(text, text, int, int, boolean), public.sa_create_org(text, text, text), public.sa_assign_admin(uuid, text) to authenticated;
--- sa_guard e sa_log são internas (chamadas pelas outras funções, que são SECURITY DEFINER).
+-- sa_guard e sa_log são internas (chamadas só pelas outras funções sa_*, que são SECURITY DEFINER). No Supabase, funções novas
+-- nascem executáveis por authenticated: revogar explicitamente, senão qualquer usuário gravaria auditoria em nome de outro grupo.
+revoke execute on function public.sa_guard(), public.sa_log(uuid, text, jsonb) from authenticated, service_role;

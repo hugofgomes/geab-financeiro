@@ -288,6 +288,15 @@ await as(uid(600), async () => {
   await db.query(`select public.sa_set_org_plan($1, 'mini')`, [P.org])
   ok("trocar o plano de um grupo", (await one(`select plan_code from public.sa_orgs() where id=$1`, [P.org])) === "mini")
 }, true)
+section("Funções internas não são chamáveis por usuários comuns")
+await as(U.peladaAdmin, async () => {
+  const e1 = await err(`select public.sa_log('${geab}', 'FALSO', '{}'::jsonb)`)
+  ok("sa_log (auditoria de outro grupo) é negada a usuário comum", !!e1 && /permission denied/.test(e1), e1 ?? "executou!")
+  const e2 = await err(`select public.sa_guard()`)
+  ok("sa_guard é negada a usuário comum", !!e2 && /permission denied/.test(e2), e2 ?? "executou!")
+})
+ok("nenhuma linha falsa na auditoria do GEAB", (await one(`select count(*)::int from public.audit_log where action='FALSO'`)) === 0)
+
 section("Limite de atletas do plano (Mini = 1 atleta ativo; a Pelada já tem 1)")
 await as(U.peladaAdmin, async () => {
   const e = await err(`insert into public.athletes (full_name) values ('Segundo')`)
