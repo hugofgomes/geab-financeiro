@@ -267,8 +267,8 @@ await as(uid(600), async () => {
   ok("is_platform_admin é verdadeiro para o dono", (await one(`select public.is_platform_admin()`)) === true)
   const o = await one(`select public.sa_overview()`)
   ok("overview: contagens de grupos", o.orgs_total >= 3 && o.orgs_ativa >= 2 && o.orgs_teste >= 1, JSON.stringify(o))
-  ok("overview: MRR soma só grupos ativos pagantes (Básico = 2990)", o.mrr_cents === 2990, `mrr=${o.mrr_cents}`)
-  ok("overview: receita por plano", o.by_plan.some((x) => x.plan === "Básico" && x.mrr_cents === 2990), JSON.stringify(o.by_plan))
+  ok("overview: MRR soma só grupos ativos pagantes (Básico = 9900)", o.mrr_cents === 9900, `mrr=${o.mrr_cents}`)
+  ok("overview: receita por plano", o.by_plan.some((x) => x.plan === "Básico" && x.mrr_cents === 9900), JSON.stringify(o.by_plan))
   const orgs = await q(`select * from public.sa_orgs()`)
   const g = orgs.find((x) => x.slug === "geab")
   ok("sa_orgs: só agregados (sem nomes de atletas, pagamentos ou contatos)", Object.keys(g).join() === "id,slug,name,status,plan_code,plan_name,athletes,athletes_limit,admins,matches,created_at,trial_ends_at,last_activity,notes,status_reason", Object.keys(g).join())
@@ -416,6 +416,59 @@ await as(U.peladaAdmin, async () => {
 await as(U.geabAdmin, async () => {
   ok("GEAB não enxerga a auditoria da Pelada", (await one(`select count(*)::int from public.audit_log where detail->>'description'='Auditada'`)) === 0)
 })
+
+section("Teste de 10 dias e assinatura (0022)")
+{
+  const T = { org: uid(950), admin: uid(951), athlete: uid(952) }
+  await q(`insert into auth.users (id, email) values ($1,'novo@x'), ($2,'atl@x')`, [T.admin, T.athlete])
+  await q(`insert into public.organizations (id, slug, name, status, trial_ends_at, plan_id) values ($1,'novo-time','Novo Time','teste', now() + interval '14 days', (select id from public.plans where code='teste'))`, [T.org])
+  await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Dono','admin'), ($1,$3,'Atl','atleta')`, [T.org, T.admin, T.athlete])
+  const days = await one(`select round(extract(epoch from (trial_ends_at - now())) / 86400)::int from public.organizations where id=$1`, [T.org])
+  ok("grupo novo em teste nasce com 10 dias (mesmo se o cadastro pedir 14)", days === 10, String(days))
+  await as(T.admin, async () => { ok("dentro do prazo o grupo funciona", (await one(`select public.current_tenant()`)) === T.org) })
+
+  await q(`update public.organizations set trial_ends_at = now() - interval '1 minute' where id=$1`, [T.org])
+  await as(T.admin, async () => {
+    ok("passou dos 10 dias: bloqueio automático (sem acesso a nada)", (await one(`select public.current_tenant()`)) == null)
+    ok("bloqueado não lê atletas nem pagamentos", (await one(`select count(*)::int from public.athletes`)) === 0)
+    const b = (await q(`select * from public.my_billing()`))[0]
+    ok("mesmo bloqueado, ele consegue ver a situação para assinar", b && b.usable === false && b.status === 'teste' && b.is_admin === true && b.price_cents === 0)
+    ok("org_public não expõe grupo com teste vencido", (await one(`select count(*)::int from public.org_public('novo-time')`)) === 0)
+  })
+  await as(T.athlete, async () => { ok("atleta vê o aviso mas não é admin", (await q(`select is_admin from public.my_billing()`))[0]?.is_admin === false) })
+  await as(U.geabAdmin, async () => { ok("GEAB (ativo) segue normal e não vê o outro grupo", (await one(`select count(*)::int from public.my_billing() where org_name='Novo Time'`)) === 0) })
+
+  // Servidor: assinatura
+  await as("service", async () => {
+    ok("só administrador pode assinar", /Apenas o administrador/.test(await err(`select * from public.billing_prepare($1,'basico')`, [T.athlete]) ?? ""))
+    ok("plano gratuito/inexistente não é vendável", /indisponível/.test(await err(`select * from public.billing_prepare($1,'teste')`, [T.admin]) ?? "") && /indisponível/.test(await err(`select * from public.billing_prepare($1,'ilimitado')`, [T.admin]) ?? ""))
+  }, false)
+  await as("service", async () => {
+    const r = (await q(`select * from public.billing_prepare($1,'basico')`, [T.admin]))[0]
+    ok("preço vem do banco: Básico R$ 99", r.price_cents === 9900 && r.org_id === T.org)
+    ok("Pro custa R$ 150", (await one(`select price_cents from public.plans where code='pro'`)) === 15000)
+  })
+  await as("service", async () => {
+    await db.query(`select public.billing_attach($1,'cus_1','sub_1','basico')`, [T.org])
+    ok("evento de assinatura desconhecida é ignorado", (await one(`select public.billing_event('sub_x','PAYMENT_CONFIRMED')`)) === 'desconhecida')
+    ok("pagamento vencido de grupo em teste não muda nada", (await one(`select public.billing_event('sub_1','PAYMENT_OVERDUE')`)) === 'ignorada')
+    ok("pagamento confirmado ativa o grupo no plano contratado", (await one(`select public.billing_event('sub_1','PAYMENT_CONFIRMED')`)) === 'ativa')
+    ok("evento repetido é inofensivo (idempotente)", (await one(`select public.billing_event('sub_1','PAYMENT_CONFIRMED')`)) === 'ativa')
+    const o = (await q(`select o.status, p.code from public.organizations o join public.plans p on p.id=o.plan_id where o.id=$1`, [T.org]))[0]
+    ok("grupo ficou ativo no Básico", o.status === 'ativa' && o.code === 'basico')
+    ok("vencimento suspende por inadimplência", (await one(`select public.billing_event('sub_1','PAYMENT_OVERDUE')`)) === 'suspensa')
+    ok("pagamento depois reativa sozinho", (await one(`select public.billing_event('sub_1','PAYMENT_RECEIVED')`)) === 'ativa')
+    await db.query(`select public.billing_event('sub_1','PAYMENT_OVERDUE')`)
+    await db.query(`update public.org_internal set status_reason = 'Suspenso pelo suporte' where org_id=$1`, [T.org])
+    ok("suspensão manual NÃO é desfeita por pagamento", (await one(`select public.billing_event('sub_1','PAYMENT_CONFIRMED')`)) === 'ignorada')
+    ok("assinatura removida cancela o grupo", (await one(`select public.billing_event('sub_1','SUBSCRIPTION_DELETED')`)) === 'cancelada')
+  }, true)
+  await as(T.admin, async () => {
+    ok("usuário comum não executa funções de cobrança", /permission denied/.test(await err(`select public.billing_event('sub_1','PAYMENT_CONFIRMED')`) ?? "") && /permission denied/.test(await err(`select * from public.billing_prepare($1,'pro')`, [T.admin]) ?? ""))
+    ok("usuário comum não lê org_billing", /permission denied/.test(await err(`select * from public.org_billing`) ?? ""))
+    { const codes = (await q(`select code from public.billing_plans()`)).map((r) => r.code); ok("planos à venda: Básico e Pro, nunca o gratuito/interno", codes.includes("basico") && codes.includes("pro") && !codes.includes("teste") && !codes.includes("ilimitado"), codes.join()) }
+  })
+}
 
 console.log(`\n${pass} aprovados, ${fail} falharam`)
 await db.end(); await server.stop()

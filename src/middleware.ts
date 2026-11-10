@@ -33,7 +33,16 @@ export async function middleware(req: NextRequest) {
   if (!user && path === "/") { const u = req.nextUrl.clone(); u.pathname = "/site"; return NextResponse.rewrite(u) }
   if (!user) return path === "/login" || path === "/cadastro" || path === "/novo-grupo" ? res : go("/login")
 
-  const { data: p } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()
+  // organizations(id) só volta se o grupo estiver utilizável (ativo ou teste dentro do prazo): é assim que o bloqueio automático chega à tela.
+  const first = await sb.from("profiles").select("role, active, organizations(id)").eq("id", user.id).maybeSingle()
+  let p = first.data
+  let blocked = !!p?.active && !p.organizations
+  if (first.error) { // consulta com junção indisponível: não trava ninguém, volta ao perfil simples
+    p = (await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()).data as typeof p
+    blocked = false
+  }
+  // Teste vencido, pagamento pendente ou grupo cancelado: só a tela de assinatura (e sua API) ficam acessíveis.
+  if (blocked) return path === "/assinatura" || path.startsWith("/api/assinatura") ? res : go("/assinatura")
   // Usuário confirmado, mas ainda sem perfil liberado (pré-cadastro aguardando aprovação).
   if (!p?.active) return path === "/cadastro/status" ? res : go("/cadastro/status")
   // Administrador e Diretoria usam o painel; Atleta usa o portal.
