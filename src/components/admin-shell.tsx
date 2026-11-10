@@ -9,7 +9,7 @@ import { useRole } from "@/hooks/use-role"
 import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, Building2, Crown, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, Building2, Crown, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -35,7 +35,8 @@ const ADMIN = [
 const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
-const PLATFORM = { href: "/super", label: "Plataforma", icon: Crown }
+const PLATFORM = { href: "/super", label: "Painel do SaaS", icon: Crown }
+const SAAS_LINKS = [{ href: "/site", label: "Site comercial", icon: Globe }, { href: "/demo", label: "Demonstração", icon: Play }]
 const titleOf = (path: string) => [...NAV, ...ADMIN, PLATFORM, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
@@ -165,9 +166,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="space-y-1">
             <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">{role === "admin" ? "Administração" : "Conta"}</p>
             {role === "admin" && ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
-            {role === "admin" && isPlatform && <SideLink {...PLATFORM} path={path} />}
             <SideLink {...ACCOUNT} path={path} />
           </div>
+          {role === "admin" && isPlatform && (
+            <div className="space-y-1">
+              <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">SaaS</p>
+              <SideLink {...PLATFORM} path={path} />
+              {SAAS_LINKS.map((n) => <SideLink key={n.href} {...n} path={path} />)}
+            </div>
+          )}
         </nav>
         <div className="border-t border-white/10 p-3">
           <button type="button" onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/80 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70">
