@@ -104,7 +104,7 @@ export default function UsersPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Usuários e privilégios</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Usuários e privilégios</h1>
         <p className="text-sm text-muted-foreground">
           <strong>Administrador</strong> vê e gerencia tudo. <strong>Diretoria</strong> consulta todas as áreas, mas não altera nada nem acessa usuários, importação e configurações do grupo. <strong>Atleta</strong> vê apenas a própria conta e pode editar o próprio nome e a senha.
           Novas pessoas entram pelo formulário <code>/cadastro</code> e são liberadas em <strong>Cadastros</strong>.

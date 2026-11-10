@@ -84,7 +84,7 @@ export default function SuperPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Painel do SaaS</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Painel do SaaS</h1>
       <p className="text-sm text-muted-foreground">Visão do dono: números por grupo. Nomes de atletas, pagamentos e contatos dos grupos não aparecem aqui.</p>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

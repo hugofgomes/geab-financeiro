@@ -67,10 +67,10 @@ function ResultText({ m }: { m: Match }) {
 function Scoreboard({ m, live }: { m: Match; live?: boolean }) {
   const w = winnerOf(m)
   return (
-    <div className={cn("rounded-xl border p-3", live ? "border-[#F32329]/40 bg-[#F32329]/5" : "bg-card")}>
+    <div className={cn("rounded-xl border p-3", live ? "border-[#EF3028]/40 bg-[#EF3028]/5" : "bg-card")}>
       <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-semibold tracking-wide uppercase">
         <span className={live ? "flex items-center gap-1.5 text-[#B4151B]" : "text-muted-foreground"}>
-          {live && <span aria-hidden className="relative flex size-2"><span className="absolute inline-flex size-full rounded-full bg-[#F32329] opacity-70 motion-safe:animate-ping" /><span className="relative inline-flex size-2 rounded-full bg-[#F32329]" /></span>}
+          {live && <span aria-hidden className="relative flex size-2"><span className="absolute inline-flex size-full rounded-full bg-[#EF3028] opacity-70 motion-safe:animate-ping" /><span className="relative inline-flex size-2 rounded-full bg-[#EF3028]" /></span>}
           {live ? "Em andamento" : `Último jogo — ${shortDate(m.match_date)}`}
         </span>
         {!live && <span className="rounded-full bg-secondary px-2 py-0.5 text-primary normal-case">Finalizado</span>}
@@ -91,7 +91,7 @@ function Scores({ matches }: { matches: Match[] }) {
   const { live, last, history, next } = splitMatches(matches)
   return (
     <section aria-labelledby="pn-jogos" className="space-y-3">
-      <h2 id="pn-jogos" className="flex items-center gap-2 text-sm font-semibold text-primary"><Trophy className="size-4 text-[#F32329]" aria-hidden /> Placar dos jogos</h2>
+      <h2 id="pn-jogos" className="flex items-center gap-2 text-sm font-semibold text-primary"><Trophy className="size-4 text-[#EF3028]" aria-hidden /> Placar dos jogos</h2>
       {live.map((m) => <Scoreboard key={m.id} m={m} live />)}
       {last ? <Scoreboard m={last} /> : !live.length && <p className="rounded-xl border border-dashed p-3 text-center text-sm text-muted-foreground">Nenhum jogo finalizado ainda.</p>}
 
@@ -136,7 +136,7 @@ function Birthdays({ list }: { list: MonthBirthday[] }) {
   const dayNow = Number(today.slice(8, 10))
   return (
     <section aria-labelledby="pn-aniv" className="space-y-3">
-      <h2 id="pn-aniv" className="flex items-center gap-2 text-sm font-semibold text-primary"><Cake className="size-4 text-[#F32329]" aria-hidden /> Aniversariantes de {monthNameOf(today).charAt(0) + monthNameOf(today).slice(1).toLowerCase()}</h2>
+      <h2 id="pn-aniv" className="flex items-center gap-2 text-sm font-semibold text-primary"><Cake className="size-4 text-[#EF3028]" aria-hidden /> Aniversariantes de {monthNameOf(today).charAt(0) + monthNameOf(today).slice(1).toLowerCase()}</h2>
       {list.length === 0 ? (
         <p className="rounded-xl border border-dashed p-3 text-center text-sm text-muted-foreground">Nenhum aniversariante neste mês. 🎈</p>
       ) : (
@@ -144,9 +144,9 @@ function Birthdays({ list }: { list: MonthBirthday[] }) {
           {list.map((b) => (
             <li
               key={b.display_name + b.bday}
-              className={cn("flex items-center gap-3 rounded-xl border p-2.5", b.is_today ? "border-[#F32329]/40 bg-[#F32329]/5 shadow-sm" : "bg-card", !b.is_today && b.bday < dayNow && "opacity-60")}
+              className={cn("flex items-center gap-3 rounded-xl border p-2.5", b.is_today ? "border-[#EF3028]/40 bg-[#EF3028]/5 shadow-sm" : "bg-card", !b.is_today && b.bday < dayNow && "opacity-60")}
             >
-              <span aria-hidden className={cn("grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold", b.is_today ? "bg-[#F32329] text-white" : "bg-secondary text-primary")}>{initials(b.display_name)}</span>
+              <span aria-hidden className={cn("grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold", b.is_today ? "bg-[#EF3028] text-white" : "bg-secondary text-primary")}>{initials(b.display_name)}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{b.display_name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -183,7 +183,7 @@ export function SidePanel() {
         type="button" onClick={toggle} aria-expanded={open} aria-controls="painel-corpo"
         className={cn("flex w-full items-center justify-between gap-2 rounded-xl border bg-card px-4 py-3 text-sm font-semibold text-primary shadow-sm outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring xl:hidden")}
       >
-        <span className="flex items-center gap-2"><Trophy className="size-4 text-[#F32329]" aria-hidden /> Placar, aniversariantes e artilharia</span>
+        <span className="flex items-center gap-2"><Trophy className="size-4 text-[#EF3028]" aria-hidden /> Placar, aniversariantes e artilharia</span>
         <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
       </button>
       {/* desktop largo: barra à direita, recolhível */}

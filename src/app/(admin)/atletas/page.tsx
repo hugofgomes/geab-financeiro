@@ -60,7 +60,7 @@ export default function AthletesPage() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Atletas</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Atletas</h1>
           {data && <p className="text-sm text-muted-foreground">{data.length} cadastrado{data.length === 1 ? "" : "s"} · {nAtivos} ativo{nAtivos === 1 ? "" : "s"} · {nInativos} inativo{nInativos === 1 ? "" : "s"}</p>}
         </div>
         <Button data-write onClick={() => { setEditing(null); setOpen(true) }}><Plus /> Novo atleta</Button>

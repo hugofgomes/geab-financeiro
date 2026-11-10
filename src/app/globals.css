@@ -51,34 +51,34 @@
 
 :root {
   /* Identidade GEAB: azul-marinho, vermelho, branco e cinzas */
-  --background: #F3F5F8;
-  --foreground: #1B2A3F;
+  --background: #F5F7FA;
+  --foreground: #1F2937;
   --card: #FFFFFF;
-  --card-foreground: #1B2A3F;
+  --card-foreground: #1F2937;
   --popover: #FFFFFF;
-  --popover-foreground: #1B2A3F;
-  --primary: #1C3D63;
+  --popover-foreground: #1F2937;
+  --primary: #1E3A5F;
   --primary-foreground: #FFFFFF;
-  --secondary: #E7ECF3;
-  --secondary-foreground: #1C3D63;
+  --secondary: #E8EEF5;
+  --secondary-foreground: #1E3A5F;
   --muted: #EDF1F6;
-  --muted-foreground: #334155;
+  --muted-foreground: #5C6B80;
   --accent: #E7ECF3;
-  --accent-foreground: #1C3D63;
-  --destructive: #F32329;
-  --border: #DCE3EC;
+  --accent-foreground: #1E3A5F;
+  --destructive: #EF3028;
+  --border: #E2E8F0;
   --input: #CBD5E1;
-  --ring: #1C3D63;
-  --brand-red: #F32329;
-  --chart-1: #1C3D63;
-  --chart-2: #F32329;
+  --ring: #1E3A5F;
+  --brand-red: #EF3028;
+  --chart-1: #1E3A5F;
+  --chart-2: #EF3028;
   --chart-3: #64748B;
   --chart-4: #94A3B8;
   --chart-5: #CBD5E1;
   --radius: 0.5357rem; /* rounded-xl = 12px */
-  --sidebar: #1C3D63;
+  --sidebar: #1E3A5F;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #F32329;
+  --sidebar-primary: #EF3028;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: rgb(255 255 255 / 0.1);
   --sidebar-accent-foreground: #FFFFFF;
@@ -126,6 +126,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 0.875rem;          /* texto geral: 14px */
+    line-height: 1.5;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;

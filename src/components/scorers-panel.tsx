@@ -137,7 +137,7 @@ export function ScorersCard() {
                   type="button" onClick={() => setOpen(r.athlete_id)}
                   aria-label={`${r.pos}º lugar: ${r.display_name}, ${plural(r.goals, "gol", "gols")}. Ver estatísticas`}
                   className={cn("flex w-full items-center gap-3 rounded-xl border text-left outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring",
-                    lead ? "bg-gradient-to-br from-[#1C3D63] to-[#2A5A8C] p-3.5 text-white shadow-md hover:shadow-lg" : podium ? "bg-card p-2.5 shadow-sm hover:bg-secondary" : "bg-card px-2.5 py-2 hover:bg-secondary")}
+                    lead ? "bg-gradient-to-br from-[#1E3A5F] to-[#2A5A8C] p-3.5 text-white shadow-md hover:shadow-lg" : podium ? "bg-card p-2.5 shadow-sm hover:bg-secondary" : "bg-card px-2.5 py-2 hover:bg-secondary")}
                 >
                   {podium ? <Avatar name={r.display_name} size={lead ? "lg" : "md"} leader={lead} /> : <span aria-hidden className="grid size-7 shrink-0 place-items-center text-sm font-semibold text-muted-foreground">{r.pos}º</span>}
                   <span className="min-w-0 flex-1">

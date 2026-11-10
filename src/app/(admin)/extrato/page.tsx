@@ -149,7 +149,7 @@ export default function ExtratoPage() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Extrato bancário</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Extrato bancário</h1>
         <div data-write>
           <input ref={fileRef} type="file" accept=".ofx,.OFX,.txt" className="sr-only" id="ofx" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
           <Button variant="brand" disabled={reading} onClick={() => fileRef.current?.click()}>{reading ? <Loader2 className="animate-spin" /> : <FileUp />} Importar extrato (OFX)</Button>
@@ -172,7 +172,7 @@ export default function ExtratoPage() {
                   <TableBody>
                     {rows.map((r, i) => (
                       <TableRow key={r.tx.fitid} className={r.dup ? "opacity-50" : undefined}>
-                        <TableCell className="pl-4"><input type="checkbox" aria-label={`Registrar ${formatBRL(r.tx.amount)} de ${formatDate(r.tx.date)}`} className="size-4 accent-[#1C3D63]" disabled={r.dup || !r.athleteId || !r.chargeId} checked={r.include} onChange={(e) => patch(i, { include: e.target.checked })} /></TableCell>
+                        <TableCell className="pl-4"><input type="checkbox" aria-label={`Registrar ${formatBRL(r.tx.amount)} de ${formatDate(r.tx.date)}`} className="size-4 accent-[#1E3A5F]" disabled={r.dup || !r.athleteId || !r.chargeId} checked={r.include} onChange={(e) => patch(i, { include: e.target.checked })} /></TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(r.tx.date)}</TableCell>
                         <TableCell className="text-right font-medium whitespace-nowrap tabular-nums">{formatBRL(r.tx.amount)}</TableCell>
                         <TableCell className="max-w-56 truncate" title={r.tx.memo}>{r.tx.memo || "—"}</TableCell>
@@ -202,7 +202,7 @@ export default function ExtratoPage() {
           )}
           <div className="flex flex-wrap items-center gap-3">
             <Button data-write variant="brand" disabled={!selected.length || saving} onClick={confirm}>{saving && <Loader2 className="animate-spin" />} Registrar {selected.length} pagamento(s)</Button>
-            {auto === true && <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[#1C3D63]" checked={sendAuto} onChange={(e) => setSendAuto(e.target.checked)} /> Enviar confirmação por WhatsApp aos atletas</label>}
+            {auto === true && <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[#1E3A5F]" checked={sendAuto} onChange={(e) => setSendAuto(e.target.checked)} /> Enviar confirmação por WhatsApp aos atletas</label>}
             {auto === false && <span className="text-xs text-muted-foreground">WhatsApp automático ainda não configurado: depois de registrar, aparecem os botões para enviar com um clique.</span>}
           </div>
         </>

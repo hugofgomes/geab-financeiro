@@ -206,7 +206,7 @@ export default function ImportPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Importar da planilha</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Importar da planilha</h1>
         <p className="text-sm text-muted-foreground">Lê a planilha publicada do GEAB (uma aba por mês), mostra uma prévia e só grava depois que você confirmar. A planilha original não é alterada.</p>
       </div>
 
@@ -235,7 +235,7 @@ export default function ImportPage() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Como o histórico será tratado</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium">Como o histórico será tratado</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
                 <li>Meses <b>anteriores</b> a “cobrar a partir de” viram <b>histórico</b>: a mensalidade tem o valor que foi de fato depositado (já paga). Nenhuma dívida antiga é inventada, porque o valor da mensalidade mudou ao longo dos anos.</li>
@@ -255,7 +255,7 @@ export default function ImportPage() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Conferência com os totais da planilha</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium">Conferência com os totais da planilha</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p className="flex items-start gap-2">{badMonths.length === 0 ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-700" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />}
                 {badMonths.length === 0 ? "Depósitos e despesas de todas as abas batem com a linha TOTAL da própria planilha." : `Em ${badMonths.length} aba(s) a soma não bate com a linha TOTAL da planilha: ${badMonths.map((c) => c.tab).join(", ")}. É diferença na planilha, não no sistema.`}</p>
@@ -268,7 +268,7 @@ export default function ImportPage() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Atletas encontrados</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium">Atletas encontrados</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground">Os nomes da planilha são apelidos e têm erros de digitação. Já juntei os de erro óbvio (distância de uma letra); confira, e junte o que faltar em “Juntar com”. Desmarque “Importar” para deixar alguém de fora (os pagamentos dele também). Ativo = está na lista do mês atual.</p>
               <div className="overflow-x-auto rounded-xl border">

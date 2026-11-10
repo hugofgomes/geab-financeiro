@@ -17,6 +17,7 @@ import { formatBRL, formatCompetence, formatDate } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, Charge, Payment, PixCharge } from "@/lib/types"
 import { normalizePhone } from "@/lib/whatsapp"
+import { AppFooter } from "@/components/app-footer"
 import { brCodeForAmount } from "@/lib/brcode"
 import { Copy, ExternalLink, Loader2, LogOut } from "lucide-react"
 import QRCode from "qrcode"
@@ -74,8 +75,8 @@ export default function AthletePortal() {
   const signOut = async () => { await supabase().auth.signOut(); window.location.href = "/login" }
 
   return (
-    <div className="min-h-dvh">
-      <header className="border-b bg-[#1C3D63] text-white shadow-sm">
+    <div className="flex min-h-dvh flex-col">
+      <header className="border-b bg-[#1E3A5F] text-white shadow-sm">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-bold tracking-wide uppercase">{org?.name ?? "\u00a0"}</span>
           <Button variant="ghost" size="sm" onClick={signOut} className="text-white/80 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
       </header>
@@ -92,9 +93,9 @@ export default function AthletePortal() {
         {loading && !data && <Skeleton className="h-64" />}
         {data && (
           <>
-            <h1 className="text-2xl font-semibold tracking-tight">Olá, {data.athlete.nickname || data.athlete.full_name.split(" ")[0]}!</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Olá, {data.athlete.nickname || data.athlete.full_name.split(" ")[0]}!</h1>
             <Card>
-              <CardHeader><CardTitle className="text-base">Minhas mensalidades</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm font-medium">Minhas mensalidades</CardTitle></CardHeader>
               <CardContent>
                 {data.charges.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma mensalidade gerada.</p> : (
                   <ul className="divide-y text-sm">
@@ -150,7 +151,7 @@ export default function AthletePortal() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base">Pagamentos realizados</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm font-medium">Pagamentos realizados</CardTitle></CardHeader>
               <CardContent>
                 {data.payments.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum pagamento registrado.</p> : (
                   <ul className="divide-y text-sm">{data.payments.map((p) => <li key={p.id} className="flex justify-between py-2"><span>{formatDate(p.paid_at)}</span><span className="font-medium tabular-nums">{formatBRL(p.amount)}</span></li>)}</ul>
@@ -158,7 +159,7 @@ export default function AthletePortal() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base">Meu cadastro</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm font-medium">Meu cadastro</CardTitle></CardHeader>
               <CardContent>
                 <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                   {([
@@ -177,7 +178,7 @@ export default function AthletePortal() {
             <NameCard fullName={data.athlete.full_name} nickname={data.athlete.nickname} withNickname onSaved={reload} />
             <PasswordCard />
             <Card>
-              <CardHeader><CardTitle className="text-base">Meus contatos</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm font-medium">Meus contatos</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5"><Label htmlFor="p">Telefone (WhatsApp)</Label><Input id="p" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
@@ -191,6 +192,7 @@ export default function AthletePortal() {
       </main>
       <SidePanel />
       </div>
+      <AppFooter />
     </div>
   )
 }

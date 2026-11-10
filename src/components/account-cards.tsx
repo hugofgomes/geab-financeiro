@@ -27,7 +27,7 @@ export function NameCard({ fullName, nickname, withNickname, onSaved }: { fullNa
   }
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Meu nome</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-sm font-medium">Meu nome</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5"><Label htmlFor="mn">Nome completo</Label><Input id="mn" value={name} onChange={(e) => setName(e.target.value)} required minLength={3} maxLength={120} autoComplete="name" /></div>
@@ -69,7 +69,7 @@ export function PasswordCard() {
   }
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Alterar senha</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-sm font-medium">Alterar senha</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5"><Label htmlFor="pc">Senha atual</Label><Input id="pc" type="password" autoComplete="current-password" required value={cur} onChange={(e) => setCur(e.target.value)} /></div>

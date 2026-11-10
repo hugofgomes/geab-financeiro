@@ -32,14 +32,14 @@ async function loadDashboard() {
 
 function Kpi({ label, value, hint, tone, icon: Icon }: { label: string; value: string; hint?: string; tone?: "bad" | "good"; icon: LucideIcon }) {
   return (
-    <Card className="hover:shadow-md">
-      <CardContent className="flex items-start justify-between gap-3 pt-4">
+    <Card className="gap-0 rounded-xl py-0 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_4px_12px_rgb(15_23_42/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgb(15_23_42/0.06),0_10px_24px_rgb(15_23_42/0.07)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+      <CardContent className="flex items-start justify-between gap-3 p-3.5 sm:p-5">
         <div className="min-w-0">
-          <div className="text-xs font-medium text-muted-foreground">{label}</div>
-          <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone === "bad" ? "text-[#B4151B]" : tone === "good" ? "text-green-700" : "text-primary"}`}>{value}</div>
-          {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
+          <div className="text-[13px] leading-tight font-medium text-muted-foreground">{label}</div>
+          <div className={`mt-2 text-xl leading-none font-bold tracking-tight tabular-nums sm:text-[26px] ${tone === "bad" ? "text-[#B4151B]" : tone === "good" ? "text-[#059669]" : "text-primary"}`}>{value}</div>
+          {hint && <div className="mt-2 text-xs text-muted-foreground">{hint}</div>}
         </div>
-        <span aria-hidden className={`hidden size-10 shrink-0 place-items-center rounded-xl sm:grid ${tone === "bad" ? "bg-[#F32329]/10 text-[#F32329]" : "bg-secondary text-primary"}`}><Icon className="size-5" /></span>
+        <span aria-hidden className={`grid size-8 shrink-0 place-items-center rounded-lg sm:size-10 sm:rounded-xl ${tone === "bad" ? "bg-[#EF3028]/10 text-[#EF3028]" : tone === "good" ? "bg-[#059669]/10 text-[#059669]" : "bg-secondary text-primary"}`}><Icon className="size-4 sm:size-5" /></span>
       </CardContent>
     </Card>
   )
@@ -49,7 +49,7 @@ export default function Dashboard() {
   const { data, error, loading } = useLoad(loadDashboard, [])
   if (!supabaseConfigured) return <SetupNotice />
   if (error) return <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>
-  if (loading || !data) return <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>
+  if (loading || !data) return <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>
 
   const name = new Map(data.athletes.map((a) => [a.id, a.nickname || a.full_name]))
   const month = monthKey()
@@ -73,8 +73,8 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Visão geral <span className="text-base font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+      <h1 className="text-2xl font-bold tracking-tight">Visão geral <span className="text-base font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
         <Kpi icon={Users} label="Atletas ativos" value={String(data.athletes.filter((a) => a.active).length)} />
         <Kpi icon={CalendarClock} label="Previsto no mês" value={formatBRL(planned)} hint={cur.length ? `${cur.length} mensalidades` : "Nenhuma mensalidade gerada neste mês"} />
         <Kpi icon={CircleDollarSign} label="Recebido no mês" value={formatBRL(receivedMonth)} hint={planned ? `${Math.round((paidCur / planned) * 100)}% do previsto` : undefined} tone="good" />
@@ -84,25 +84,30 @@ export default function Dashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Arrecadação mensal · últimos 12 meses</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-sm font-medium">Arrecadação mensal · últimos 12 meses</CardTitle></CardHeader>
         <CardContent className="h-72">
+          {!chart.some((c) => c.Previsto || c.Recebido) ? (
+            <div className="grid h-full place-items-center rounded-xl border border-dashed text-center text-sm text-muted-foreground"><p>Ainda não há mensalidades nem pagamentos nos últimos 12 meses.<br />Os valores aparecem aqui assim que forem lançados.</p></div>
+          ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chart} margin={{ left: 4, right: 8 }}>
-              <CartesianGrid vertical={false} stroke="#E2E8F0" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={(v) => formatBRL(Number(v)).replace(",00", "")} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={72} />
-              <Tooltip formatter={(v) => formatBRL(Number(v))} cursor={{ fill: "rgb(28 61 99 / 0.06)" }} contentStyle={{ borderRadius: 12, border: "1px solid #DCE3EC", boxShadow: "0 4px 12px rgb(0 0 0 / 0.08)" }} />
-              <Legend iconType="circle" />
-              <Bar dataKey="Previsto" fill="#B6C3D4" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-              <Bar dataKey="Recebido" fill="#1C3D63" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            <BarChart data={chart} margin={{ left: 4, right: 8, top: 4 }} barGap={2}>
+              <CartesianGrid vertical={false} stroke="#EEF2F6" strokeDasharray="3 3" />
+              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={(v) => formatBRL(Number(v)).replace(",00", "")} tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} width={76} />
+              <Tooltip formatter={(v) => formatBRL(Number(v))} cursor={{ fill: "rgb(30 58 95 / 0.05)" }}
+                contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 8px 24px rgb(15 23 42 / 0.10)", fontSize: 12, padding: "8px 12px" }} labelStyle={{ fontWeight: 600, color: "#1F2937", marginBottom: 4 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+              <Bar dataKey="Previsto" fill="#C3D1E3" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="Recebido" fill="#1E3A5F" radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Pagamentos recentes</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm font-medium">Pagamentos recentes</CardTitle></CardHeader>
           <CardContent>
             {data.payments.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum pagamento registrado.</p> : (
               <ul className="divide-y text-sm">
@@ -117,7 +122,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-base">Inadimplentes</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm font-medium">Inadimplentes</CardTitle></CardHeader>
           <CardContent>
             {lateByAthlete.size === 0 ? <p className="text-sm text-muted-foreground">Nenhum atleta em atraso.</p> : (
               <ul className="divide-y text-sm">

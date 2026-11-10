@@ -16,7 +16,7 @@ export default function MyAccountPage() {
   return (
     <div className="max-w-3xl space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Minha conta</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Minha conta</h1>
         <p className="text-sm text-muted-foreground">Perfil: <strong>Diretoria</strong>{data?.email && <> · {data.email}</>}</p>
       </div>
       {data && <NameCard fullName={data.name} withNickname={false} onSaved={reload} />}

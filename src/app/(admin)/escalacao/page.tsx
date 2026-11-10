@@ -241,7 +241,7 @@ export default function LineupPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Escalação dos Jogos</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Escalação dos Jogos</h1>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {loading && !data && <Skeleton className="h-60" />}
       {data && !data.lineupsReady && (

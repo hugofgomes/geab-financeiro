@@ -163,7 +163,7 @@ export default function MatchesPage() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Jogos</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Jogos</h1>
         <Button data-write variant="brand" onClick={() => setEditing("novo")}><Plus /> Novo jogo</Button>
       </div>
       <p className="text-sm text-muted-foreground">Os resultados e o próximo jogo aparecem na barra lateral para toda a diretoria e para os atletas. Os aniversários vêm da data de nascimento do cadastro de cada atleta (edite em Atletas).</p>

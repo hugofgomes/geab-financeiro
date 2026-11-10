@@ -29,7 +29,7 @@ function maskPhone(v: string) {
 function Shell({ children }: { children: React.ReactNode }) {
   const { org } = usePublicOrg()
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
+    <div className="grid min-h-dvh place-items-center bg-[#1E3A5F] p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl bg-card p-6 shadow-xl">
         <OrgHeading org={org} subtitle="Cadastro de atleta" />
         {children}

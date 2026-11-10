@@ -34,11 +34,11 @@ export default function AthleteHistory() {
     <>
       <Link href="/atletas" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Atletas</Link>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{athlete.full_name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{athlete.full_name}</h1>
         <p className="text-sm text-muted-foreground">{formatBRL(athlete.monthly_fee)}/mês · vence dia {athlete.due_day} · {athlete.active ? "ativo" : "inativo"}{owed > 0 && <span className="font-medium text-red-700"> · em atraso: {formatBRL(owed)}</span>}</p>
       </div>
       <Card>
-        <CardHeader><CardTitle className="text-base">Mensalidades</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-sm font-medium">Mensalidades</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader><TableRow><TableHead>Competência</TableHead><TableHead>Vencimento</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Pago</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader>
@@ -52,7 +52,7 @@ export default function AthleteHistory() {
         </CardContent>
       </Card>
       <Card>
-        <CardHeader><CardTitle className="text-base">Pagamentos</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-sm font-medium">Pagamentos</CardTitle></CardHeader>
         <CardContent>
           {payments.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum pagamento registrado.</p> : (
             <ul className="divide-y text-sm">

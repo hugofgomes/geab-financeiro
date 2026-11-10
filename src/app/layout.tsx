@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Controle de mensalidades e caixa do GEAB Futebol",
 }
 
-export const viewport: Viewport = { themeColor: "#1C3D63" }
+export const viewport: Viewport = { themeColor: "#1E3A5F" }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

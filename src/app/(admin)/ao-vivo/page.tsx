@@ -165,7 +165,7 @@ export default function LivePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Gols ao vivo</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Gols ao vivo</h1>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {loading && !data && <Skeleton className="h-60" />}
 

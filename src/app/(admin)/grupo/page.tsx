@@ -39,7 +39,7 @@ export default function GroupPage() {
   const days = org.status === "teste" && org.trial_ends_at ? Math.ceil((new Date(org.trial_ends_at).getTime() - Date.now()) / 86_400_000) : null
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Meu grupo</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Meu grupo</h1>
       <p className="text-sm text-muted-foreground">
         Situação: <b>{STATUS[org.status] ?? org.status}</b>
         {days != null && <> · {days > 0 ? `${days} dia(s) de teste restantes` : "teste encerrado"}</>}

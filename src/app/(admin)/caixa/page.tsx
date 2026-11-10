@@ -108,7 +108,7 @@ export default function CashPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Caixa</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Caixa</h1>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {data && (
         <div className="grid gap-3 sm:grid-cols-3">

@@ -237,7 +237,7 @@ export default function ChargesPage() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Mensalidades</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Mensalidades</h1>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(month, -1))} aria-label="Mês anterior"><ChevronLeft /></Button>
           <span className="min-w-36 text-center font-medium capitalize">{formatCompetence(month)}</span>
@@ -254,7 +254,7 @@ export default function ChargesPage() {
       <div data-write><PixSettings /></div>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {data && data.review.length > 0 && (
-        <div role="alert" className="space-y-1 rounded-xl border border-[#F32329]/40 bg-[#F32329]/5 p-3 text-sm">
+        <div role="alert" className="space-y-1 rounded-xl border border-[#EF3028]/40 bg-[#EF3028]/5 p-3 text-sm">
           <p className="flex items-center gap-2 font-semibold text-[#B4151B]"><TriangleAlert className="size-4" /> Pix recebido que precisa de conferência</p>
           <ul className="list-disc pl-6">{data.review.map((x) => <li key={x.id}>{x.note ?? "Conferir pagamento."} <span className="text-muted-foreground">(cobrança de {formatBRL(x.value_cents / 100)})</span></li>)}</ul>
           <p className="text-xs text-muted-foreground">Estes valores caíram na conta do BTG, mas o sistema não os registrou sozinho. Confira no extrato e registre ou estorne.</p>

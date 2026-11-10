@@ -60,7 +60,7 @@ export default function SignupsPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Cadastros</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Cadastros</h1>
         <p className="text-sm text-muted-foreground">
           Pré-cadastros feitos em <code>/cadastro</code> com e-mail já confirmado. Aprove para criar o atleta (ou vincular a um já existente) e liberar o portal.
         </p>

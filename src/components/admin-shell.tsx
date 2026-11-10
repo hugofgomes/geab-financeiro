@@ -1,6 +1,7 @@
 "use client"
 
 import { Menu } from "@base-ui/react/menu"
+import { AppFooter } from "@/components/app-footer"
 import { BirthdayCard } from "@/components/birthday-card"
 import { SidePanel } from "@/components/side-panel"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
@@ -9,10 +10,11 @@ import { useRole } from "@/hooks/use-role"
 import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, Building2, Crown, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, Building2, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
+import { createPortal } from "react-dom"
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -41,21 +43,53 @@ const titleOf = (path: string) => [...NAV, ...ADMIN, PLATFORM, ACCOUNT].find((n)
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
 
+const CollapsedCtx = React.createContext(false)
+
+function SignOutButton({ collapsed, onClick }: { collapsed: boolean; onClick: () => void }) {
+  const { handlers, tip } = useTip("Sair", collapsed)
+  return (
+    <>
+      <button type="button" onClick={onClick} aria-label="Sair" {...handlers}
+        className={cn("flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70", collapsed && "lg:justify-center lg:px-0")}>
+        <LogOut className="size-[18px]" aria-hidden /> <span className={cn(collapsed && "lg:sr-only")}>Sair</span>
+      </button>
+      {tip}
+    </>
+  )
+}
+
+/** Dica ao lado do ícone quando o menu está recolhido (portal: não é cortada pela rolagem do menu). */
+function useTip(label: string, enabled: boolean) {
+  const [y, setY] = React.useState<number | null>(null)
+  const show = (e: React.SyntheticEvent<HTMLElement>) => { if (enabled) { const r = e.currentTarget.getBoundingClientRect(); setY(r.top + r.height / 2) } }
+  const hide = () => setY(null)
+  const tip = y != null && typeof document !== "undefined" && createPortal(
+    <span role="tooltip" style={{ top: y }} className="pointer-events-none fixed left-[76px] z-[60] -translate-y-1/2 rounded-md bg-[#0F2540] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg max-lg:hidden">{label}</span>, document.body)
+  return { handlers: { onMouseEnter: show, onFocus: show, onMouseLeave: hide, onBlur: hide }, tip }
+}
+
 function SideLink({ href, label, icon: Icon, path, badge }: { href: string; label: string; icon: typeof Users; path: string; badge?: number }) {
   const active = isActive(path, href)
+  const collapsed = React.useContext(CollapsedCtx)
+  const { handlers, tip } = useTip(label, collapsed)
   return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/80 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70",
-        active && "bg-[#F32329] text-white shadow-sm hover:bg-[#F32329]",
-      )}
-    >
-      <Icon className="size-[18px] shrink-0" aria-hidden />
-      <span className="flex-1 truncate">{label}</span>
-      {!!badge && <span className={cn("rounded-full px-1.5 text-[11px] font-semibold", active ? "bg-white text-[#F32329]" : "bg-[#F32329] text-white")} aria-label={`${badge} pendentes`}>{badge}</span>}
-    </Link>
+    <>
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        {...handlers}
+        className={cn(
+          "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 outline-none transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70",
+          collapsed && "lg:justify-center lg:px-0",
+          active && "bg-[#EF3028] text-white shadow-sm hover:bg-[#EF3028]",
+        )}
+      >
+        <Icon className="size-[18px] shrink-0" aria-hidden />
+        <span className={cn("flex-1 truncate", collapsed && "lg:sr-only")}>{label}</span>
+        {!!badge && <span className={cn("rounded-full px-1.5 text-[11px] font-semibold", active ? "bg-white text-[#EF3028]" : "bg-[#EF3028] text-white", collapsed && "lg:absolute lg:top-1 lg:right-2 lg:px-1 lg:text-[10px]")} aria-label={`${badge} pendentes`}>{badge}</span>}
+      </Link>
+      {tip}
+    </>
   )
 }
 
@@ -83,7 +117,7 @@ function UserMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) 
             <Menu.Item onClick={() => router.push(ACCOUNT.href)} className={itemCls}>
               <ACCOUNT.icon className="size-4 text-muted-foreground" /> {ACCOUNT.label}
             </Menu.Item>
-            <Menu.Item onClick={onSignOut} className={cn(itemCls, "text-[#B4151B] data-[highlighted]:bg-[#F32329]/10 data-[highlighted]:text-[#B4151B]")}>
+            <Menu.Item onClick={onSignOut} className={cn(itemCls, "text-[#B4151B] data-[highlighted]:bg-[#EF3028]/10 data-[highlighted]:text-[#B4151B]")}>
               <LogOut className="size-4" /> Sair
             </Menu.Item>
           </Menu.Popup>
@@ -101,6 +135,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [isPlatform, setIsPlatform] = React.useState(false)
   React.useEffect(() => { supabase().rpc("is_platform_admin").then((r) => setIsPlatform(r.data === true), () => {}) }, [])
   const [open, setOpen] = React.useState(false)
+  const [collapsed, setCollapsed] = React.useState(false)
+  React.useEffect(() => { try { setCollapsed(localStorage.getItem("geab.menu.recolhido") === "1") } catch {} }, [])
+  const toggleMenu = () => setCollapsed((c) => { try { localStorage.setItem("geab.menu.recolhido", c ? "0" : "1") } catch {} return !c })
   const [pending, setPending] = React.useState(0)
   const [birthdays, setBirthdays] = React.useState<string[]>([])
   const [me, setMe] = React.useState("")
@@ -136,54 +173,59 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", onKey)
   }, [open])
   return (
-    <div className="min-h-dvh">
+    <CollapsedCtx.Provider value={collapsed}>
+    <div className="flex min-h-dvh flex-col">
       {open && <div className="fixed inset-0 z-30 bg-[#0f2540]/50 backdrop-blur-[1px] lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
       <aside
         id="menu-lateral"
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#1C3D63] text-white shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#1E3A5F] text-white shadow-xl transition-[transform,width] duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
+          collapsed && "lg:w-[72px]",
           open ? "translate-x-0" : "max-lg:invisible max-lg:-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
+        <div className={cn("flex h-16 items-center justify-between border-b border-white/10 px-5", collapsed && "lg:justify-center lg:px-0")}>
           <span className="flex min-w-0 items-center gap-2">
             {org?.logo_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={org.logo_url} alt="" className="h-8 w-auto max-w-10 shrink-0 object-contain" />
             )}
-            <span className="truncate text-[15px] font-bold tracking-[0.14em] uppercase">{org?.name ?? "\u00a0"}</span>
+            <span className={cn("truncate text-[15px] font-bold tracking-[0.14em] uppercase", collapsed && "lg:hidden")}>{org?.name ?? "\u00a0"}</span>
+            {collapsed && !org?.logo_url && <span aria-hidden className="hidden size-9 place-items-center rounded-lg bg-white/10 text-sm font-bold lg:grid">{(org?.name ?? "G")[0]}</span>}
           </span>
           <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="grid size-10 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden">
             <X className="size-5" />
           </button>
         </div>
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Principal">
+        <nav className={cn("flex-1 space-y-6 overflow-y-auto px-3 py-5", collapsed && "lg:space-y-3")} aria-label="Principal">
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">Gestão</p>
+            <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>Gestão</p>
             {NAV.filter((n) => role === "admin" || !isAdminOnlyPath(n.href)).map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
           </div>
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">{role === "admin" ? "Administração" : "Conta"}</p>
+            <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>{role === "admin" ? "Administração" : "Conta"}</p>
             {role === "admin" && ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
             <SideLink {...ACCOUNT} path={path} />
           </div>
           {role === "admin" && isPlatform && (
             <div className="space-y-1">
-              <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">SaaS</p>
+              <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>SaaS</p>
               <SideLink {...PLATFORM} path={path} />
               {SAAS_LINKS.map((n) => <SideLink key={n.href} {...n} path={path} />)}
             </div>
           )}
         </nav>
-        <div className="border-t border-white/10 p-3">
-          <button type="button" onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/80 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70">
-            <LogOut className="size-[18px]" aria-hidden /> Sair
+        <div className="space-y-1 border-t border-white/10 p-3">
+          <button type="button" onClick={toggleMenu} aria-pressed={collapsed} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            className={cn("hidden h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/70 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70 lg:flex", collapsed && "lg:justify-center lg:px-0")}>
+            {collapsed ? <PanelLeftOpen className="size-[18px]" aria-hidden /> : <><PanelLeftClose className="size-[18px]" aria-hidden /> Recolher menu</>}
           </button>
+          <SignOutButton collapsed={collapsed} onClick={signOut} />
         </div>
       </aside>
 
-      <div className="lg:pl-64">
+      <div className={cn("flex min-h-dvh flex-1 flex-col transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-[72px]" : "lg:pl-64")}>
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-white px-4 shadow-sm sm:px-6">
           <button
             type="button"
@@ -203,19 +245,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="relative grid size-10 place-items-center rounded-lg text-primary outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Bell className="size-5" />
-            {pending > 0 && <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-[#F32329] px-1 text-[10px] leading-4 font-semibold text-white">{pending}</span>}
+            {pending > 0 && <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-[#EF3028] px-1 text-[10px] leading-4 font-semibold text-white">{pending}</span>}
           </Link>
           <UserMenu name={me} onSignOut={signOut} />
         </header>
-        <div className="mx-auto flex max-w-[90rem] flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
           <main className="min-w-0 flex-1 space-y-6" data-readonly={readOnly ? "" : undefined}>
             {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
             {children}
           </main>
           <SidePanel />
         </div>
+        <AppFooter />
       </div>
       <BirthdayCard names={birthdays} self={false} onClose={() => { markSeen("admin"); setBirthdays([]) }} />
     </div>
+    </CollapsedCtx.Provider>
   )
 }
