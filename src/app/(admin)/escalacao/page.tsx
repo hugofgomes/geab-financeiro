@@ -91,7 +91,7 @@ export default function LineupPage() {
   const labels = React.useMemo(() => cardLabels(entries.map((e) => byId.get(e.athlete_id)).filter((a): a is LineupAthlete => !!a)), [entries, byId])
   const toPlayers = React.useCallback((t: LineupTeam): CardPlayer[] =>
     entries.filter((e) => e.team === t).map((e) => ({ name: labels.get(e.athlete_id) ?? "?", keeper: keep.has(e.athlete_id), number: e.shirt_number }))
-      .sort((x, y) => Number(y.keeper) - Number(x.keeper)), [entries, keep, byId])
+      .sort((x, y) => Number(y.keeper) - Number(x.keeper)), [entries, keep, labels])
 
   // Redesenha a prévia (o mesmo canvas que será exportado).
   React.useEffect(() => {
