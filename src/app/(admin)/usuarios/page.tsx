@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useLoad } from "@/hooks/use-load"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import { Loader2, Pencil, UserX } from "lucide-react"
+import { ptCompare } from "@/lib/format"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -87,7 +88,7 @@ export default function UsersPage() {
     if (a.error) throw new Error(a.error.message)
     const users = u.data as UserRow[]
     const linked = new Set(users.map((x) => x.athlete_id).filter(Boolean))
-    return { users, free: (a.data as AthleteOpt[]).filter((x) => !linked.has(x.id)), me: me.data.user?.id ?? "" }
+    return { users, free: (a.data as AthleteOpt[]).filter((x) => !linked.has(x.id)).sort((x, y) => ptCompare(x.full_name, y.full_name)), me: me.data.user?.id ?? "" }
   }, [])
   const [editing, setEditing] = React.useState<UserRow | null>(null)
   if (!supabaseConfigured) return <SetupNotice />

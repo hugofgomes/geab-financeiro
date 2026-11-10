@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { guessAthlete, pickCharge, type AthleteLite, type OpenCharge } from "@/lib/extrato"
-import { formatBRL, formatCompetence, formatDate } from "@/lib/format"
+import { formatBRL, formatCompetence, formatDate, ptCompare } from "@/lib/format"
 import { decodeOfx, parseOfx, type OfxTx } from "@/lib/ofx"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import { confirmationMessage, waLink } from "@/lib/whatsapp"
@@ -179,7 +179,7 @@ export default function ExtratoPage() {
                         <TableCell>
                           <NativeSelect aria-label="Atleta" className="w-44" disabled={r.dup} value={r.athleteId} onChange={(e) => setAthlete(i, e.target.value)}>
                             <option value="">— escolher —</option>
-                            {(ctx?.athletes ?? []).slice().sort((x, y) => x.full_name.localeCompare(y.full_name)).map((a) => <option key={a.id} value={a.id}>{a.full_name}{a.active ? "" : " (inativo)"}</option>)}
+                            {(ctx?.athletes ?? []).slice().sort((x, y) => ptCompare(x.full_name, y.full_name)).map((a) => <option key={a.id} value={a.id}>{a.full_name}{a.active ? "" : " (inativo)"}</option>)}
                           </NativeSelect>
                         </TableCell>
                         <TableCell>

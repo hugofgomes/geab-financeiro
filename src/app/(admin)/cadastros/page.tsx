@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLoad } from "@/hooks/use-load"
-import { formatDate } from "@/lib/format"
+import { formatDate, ptCompare } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, SignupRequest } from "@/lib/types"
 import * as React from "react"
@@ -27,7 +27,7 @@ export default function SignupsPage() {
     const linked = new Set((p.data as { athlete_id: string }[]).map((x) => x.athlete_id))
     return {
       requests: r.data as SignupRequest[],
-      free: (a.data as Pick<Athlete, "id" | "full_name" | "nickname" | "active">[]).filter((x) => !linked.has(x.id)),
+      free: (a.data as Pick<Athlete, "id" | "full_name" | "nickname" | "active">[]).filter((x) => !linked.has(x.id)).sort((x, y) => ptCompare(x.full_name, y.full_name)),
     }
   }, [])
   const [pick, setPick] = React.useState<Record<string, string>>({})

@@ -10,6 +10,7 @@ import { hhmm, MATCHES_CHANGED, shortDate } from "@/lib/matches"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Match } from "@/lib/types"
 import { Loader2, Play, Undo2 } from "lucide-react"
+import { ptCompare } from "@/lib/format"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -38,7 +39,7 @@ async function load(): Promise<Data> {
     if (p.error) throw new Error(p.error.message)
     for (const r of p.data as { athlete_id: string; goals: number }[]) goals[r.athlete_id] = r.goals
   }
-  return { matches, athletes: a.data as Ath[], goals }
+  return { matches, athletes: (a.data as Ath[]).sort((x, y) => ptCompare(shown(x), shown(y))), goals }
 }
 
 export default function LivePage() {

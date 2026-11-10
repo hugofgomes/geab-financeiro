@@ -14,6 +14,7 @@ import { brToday, hhmm, MATCHES_CHANGED, shortDate, weekdayOf } from "@/lib/matc
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Match, MatchStatus } from "@/lib/types"
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import { ptCompare } from "@/lib/format"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -36,7 +37,7 @@ function MatchDialog({ m, onClose, onSaved }: { m: Match | "novo" | null; onClos
     if (m === "novo") { setF(blank()); setLoadedRows(true) }
     else setF({ date: m.match_date, time: hhmm(m.match_time) ?? "", a: m.team_a, b: m.team_b, sa: m.score_a == null ? "" : String(m.score_a), sb: m.score_b == null ? "" : String(m.score_b), status: m.status })
     const sb = supabase()
-    sb.from("athletes").select("id, full_name, nickname").eq("active", true).order("full_name").then((r) => r.data && setAthletes(r.data as Ath[]))
+    sb.from("athletes").select("id, full_name, nickname").eq("active", true).order("full_name").then((r) => r.data && setAthletes((r.data as Ath[]).sort((x, y) => ptCompare(x.nickname || x.full_name, y.nickname || y.full_name))))
     if (m !== "novo") {
       sb.from("match_players").select("athlete_id, goals").eq("match_id", m.id).then((r) => {
         if (r.error) return toast.error("Não foi possível carregar os gols: " + r.error.message)

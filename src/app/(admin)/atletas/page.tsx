@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useLoad } from "@/hooks/use-load"
-import { formatBRL } from "@/lib/format"
+import { formatBRL, ptCompare } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete } from "@/lib/types"
 import { Pencil, Plus, Trash2 } from "lucide-react"
@@ -22,7 +22,7 @@ export default function AthletesPage() {
   const { data, error, loading, reload } = useLoad(async () => {
     const r = await supabase().from("athletes").select("*").order("full_name")
     if (r.error) throw new Error(r.error.message)
-    return r.data as Athlete[]
+    return (r.data as Athlete[]).sort((x, y) => ptCompare(x.full_name, y.full_name))
   }, [])
   const [q, setQ] = React.useState("")
   const [filter, setFilter] = React.useState<"ativos" | "inativos" | "todos">("ativos")

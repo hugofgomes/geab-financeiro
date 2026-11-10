@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useLoad } from "@/hooks/use-load"
-import { addMonths, formatBRL, formatCompetence, formatDate, monthKey } from "@/lib/format"
+import { addMonths, formatBRL, formatCompetence, formatDate, monthKey, ptCompare } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Athlete, Charge, DisplayStatus, PixCharge } from "@/lib/types"
 import { confirmationMessage, waLink } from "@/lib/whatsapp"
@@ -185,7 +185,7 @@ export default function ChargesPage() {
     for (const r of [c, a, n]) if (r.error) throw new Error(r.error.message)
     const ath = new Map((a.data as (Athlete & { id: string })[]).map((x) => [x.id, x]))
     const rows = (c.data as Charge[]).map((x) => ({ ...x, athlete: ath.get(x.athlete_id)! })).filter((x) => x.athlete)
-    rows.sort((x, y) => x.athlete.full_name.localeCompare(y.athlete.full_name))
+    rows.sort((x, y) => ptCompare(x.athlete.full_name, y.athlete.full_name))
     const sent = new Map((n.data as { charge_id: string; created_at: string }[]).map((x) => [x.charge_id, x.created_at]))
     const ids = (c.data as Charge[]).map((x) => x.id)
     const px = ids.length ? await sb.from("pix_charges").select("*").in("charge_id", ids).order("created_at", { ascending: false }) : { data: [] as PixCharge[], error: null }

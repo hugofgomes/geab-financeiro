@@ -17,3 +17,6 @@ export const addMonths = (key: string, n: number) => {
   return monthKey(d)
 }
 export const digits = (s: string) => s.replace(/\D/g, "")
+
+/** Ordem alfabética em português: ignora acentos e maiúsculas (Álvaro vem junto do A). */
+export const ptCompare = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" })

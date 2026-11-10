@@ -16,6 +16,7 @@ import { hhmm, shortDate, splitMatches } from "@/lib/matches"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Match } from "@/lib/types"
 import { Download, Lock, LockOpen, Loader2, Share2, Shuffle, Sparkles } from "lucide-react"
+import { ptCompare } from "@/lib/format"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -37,7 +38,7 @@ async function load(): Promise<Data> {
     const c = (counts[r.match_id] ??= { a: 0, b: 0, reserva: 0 })
     c[r.team]++
   }
-  return { matches: m.data as Match[], athletes: a.data as LineupAthlete[], counts, lineupsReady: !l.error }
+  return { matches: m.data as Match[], athletes: (a.data as LineupAthlete[]).sort((x, y) => ptCompare(shownName(x), shownName(y))), counts, lineupsReady: !l.error }
 }
 
 const matchLabel = (m: Match) => `${shortDate(m.match_date)}${hhmm(m.match_time) ? ` ${hhmm(m.match_time)}` : ""} · ${m.team_a} × ${m.team_b}`
