@@ -73,7 +73,28 @@ export default function AthletesPage() {
       </div>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {loading && !data ? <Skeleton className="h-48" /> : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <>
+        <ul className="space-y-2 md:hidden" aria-label="Atletas">
+          {rows.length === 0 && <li className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">{data?.length ? "Nenhum atleta encontrado." : "Nenhum atleta cadastrado ainda."}</li>}
+          {rows.map((a) => (
+            <li key={a.id} className="space-y-2 rounded-xl border bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <Link href={`/atletas/${a.id}`} className="-my-2.5 block py-2.5 font-medium leading-snug hover:underline">{a.full_name}{a.nickname && <span className="ml-1 text-xs font-normal text-muted-foreground">({a.nickname})</span>}</Link>
+                <label className="flex shrink-0 items-center gap-2 py-1 text-xs text-muted-foreground">{a.active ? "Ativo" : "Inativo"} <Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label={`Ativo: ${a.full_name}`} /></label>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <span>{a.phone ? `+${a.phone}` : "Sem telefone"}</span>
+                {a.whatsapp_consent && <Badge variant="outline" className="text-[10px]">WhatsApp ok</Badge>}
+                <span className="tabular-nums">{formatBRL(a.monthly_fee)} · dia {a.due_day}</span>
+              </div>
+              <div className="flex justify-end gap-1">
+                <Button variant="ghost" size="icon-sm" onClick={() => { setEditing(a); setOpen(true) }} aria-label={`Editar ${a.full_name}`}><Pencil /></Button>
+                <Button variant="ghost" size="icon-sm" onClick={() => remove(a)} aria-label={`Excluir ${a.full_name}`} className="text-destructive hover:text-destructive"><Trash2 /></Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
           <Table>
             <TableHeader><TableRow><TableHead>Atleta</TableHead><TableHead>Telefone</TableHead><TableHead className="text-right">Mensalidade</TableHead><TableHead>Venc.</TableHead><TableHead>Ativo</TableHead><TableHead className="w-20" /></TableRow></TableHeader>
             <TableBody>
@@ -99,6 +120,7 @@ export default function AthletesPage() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
       <AthleteDialog open={open} athlete={editing} onClose={() => setOpen(false)} onSaved={reload} />
     </>

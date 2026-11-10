@@ -39,7 +39,7 @@ function Kpi({ label, value, hint, tone, icon: Icon }: { label: string; value: s
           <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone === "bad" ? "text-[#B4151B]" : tone === "good" ? "text-green-700" : "text-primary"}`}>{value}</div>
           {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
         </div>
-        <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl ${tone === "bad" ? "bg-[#F32329]/10 text-[#F32329]" : "bg-secondary text-primary"}`}><Icon className="size-5" /></span>
+        <span aria-hidden className={`hidden size-10 shrink-0 place-items-center rounded-xl sm:grid ${tone === "bad" ? "bg-[#F32329]/10 text-[#F32329]" : "bg-secondary text-primary"}`}><Icon className="size-5" /></span>
       </CardContent>
     </Card>
   )
@@ -49,7 +49,7 @@ export default function Dashboard() {
   const { data, error, loading } = useLoad(loadDashboard, [])
   if (!supabaseConfigured) return <SetupNotice />
   if (error) return <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>
-  if (loading || !data) return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>
+  if (loading || !data) return <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>
 
   const name = new Map(data.athletes.map((a) => [a.id, a.nickname || a.full_name]))
   const month = monthKey()
@@ -74,7 +74,7 @@ export default function Dashboard() {
   return (
     <>
       <h1 className="text-2xl font-semibold tracking-tight">Visão geral <span className="text-base font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
         <Kpi icon={Users} label="Atletas ativos" value={String(data.athletes.filter((a) => a.active).length)} />
         <Kpi icon={CalendarClock} label="Previsto no mês" value={formatBRL(planned)} hint={cur.length ? `${cur.length} mensalidades` : "Nenhuma mensalidade gerada neste mês"} />
         <Kpi icon={CircleDollarSign} label="Recebido no mês" value={formatBRL(receivedMonth)} hint={planned ? `${Math.round((paidCur / planned) * 100)}% do previsto` : undefined} tone="good" />

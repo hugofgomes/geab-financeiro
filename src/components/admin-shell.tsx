@@ -149,7 +149,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             )}
             <span className="truncate text-[15px] font-bold tracking-[0.14em] uppercase">{org?.name ?? "\u00a0"}</span>
           </span>
-          <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="grid size-8 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden">
+          <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="grid size-10 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden">
             <X className="size-5" />
           </button>
         </div>

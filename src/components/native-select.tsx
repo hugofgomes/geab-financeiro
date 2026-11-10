@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 export function NativeSelect({ className, ...props }: React.ComponentProps<"select">) {
   return (
     <select
-      className={cn("h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50", className)}
+      className={cn("h-10 md:h-8 rounded-lg border border-input bg-transparent px-2.5 text-base md:text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50", className)}
       {...props}
     />
   )

@@ -261,7 +261,30 @@ export default function ChargesPage() {
         </div>
       )}
       {loading && !data ? <Skeleton className="h-48" /> : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <>
+        <ul className="space-y-2 md:hidden" aria-label="Mensalidades">
+          {rows.length === 0 && <li className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">{data?.rows.length ? "Nenhuma mensalidade nesta situação." : "Nenhuma mensalidade neste mês. Use “Gerar mensalidades do mês”."}</li>}
+          {rows.map((r) => (
+            <li key={r.id} className="space-y-2.5 rounded-xl border bg-card p-3">
+              <div className="flex items-start justify-between gap-2"><span className="font-medium leading-snug">{r.athlete.full_name}</span><StatusBadge status={r.display_status} /></div>
+              <dl className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                <div><dt>Vence</dt><dd className="text-sm text-foreground">{formatDate(r.due_date)}</dd></div>
+                <div><dt>Valor</dt><dd className="text-sm tabular-nums text-foreground">{formatBRL(r.amount)}</dd></div>
+                <div><dt>Pago</dt><dd className="text-sm tabular-nums text-foreground">{formatBRL(r.paid_total)}</dd></div>
+              </dl>
+              <div className="flex flex-wrap gap-2">
+                {r.balance > 0 && <Button size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
+                {r.balance > 0 && data?.pix.get(r.id)?.br_code && <Button size="sm" variant="ghost" onClick={() => copyPix(data.pix.get(r.id)!.br_code!)}><Copy /> Pix</Button>}
+                {r.display_status === "pago" && <Button size="sm" variant="ghost" onClick={() => sendThanks(r)}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
+                <span className="ml-auto flex gap-1">
+                  <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`}><Pencil /></Button>
+                  <Button size="icon-sm" variant="ghost" onClick={() => removeCharge(r)} aria-label={`Excluir mensalidade de ${r.athlete.full_name}`}><Trash2 /></Button>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
           <Table>
             <TableHeader><TableRow><TableHead>Atleta</TableHead><TableHead>Vencimento</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Pago</TableHead><TableHead>Situação</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
             <TableBody>
@@ -287,6 +310,7 @@ export default function ChargesPage() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
       <p className="text-xs text-muted-foreground">O agradecimento abre no WhatsApp com o texto pronto, só para mensalidades pagas; quem envia é você. O registro guarda que a mensagem foi aberta, não que foi entregue.</p>
       <PaymentDialog row={paying} onClose={() => setPaying(null)} onSaved={reload} />

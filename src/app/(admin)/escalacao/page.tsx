@@ -220,10 +220,10 @@ export default function LineupPage() {
     if (!a) return null
     const other: LineupTeam = e.team === "a" ? "b" : "a"
     return (
-      <div key={e.athlete_id} {...dnd(e.athlete_id)} className="flex items-center gap-1.5 rounded-lg border bg-background px-1.5 py-1 cursor-grab">
+      <div key={e.athlete_id} {...dnd(e.athlete_id)} className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-background px-1.5 py-1 cursor-grab">
         {color ? <Kit color={color} n={e.shirt_number} /> : <span className="w-[26px]" />}
-        <span className="min-w-0 flex-1 truncate text-sm">{shownName(a)}</span>
-        <Input aria-label={`Número de ${shownName(a)}`} className="h-7 w-11 px-1 text-center text-xs" inputMode="numeric" placeholder="Nº" value={e.shirt_number} disabled={locked} onChange={(ev) => setNumber(e.athlete_id, ev.target.value)} />
+        <span className="min-w-0 flex-1 basis-28 truncate text-sm">{shownName(a)}</span>
+        <Input aria-label={`Número de ${shownName(a)}`} className="h-10 w-14 px-1 text-center md:h-7 md:w-11 md:text-xs" inputMode="numeric" placeholder="Nº" value={e.shirt_number} disabled={locked} onChange={(ev) => setNumber(e.athlete_id, ev.target.value)} />
         <Button type="button" size="icon-sm" variant={keep.has(e.athlete_id) ? "brand" : "outline"} aria-label="Goleiro" title="Goleiro" disabled={locked} onClick={() => toggleKeeper(e.athlete_id)}>G</Button>
         {e.team !== "reserva" && <Button type="button" size="icon-sm" variant="outline" aria-label={`Mover para ${other === "a" ? "Azul" : "Branco"}`} title={`Mover para ${other === "a" ? "Azul" : "Branco"}`} disabled={locked} onClick={() => move(e.athlete_id, other)}>{other === "a" ? "A" : "B"}</Button>}
         {e.team !== "reserva" ? <Button type="button" size="icon-sm" variant="outline" aria-label="Reserva" title="Reserva" disabled={locked} onClick={() => move(e.athlete_id, "reserva")}>R</Button>
@@ -332,13 +332,17 @@ export default function LineupPage() {
                     <div className={zoneCls("pool")} {...zoneProps("pool")}>
                       <div className="grid gap-1.5 sm:grid-cols-2">
                         {pool.map((a) => (
-                          <div key={a.id} {...dnd(a.id)} className="flex cursor-grab items-center gap-2 rounded-lg border bg-background px-2 py-1">
-                            <input type="checkbox" className="size-4" aria-label={`Selecionar ${shownName(a)}`} checked={sel.has(a.id)} disabled={locked}
-                              onChange={(e) => setSel((s) => { const n = new Set(s); if (e.target.checked) n.add(a.id); else n.delete(a.id); return n })} />
-                            <span className="min-w-0 flex-1 truncate text-sm">{shownName(a)}{a.nickname && <span className="text-xs text-muted-foreground"> · {a.full_name}</span>}</span>
-                            <Button type="button" size="icon-sm" variant={keep.has(a.id) ? "brand" : "outline"} aria-label="Goleiro" title="Goleiro" disabled={locked} onClick={() => toggleKeeper(a.id)}>G</Button>
-                            <Button type="button" size="sm" variant="outline" disabled={locked} onClick={() => move(a.id, "a")}>Azul</Button>
-                            <Button type="button" size="sm" variant="outline" disabled={locked} onClick={() => move(a.id, "b")}>Branco</Button>
+                          <div key={a.id} {...dnd(a.id)} className="flex cursor-grab flex-wrap items-center gap-2 rounded-lg border bg-background px-2 py-1">
+                            <label className="-m-1 grid size-10 shrink-0 cursor-pointer place-items-center">
+                              <input type="checkbox" className="size-5" aria-label={`Selecionar ${shownName(a)}`} checked={sel.has(a.id)} disabled={locked}
+                                onChange={(e) => setSel((s) => { const n = new Set(s); if (e.target.checked) n.add(a.id); else n.delete(a.id); return n })} />
+                            </label>
+                            <span className="min-w-0 flex-1 basis-32 truncate text-sm">{shownName(a)}{a.nickname && <span className="text-xs text-muted-foreground"> · {a.full_name}</span>}</span>
+                            <div className="flex w-full gap-2 sm:w-auto">
+                              <Button type="button" size="sm" variant={keep.has(a.id) ? "brand" : "outline"} aria-label="Goleiro" title="Goleiro" className="w-12 sm:w-auto" disabled={locked} onClick={() => toggleKeeper(a.id)}>G</Button>
+                              <Button type="button" size="sm" variant="outline" className="flex-1 sm:flex-none" disabled={locked} onClick={() => move(a.id, "a")}>Azul</Button>
+                              <Button type="button" size="sm" variant="outline" className="flex-1 sm:flex-none" disabled={locked} onClick={() => move(a.id, "b")}>Branco</Button>
+                            </div>
                           </div>
                         ))}
                       </div>
