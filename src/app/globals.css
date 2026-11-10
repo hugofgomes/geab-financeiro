@@ -140,3 +140,12 @@
 }
 /* Diretoria (somente consulta): esconde tudo que grava. O banco já recusa qualquer escrita; isto só limpa a tela. */
 [data-readonly] [data-write] { display: none !important; }
+
+/* Site comercial */
+@keyframes site-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+.site-float { animation: site-float 6s ease-in-out infinite }
+html { scroll-behavior: smooth }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto }
+  .site-float { animation: none }
+}
