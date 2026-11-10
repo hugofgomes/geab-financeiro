@@ -5,6 +5,8 @@ import { BirthdayCard } from "@/components/birthday-card"
 import { SidePanel } from "@/components/side-panel"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { useOrg } from "@/hooks/use-org"
+import { useRole } from "@/hooks/use-role"
+import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Bell, Building2, Crown, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
@@ -93,6 +95,8 @@ function UserMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   const org = useOrg()
+  const { role } = useRole()
+  const readOnly = role !== "admin"      // Diretoria (e enquanto o nível carrega): sem controles de edição
   const [isPlatform, setIsPlatform] = React.useState(false)
   React.useEffect(() => { supabase().rpc("is_platform_admin").then((r) => setIsPlatform(r.data === true), () => {}) }, [])
   const [open, setOpen] = React.useState(false)
@@ -156,12 +160,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Principal">
           <div className="space-y-1">
             <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">Gestão</p>
-            {NAV.map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
+            {NAV.filter((n) => role === "admin" || !isAdminOnlyPath(n.href)).map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
           </div>
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">Administração</p>
-            {ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
-            {isPlatform && <SideLink {...PLATFORM} path={path} />}
+            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">{role === "admin" ? "Administração" : "Conta"}</p>
+            {role === "admin" && ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
+            {role === "admin" && isPlatform && <SideLink {...PLATFORM} path={path} />}
             <SideLink {...ACCOUNT} path={path} />
           </div>
         </nav>
@@ -197,7 +201,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <UserMenu name={me} onSignOut={signOut} />
         </header>
         <div className="mx-auto flex max-w-[90rem] flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
-          <main className="min-w-0 flex-1 space-y-6">{children}</main>
+          <main className="min-w-0 flex-1 space-y-6" data-readonly={readOnly ? "" : undefined}>
+            {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
+            {children}
+          </main>
           <SidePanel />
         </div>
       </div>

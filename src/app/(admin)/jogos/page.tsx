@@ -163,7 +163,7 @@ export default function MatchesPage() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Jogos</h1>
-        <Button variant="brand" onClick={() => setEditing("novo")}><Plus /> Novo jogo</Button>
+        <Button data-write variant="brand" onClick={() => setEditing("novo")}><Plus /> Novo jogo</Button>
       </div>
       <p className="text-sm text-muted-foreground">Os resultados e o próximo jogo aparecem na barra lateral para toda a diretoria e para os atletas. Os aniversários vêm da data de nascimento do cadastro de cada atleta (edite em Atletas).</p>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
@@ -181,7 +181,7 @@ export default function MatchesPage() {
                   <TableCell>{m.team_a} <span className="text-muted-foreground">×</span> {m.team_b}</TableCell>
                   <TableCell className="text-center font-semibold tabular-nums">{m.score_a == null ? "–" : `${m.score_a} × ${m.score_b}`}</TableCell>
                   <TableCell>{STATUS[m.status]}</TableCell>
-                  <TableCell><div className="flex justify-end gap-0.5">
+                  <TableCell><div data-write className="flex justify-end gap-0.5">
                     <Button variant="ghost" size="icon-sm" onClick={() => setEditing(m)} aria-label={`Editar jogo de ${shortDate(m.match_date)}`}><Pencil /></Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => remove(m)} aria-label={`Excluir jogo de ${shortDate(m.match_date)}`}><Trash2 /></Button>
                   </div></TableCell>

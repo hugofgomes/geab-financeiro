@@ -16,14 +16,14 @@ import { Loader2, Pencil, UserX } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
-type UserRow = { id: string; full_name: string; email: string; role: "admin" | "atleta"; active: boolean; athlete_id: string | null; athlete_name: string | null; created_at: string; last_sign_in_at: string | null }
+type UserRow = { id: string; full_name: string; email: string; role: "admin" | "diretoria" | "atleta"; active: boolean; athlete_id: string | null; athlete_name: string | null; created_at: string; last_sign_in_at: string | null }
 type AthleteOpt = { id: string; full_name: string }
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "nunca")
 
 function EditDialog({ user, me, free, onClose, onSaved }: { user: UserRow | null; me: string; free: AthleteOpt[]; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = React.useState("")
-  const [role, setRole] = React.useState<"admin" | "atleta">("atleta")
+  const [role, setRole] = React.useState<"admin" | "diretoria" | "atleta">("atleta")
   const [active, setActive] = React.useState(true)
   const [athlete, setAthlete] = React.useState("")
   const [busy, setBusy] = React.useState(false)
@@ -52,9 +52,10 @@ function EditDialog({ user, me, free, onClose, onSaved }: { user: UserRow | null
           <div className="space-y-1.5"><Label htmlFor="un">Nome completo</Label><Input id="un" value={name} onChange={(e) => setName(e.target.value)} required minLength={3} /></div>
           <div className="space-y-1.5">
             <Label htmlFor="ur">Perfil de acesso</Label>
-            <NativeSelect id="ur" className="w-full" value={role} onChange={(e) => setRole(e.target.value as "admin" | "atleta")} disabled={isMe}>
+            <NativeSelect id="ur" className="w-full" value={role} onChange={(e) => setRole(e.target.value as "admin" | "diretoria" | "atleta")} disabled={isMe}>
               <option value="atleta">Atleta — vê só a própria conta</option>
-              <option value="admin">Diretoria — vê e gerencia tudo</option>
+              <option value="diretoria">Diretoria — consulta tudo, sem a administração</option>
+              <option value="admin">Administrador — vê e gerencia tudo</option>
             </NativeSelect>
           </div>
           {role === "atleta" && (
@@ -104,7 +105,7 @@ export default function UsersPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Usuários e privilégios</h1>
         <p className="text-sm text-muted-foreground">
-          <strong>Diretoria</strong> vê e gerencia tudo. <strong>Atleta</strong> vê apenas a própria conta e pode editar o próprio nome e a senha.
+          <strong>Administrador</strong> vê e gerencia tudo. <strong>Diretoria</strong> consulta todas as áreas, mas não altera nada nem acessa usuários, importação e configurações do grupo. <strong>Atleta</strong> vê apenas a própria conta e pode editar o próprio nome e a senha.
           Novas pessoas entram pelo formulário <code>/cadastro</code> e são liberadas em <strong>Cadastros</strong>.
         </p>
       </div>
@@ -117,7 +118,7 @@ export default function UsersPage() {
               {(data?.users ?? []).map((u) => (
                 <TableRow key={u.id}>
                   <TableCell><div className="font-medium">{u.full_name}{u.id === data?.me && <span className="ml-1 text-xs font-normal text-muted-foreground">(você)</span>}</div><div className="text-xs text-muted-foreground">{u.email}</div></TableCell>
-                  <TableCell><Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role === "admin" ? "Diretoria" : "Atleta"}</Badge></TableCell>
+                  <TableCell><Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role === "admin" ? "Administrador" : u.role === "diretoria" ? "Diretoria" : "Atleta"}</Badge></TableCell>
                   <TableCell className="text-sm">{u.athlete_name ?? "—"}</TableCell>
                   <TableCell className="text-sm">{fmt(u.last_sign_in_at)}</TableCell>
                   <TableCell><Badge variant={u.active ? "outline" : "destructive"}>{u.active ? "Ativo" : "Inativo"}</Badge></TableCell>

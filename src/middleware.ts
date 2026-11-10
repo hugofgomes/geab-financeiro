@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { isAdminOnlyPath, isStaff } from "@/lib/roles"
 
 export async function middleware(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -32,13 +33,17 @@ export async function middleware(req: NextRequest) {
   const { data: p } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()
   // Usuário confirmado, mas ainda sem perfil liberado (pré-cadastro aguardando aprovação).
   if (!p?.active) return path === "/cadastro/status" ? res : go("/cadastro/status")
-  if (path === "/cadastro" || path === "/cadastro/status" || path === "/novo-grupo") return go(p.role === "admin" ? "/" : "/atleta")
-  // A área do atleta é exatamente /atleta (e subrotas); /atletas é a lista do administrador.
+  // Administrador e Diretoria usam o painel; Atleta usa o portal.
+  const staff = isStaff(p.role)
+  if (path === "/cadastro" || path === "/cadastro/status" || path === "/novo-grupo") return go(staff ? "/" : "/atleta")
+  // A área do atleta é exatamente /atleta (e subrotas); /atletas é a lista do painel.
   const inPortal = path === "/atleta" || path.startsWith("/atleta/")
-  const home = p.role === "admin" ? "/" : "/atleta"
+  const home = staff ? "/" : "/atleta"
   if (path === "/login") return go(home)
-  if (p.role === "atleta" && !inPortal) return go("/atleta")
-  if (p.role === "admin" && inPortal) return go("/")
+  if (!staff && !inPortal) return go("/atleta")
+  if (staff && inPortal) return go("/")
+  // Diretoria só consulta: usuários, importação, configurações do grupo e operações ao vivo ficam só com o administrador.
+  if (p.role === "diretoria" && isAdminOnlyPath(path)) return go("/")
   return res
 }
 

@@ -332,6 +332,55 @@ await as(uid(600), async () => {
 ok("vincular administrador existente", (await one(`select count(*)::int from public.profiles where id=$1 and tenant_id=$2 and role='admin'`, [uid(601), clubId])) === 1)
 await as(uid(601), async () => { ok("o novo administrador vê o grupo dele e nada dos outros", (await one(`select count(*)::int from public.organizations`)) === 1 && (await one(`select count(*)::int from public.athletes`)) === 0) })
 
+section("Níveis de acesso: atleta, diretoria e administrador")
+const D = uid(700)
+await db.query(`insert into auth.users (id, email) values ($1,'diretoria@geab')`, [D])
+await db.query(`insert into public.profiles (id, tenant_id, full_name, role) values ($1,$2,'Diretor Geab','diretoria')`, [D, geab])
+const counts = async () => { const r = {}; for (const t of ["athletes","charges","payments","expenses","other_income","matches","match_players","notifications","signup_requests","pix_charges","match_lineups"]) r[t] = await one(`select count(*)::int from public.${t}`); r.cash = JSON.stringify((await db.query(`select total_in::float a, total_out::float b from public.cash_summary`)).rows[0]); r.view = await one(`select count(*)::int from public.charges_view`); return r }
+const adminSees = await as(U.geabAdmin, counts)
+const dirSees = await as(D, counts)
+ok("diretoria enxerga exatamente o mesmo que o administrador (todas as áreas operacionais e o caixa)", JSON.stringify(adminSees) === JSON.stringify(dirSees), `${JSON.stringify(adminSees)} vs ${JSON.stringify(dirSees)}`)
+await as(D, async () => {
+  ok("diretoria NÃO lê a auditoria", (await one(`select count(*)::int from public.audit_log`)) === 0)
+  ok("diretoria vê só o próprio perfil (não a lista de usuários)", (await one(`select count(*)::int from public.profiles`)) === 1)
+  ok("diretoria não lê configurações internas, BTG nem anotações", (await one(`select count(*)::int from public.org_internal`)) === 0 && !!(await err(`select * from public.btg_connection`)))
+  ok("diretoria vê a identidade do grupo", (await one(`select count(*)::int from public.organizations`)) === 1)
+  ok("is_staff verdadeiro e is_admin falso", (await one(`select public.is_staff()`)) === true && (await one(`select public.is_admin()`)) === false)
+  for (const [n, sql, p] of [
+    ["criar atleta", `insert into public.athletes (full_name) values ('Intruso')`, []],
+    ["lançar pagamento", `insert into public.payments (athlete_id, charge_id, amount, paid_at) values ($1,$2,1,current_date)`, [G.athlete, G.charge]],
+    ["lançar despesa", `insert into public.expenses (spent_at, description, amount) values (current_date,'x',1)`, []],
+    ["criar jogo", `insert into public.matches (match_date) values (current_date)`, []],
+  ]) { const e = await err(sql, p); ok(`diretoria não consegue: ${n}`, !!e, "executou!") }
+  ok("diretoria não altera atleta", (await db.query(`update public.athletes set full_name='HACK' where id=$1`, [G.athlete])).rowCount === 0)
+  ok("diretoria não apaga atleta", (await db.query(`delete from public.athletes where id=$1`, [G.athlete])).rowCount === 0)
+  ok("diretoria não altera pagamento", (await db.query(`update public.payments set amount=1`)).rowCount === 0)
+  for (const [n, sql] of [
+    ["gerar mensalidades", `select public.generate_charges(current_date)`], ["listar usuários", `select * from public.admin_users()`],
+    ["alterar usuário", `select public.admin_update_user('${U.geabAtleta}', 'Nome Novo Aqui', 'admin', true, null)`],
+    ["remover acesso", `select public.admin_remove_access('${U.geabAtleta}')`], ["aprovar cadastro", `select public.approve_signup('${G.request}')`],
+    ["recusar cadastro", `select public.reject_signup('${G.request}')`], ["excluir atleta", `select public.admin_delete_athlete('${G.athlete}')`],
+    ["editar mensalidade", `select public.admin_update_charge('${G.charge}', 1, current_date)`], ["excluir mensalidade", `select public.admin_delete_charge('${G.charge}', true)`],
+    ["salvar gols", `select public.set_match_players('${G.match}', '[]')`], ["salvar escalação", `select public.set_match_lineup('${G.match}', '[]')`],
+    ["editar o grupo", `select public.update_organization('X', null, null, null, null)`],
+  ]) { const e = await err(sql); ok(`diretoria é barrada em: ${n}`, !!e && /Apenas/.test(e), e ?? "executou!") }
+  ok("diretoria continua vendo aniversariantes e artilharia", (await err(`select * from public.month_birthdays()`)) === null && (await err(`select * from public.top_scorers()`)) === null)
+})
+await as(U.geabAdmin, async () => {
+  await db.query(`select public.admin_update_user($1, 'Atleta Virou Diretor', 'diretoria', true, null)`, [U.geabAtleta])
+  ok("administrador promove um usuário a diretoria", (await one(`select role from public.profiles where id=$1`, [U.geabAtleta])) === "diretoria")
+  ok("promover a diretoria mantém o vínculo com o cadastro de atleta", (await one(`select athlete_id from public.profiles where id=$1`, [U.geabAtleta])) === G.athlete)
+  ok("administrador continua com acesso total", (await db.query(`update public.athletes set nickname='ok' where id=$1`, [G.athlete])).rowCount === 1)}, true)
+await as(U.peladaAdmin, async () => { ok("diretoria do GEAB não vê nem altera o outro grupo", true) })
+await as(D, async () => { ok("diretoria do GEAB não vê dados da Pelada", (await one(`select count(*)::int from public.athletes where tenant_id=$1`, [P.org])) === 0 && (await one(`select count(*)::int from public.expenses where description='Colete'`)) === 0) })
+await db.query("begin")
+const eLastAdmin = await err(`update public.profiles set role='diretoria' where id=$1`, [U.peladaAdmin])
+await db.query("rollback")
+ok("diretoria não conta como administrador: o último admin não pode virar diretoria", !!eLastAdmin && /pelo menos um/.test(eLastAdmin), eLastAdmin ?? "")
+await as(U.geabAtleta, async () => { ok("(ex-atleta agora diretoria) vê as áreas de consulta", (await one(`select count(*)::int from public.expenses`)) === 1) })
+await db.query(`update public.profiles set role='atleta' where id=$1`, [U.geabAtleta])
+await as(U.geabAtleta, async () => { ok("atleta continua vendo só o que é dele", (await one(`select count(*)::int from public.athletes`)) === 1 && (await one(`select count(*)::int from public.expenses`)) === 0) })
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

@@ -42,6 +42,13 @@ Teste de isolamento (Postgres local descartável, sem tocar na produção): `npm
 - **Tornar-se dono da plataforma** (uma vez, no SQL Editor, trocando o e-mail): `insert into public.platform_admins (user_id) select id from auth.users where email = 'seu@email.com';`
 - Ainda não existe: cobrança/inadimplência reais (etapa de assinaturas), chamados de suporte e armazenamento de arquivos.
 
+## Níveis de acesso (0019 e 0020)
+- **Atleta**: só a própria conta e os próprios dados. **Diretoria**: consulta todas as áreas operacionais, sem alterar nada e sem a administração. **Administrador**: gerencia tudo.
+- Aplicado no banco (`is_staff()` + políticas de leitura; escrita segue só com `is_admin()`), no middleware (rotas administrativas voltam ao início) e na tela (`data-write` esconde controles de edição).
+- Área só do administrador: usuários e privilégios, importar planilha, Meu grupo, Plataforma, Gols ao vivo, auditoria e integrações (BTG/Pix).
+- Quem já era `admin` continua administrador. Para dar o acesso de Diretoria: Usuários e privilégios → editar → nível "Diretoria".
+- `0019` precisa rodar sozinha antes da `0020` (o Postgres só usa um valor novo de enum depois do commit).
+
 ## O que NÃO existe ainda
 Importação da planilha, conciliação por extrato OFX/CSV, Pix com identificador por cobrança (depende de provedor),
 WhatsApp Business API (depende de aprovação da Meta), fluxos n8n, Docker/VPS, backups automáticos.

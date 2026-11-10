@@ -117,7 +117,7 @@ export default function CashPage() {
           <Card><CardContent className="pt-4"><div className="text-xs text-muted-foreground">Saldo em caixa</div><div className="text-2xl font-semibold tabular-nums">{formatBRL(data.totalIn - data.totalOut)}</div></CardContent></Card>
         </div>
       )}
-      <form onSubmit={add} className="grid grid-cols-2 gap-x-3 gap-y-4 rounded-xl border bg-card p-4 md:grid-cols-12">
+      <form data-write onSubmit={add} className="grid grid-cols-2 gap-x-3 gap-y-4 rounded-xl border bg-card p-4 md:grid-cols-12">
         <h2 className="col-span-full text-base font-semibold">Registrar despesa</h2>
         <div className="flex flex-col gap-1.5 md:col-span-3"><Label htmlFor="xd">Data</Label><Input id="xd" type="date" className="h-9" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
         <div className="col-span-2 flex flex-col gap-1.5 md:col-span-9"><Label htmlFor="xs">Descrição</Label><Input id="xs" className="h-9" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex.: Aluguel da quadra" required /></div>
@@ -147,7 +147,7 @@ export default function CashPage() {
               {shown.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">{data?.expenses.length ? "Nenhuma despesa neste local." : "Nenhuma despesa registrada."}</TableCell></TableRow>}
               {shown.map((x) => (
                 <TableRow key={x.id}><TableCell>{formatDate(x.spent_at)}</TableCell><TableCell>{x.description}</TableCell><TableCell>{x.category ?? "—"}</TableCell><TableCell>{x.location ?? "—"}</TableCell><TableCell className="text-right tabular-nums">{formatBRL(x.amount)}</TableCell>
-                  <TableCell><div className="flex justify-end gap-0.5"><Button variant="ghost" size="icon-sm" onClick={() => setEditing(x)} aria-label={`Editar ${x.description}`}><Pencil /></Button><Button variant="ghost" size="icon-sm" onClick={() => remove(x)} aria-label={`Excluir ${x.description}`}><Trash2 /></Button></div></TableCell></TableRow>
+                  <TableCell><div data-write className="flex justify-end gap-0.5"><Button variant="ghost" size="icon-sm" onClick={() => setEditing(x)} aria-label={`Editar ${x.description}`}><Pencil /></Button><Button variant="ghost" size="icon-sm" onClick={() => remove(x)} aria-label={`Excluir ${x.description}`}><Trash2 /></Button></div></TableCell></TableRow>
               ))}
             </TableBody>
           </Table>

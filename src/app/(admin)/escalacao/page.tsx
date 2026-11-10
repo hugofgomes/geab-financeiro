@@ -350,7 +350,7 @@ export default function LineupPage() {
                     </div>
                   </section>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div data-write className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" disabled={busy || locked} onClick={save}>{busy && <Loader2 className="animate-spin" />} Salvar escalação</Button>
                     {locked
                       ? <Button variant="outline" disabled={busy} onClick={() => setConfirmed(false)}><LockOpen /> Reabrir edição</Button>

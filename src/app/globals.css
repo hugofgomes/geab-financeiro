@@ -138,3 +138,5 @@
     html { scroll-behavior: auto; }
   }
 }
+/* Diretoria (somente consulta): esconde tudo que grava. O banco já recusa qualquer escrita; isto só limpa a tela. */
+[data-readonly] [data-write] { display: none !important; }

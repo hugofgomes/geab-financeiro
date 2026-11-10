@@ -63,7 +63,7 @@ export default function AthletesPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Atletas</h1>
           {data && <p className="text-sm text-muted-foreground">{data.length} cadastrado{data.length === 1 ? "" : "s"} · {nAtivos} ativo{nAtivos === 1 ? "" : "s"} · {nInativos} inativo{nInativos === 1 ? "" : "s"}</p>}
         </div>
-        <Button onClick={() => { setEditing(null); setOpen(true) }}><Plus /> Novo atleta</Button>
+        <Button data-write onClick={() => { setEditing(null); setOpen(true) }}><Plus /> Novo atleta</Button>
       </div>
       <div className="flex flex-wrap gap-2">
         <Input className="max-w-xs" placeholder="Buscar por nome ou apelido" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar atleta" />
@@ -80,14 +80,14 @@ export default function AthletesPage() {
             <li key={a.id} className="space-y-2 rounded-xl border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <Link href={`/atletas/${a.id}`} className="-my-2.5 block py-2.5 font-medium leading-snug hover:underline">{a.full_name}{a.nickname && <span className="ml-1 text-xs font-normal text-muted-foreground">({a.nickname})</span>}</Link>
-                <label className="flex shrink-0 items-center gap-2 py-1 text-xs text-muted-foreground">{a.active ? "Ativo" : "Inativo"} <Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label={`Ativo: ${a.full_name}`} /></label>
+                <label className="flex shrink-0 items-center gap-2 py-1 text-xs text-muted-foreground">{a.active ? "Ativo" : "Inativo"} <Switch data-write checked={a.active} onCheckedChange={() => toggle(a)} aria-label={`Ativo: ${a.full_name}`} /></label>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <span>{a.phone ? `+${a.phone}` : "Sem telefone"}</span>
                 {a.whatsapp_consent && <Badge variant="outline" className="text-[10px]">WhatsApp ok</Badge>}
                 <span className="tabular-nums">{formatBRL(a.monthly_fee)} · dia {a.due_day}</span>
               </div>
-              <div className="flex justify-end gap-1">
+              <div data-write className="flex justify-end gap-1">
                 <Button variant="ghost" size="icon-sm" onClick={() => { setEditing(a); setOpen(true) }} aria-label={`Editar ${a.full_name}`}><Pencil /></Button>
                 <Button variant="ghost" size="icon-sm" onClick={() => remove(a)} aria-label={`Excluir ${a.full_name}`} className="text-destructive hover:text-destructive"><Trash2 /></Button>
               </div>
@@ -108,9 +108,9 @@ export default function AthletesPage() {
                   <TableCell className="text-sm">{a.phone ? `+${a.phone}` : "—"} {a.whatsapp_consent && <Badge variant="outline" className="ml-1 text-[10px]">WhatsApp ok</Badge>}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatBRL(a.monthly_fee)}</TableCell>
                   <TableCell>dia {a.due_day}</TableCell>
-                  <TableCell><Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label={`Ativo: ${a.full_name}`} /></TableCell>
+                  <TableCell><Switch data-write checked={a.active} onCheckedChange={() => toggle(a)} aria-label={`Ativo: ${a.full_name}`} /><span className="hidden text-xs text-muted-foreground [[data-readonly]_&]:inline">{a.active ? "Ativo" : "Inativo"}</span></TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-0.5">
+                    <div data-write className="flex justify-end gap-0.5">
                       <Button variant="ghost" size="icon-sm" onClick={() => { setEditing(a); setOpen(true) }} aria-label={`Editar ${a.full_name}`}><Pencil /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => remove(a)} aria-label={`Excluir ${a.full_name}`} className="text-destructive hover:text-destructive"><Trash2 /></Button>
                     </div>

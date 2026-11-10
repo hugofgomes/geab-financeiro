@@ -245,13 +245,13 @@ export default function ChargesPage() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={generate} disabled={generating}>{generating ? <Loader2 className="animate-spin" /> : <Wand2 />} Gerar mensalidades do mês</Button>
+        <Button data-write onClick={generate} disabled={generating}>{generating ? <Loader2 className="animate-spin" /> : <Wand2 />} Gerar mensalidades do mês</Button>
         <NativeSelect value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar por situação">
           <option value="todos">Todas as situações</option><option value="pendente">Pendentes</option><option value="atrasado">Atrasadas</option><option value="parcial">Parcialmente pagas</option><option value="pago">Pagas</option><option value="em_conferencia">Em conferência</option>
         </NativeSelect>
         {data && data.rows.length > 0 && <span className="text-sm text-muted-foreground">Previsto {formatBRL(sum((r) => r.amount))} · recebido {formatBRL(sum((r) => r.paid_total))} · pendente {formatBRL(sum((r) => Math.max(0, r.balance)))}</span>}
       </div>
-      <PixSettings />
+      <div data-write><PixSettings /></div>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {data && data.review.length > 0 && (
         <div role="alert" className="space-y-1 rounded-xl border border-[#F32329]/40 bg-[#F32329]/5 p-3 text-sm">
@@ -273,10 +273,10 @@ export default function ChargesPage() {
                 <div><dt>Pago</dt><dd className="text-sm tabular-nums text-foreground">{formatBRL(r.paid_total)}</dd></div>
               </dl>
               <div className="flex flex-wrap gap-2">
-                {r.balance > 0 && <Button size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
+                {r.balance > 0 && <Button data-write size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
                 {r.balance > 0 && data?.pix.get(r.id)?.br_code && <Button size="sm" variant="ghost" onClick={() => copyPix(data.pix.get(r.id)!.br_code!)}><Copy /> Pix</Button>}
-                {r.display_status === "pago" && <Button size="sm" variant="ghost" onClick={() => sendThanks(r)}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
-                <span className="ml-auto flex gap-1">
+                {r.display_status === "pago" && <Button data-write size="sm" variant="ghost" onClick={() => sendThanks(r)}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
+                <span data-write className="ml-auto flex gap-1">
                   <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`}><Pencil /></Button>
                   <Button size="icon-sm" variant="ghost" onClick={() => removeCharge(r)} aria-label={`Excluir mensalidade de ${r.athlete.full_name}`}><Trash2 /></Button>
                 </span>
@@ -299,10 +299,10 @@ export default function ChargesPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       {r.balance > 0 && data?.pix.get(r.id)?.br_code && <Button size="sm" variant="ghost" onClick={() => copyPix(data.pix.get(r.id)!.br_code!)} title="Copiar o Pix Copia e Cola desta mensalidade"><Copy /> Pix</Button>}
-                      {r.balance > 0 && <Button size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
-                      <Button size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`} title="Editar valor, vencimento e pagamentos"><Pencil /></Button>
-                      <Button size="icon-sm" variant="ghost" onClick={() => removeCharge(r)} aria-label={`Excluir mensalidade de ${r.athlete.full_name}`} title="Excluir mensalidade"><Trash2 /></Button>
-                      {r.display_status === "pago" && <Button size="sm" variant="ghost" onClick={() => sendThanks(r)} title={data?.sent.get(r.id) ? `Agradecimento aberto em ${new Date(data.sent.get(r.id)!).toLocaleString("pt-BR")}` : "Abrir mensagem de agradecimento no WhatsApp"}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
+                      {r.balance > 0 && <Button data-write size="sm" variant="outline" onClick={() => setPaying(r)}><Plus /> Pagamento</Button>}
+                      <Button data-write size="icon-sm" variant="ghost" onClick={() => setEditing(r)} aria-label={`Editar mensalidade de ${r.athlete.full_name}`} title="Editar valor, vencimento e pagamentos"><Pencil /></Button>
+                      <Button data-write size="icon-sm" variant="ghost" onClick={() => removeCharge(r)} aria-label={`Excluir mensalidade de ${r.athlete.full_name}`} title="Excluir mensalidade"><Trash2 /></Button>
+                      {r.display_status === "pago" && <Button data-write size="sm" variant="ghost" onClick={() => sendThanks(r)} title={data?.sent.get(r.id) ? `Agradecimento aberto em ${new Date(data.sent.get(r.id)!).toLocaleString("pt-BR")}` : "Abrir mensagem de agradecimento no WhatsApp"}><MessageCircle /> {data?.sent.has(r.id) ? "Reenviar agradecimento" : "Agradecer"}</Button>}
                     </div>
                   </TableCell>
                 </TableRow>

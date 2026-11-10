@@ -83,15 +83,15 @@ export default function SignupsPage() {
                     aria-label={`Atleta para ${r.full_name}`}
                     value={pick[r.id] ?? suggestion(r)}
                     onChange={(e) => setPick((s) => ({ ...s, [r.id]: e.target.value }))}
-                    className="max-w-56"
+                    data-write className="max-w-56"
                   >
                     <option value={NEW}>Criar novo atleta</option>
                     <optgroup label="Vincular a atleta existente">
                       {data?.free.map((a) => <option key={a.id} value={a.id}>{a.full_name}{a.active ? "" : " (inativo)"}</option>)}
                     </optgroup>
                   </NativeSelect>
-                  <Button size="sm" onClick={() => approve(r)} disabled={busy === r.id}>Aprovar</Button>
-                  <Button size="sm" variant="outline" onClick={() => reject(r)} disabled={busy === r.id}>Recusar</Button>
+                  <Button data-write size="sm" onClick={() => approve(r)} disabled={busy === r.id}>Aprovar</Button>
+                  <Button data-write size="sm" variant="outline" onClick={() => reject(r)} disabled={busy === r.id}>Recusar</Button>
                 </div>
               </div>
             ))}
