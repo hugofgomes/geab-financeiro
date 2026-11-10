@@ -7,7 +7,9 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dir = path.join(here, "..", "migrations")
+fs.rmSync(path.join(here, ".pgdata"), { recursive: true, force: true })
 const server = new EmbeddedPostgres({ databaseDir: path.join(here, ".pgdata"), user: "postgres", password: "test", port: 54330, persistent: false, onLog: () => {}, onError: () => {} })
+process.on("uncaughtException", async (e) => { console.error(e); try { await server.stop() } catch {} process.exit(1) })
 await server.initialise(); await server.start(); await server.createDatabase("geab_test")
 const c = new pg.Client({ connectionString: "postgresql://postgres:test@localhost:54330/geab_test" }); await c.connect()
 await c.query(fs.readFileSync(path.join(here, "supabase-stub.sql"), "utf8"))

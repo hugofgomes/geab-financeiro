@@ -21,6 +21,12 @@ histórico de aberturas, auditoria, RLS (admin × atleta).
 - **Escalação** (`/escalacao`): monta Azul × Branco (arrastar ou botões, goleiros, reservas, número), salva por jogo, confirma, duplica
   e gera o card PNG (1080×1350 ou 1080×1080) para WhatsApp. Exige rodar `supabase/migrations/0015_lineups.sql`.
 
+## Multi-tenant (SaaS) — etapa 1
+`supabase/migrations/0016_multitenant.sql`: organizações, `tenant_id` em todas as tabelas, RLS por organização, gatilhos de proteção
+(escrita e referências entre organizações) e funções do banco filtradas. Os dados atuais viram a organização `geab`.
+Teste de isolamento (Postgres local descartável, sem tocar na produção): `npm i --no-save embedded-postgres pg && node supabase/tests/run-tests.mjs`.
+**Antes de criar a 2ª organização**, as rotas de servidor (webhooks OpenPix/BTG, `btg.ts`) precisam informar o `tenant_id`; até lá a omissão falha de propósito.
+
 ## O que NÃO existe ainda
 Importação da planilha, conciliação por extrato OFX/CSV, Pix com identificador por cobrança (depende de provedor),
 WhatsApp Business API (depende de aprovação da Meta), fluxos n8n, Docker/VPS, backups automáticos.
