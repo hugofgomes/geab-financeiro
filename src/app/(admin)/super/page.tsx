@@ -70,11 +70,21 @@ export default function SuperPage() {
   if (!data) return null
   const { overview: o, orgs, plans } = data
   const shown = orgs.filter((g) => (!filter || g.status === filter) && (!q || (g.name + g.slug).toLowerCase().includes(q.toLowerCase())))
+  const actions = (g: Org) => (
+    <div className="flex flex-wrap justify-end gap-1.5 pr-2 max-2xl:justify-start max-2xl:pr-0">
+                    {g.status === "suspensa" || g.status === "cancelada"
+                      ? <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")}>Reativar</Button>
+                      : <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }}>Suspender</Button>}
+                    {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias</Button>}
+                    {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")}>Ativar</Button>}
+                    <Button size="sm" variant="ghost" disabled={busy} onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }}>Nota</Button>
+                  </div>
+  )
   const maxMrr = Math.max(1, ...o.by_plan.map((x) => x.mrr_cents))
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Plataforma</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Painel do SaaS</h1>
       <p className="text-sm text-muted-foreground">Visão do dono: números por grupo. Nomes de atletas, pagamentos e contatos dos grupos não aparecem aqui.</p>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -91,23 +101,23 @@ export default function SuperPage() {
       <Card><CardContent className="space-y-2 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Receita por plano</h2>
         {o.by_plan.map((x) => (
-          <div key={x.plan} className="flex items-center gap-3 text-sm">
-            <span className="w-40 shrink-0 truncate">{x.plan}</span>
-            <div className="h-3 flex-1 overflow-hidden rounded bg-secondary"><div className="h-full bg-primary" style={{ width: `${(x.mrr_cents / maxMrr) * 100}%` }} /></div>
-            <span className="w-28 shrink-0 text-right tabular-nums">{formatBRL(x.mrr_cents / 100)} · {x.orgs} grupo(s)</span>
+          <div key={x.plan} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 text-sm sm:flex">
+            <span className="truncate sm:w-40 sm:shrink-0">{x.plan}</span>
+            <span className="text-right tabular-nums sm:order-3 sm:w-40 sm:shrink-0">{formatBRL(x.mrr_cents / 100)} · {x.orgs} grupo(s)</span>
+            <div className="col-span-2 h-3 overflow-hidden rounded bg-secondary sm:order-2 sm:col-auto sm:flex-1"><div className="h-full bg-primary" style={{ width: `${(x.mrr_cents / maxMrr) * 100}%` }} /></div>
           </div>
         ))}
       </CardContent></Card>
 
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-sm font-semibold uppercase tracking-wide text-primary">Grupos ({shown.length})</h2>
-        <Input aria-label="Buscar grupo" className="h-8 w-48" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <NativeSelect aria-label="Situação" className="h-8" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <Input aria-label="Buscar grupo" className="h-10 w-full sm:h-8 sm:w-48" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <NativeSelect aria-label="Situação" className="h-10 w-full sm:h-8 sm:w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="">Todas as situações</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </NativeSelect>
       </div>
-      <Card className="overflow-x-auto py-0">
+      <Card className="hidden overflow-x-auto py-0 2xl:block">
         <Table>
           <TableHeader><TableRow>
             <TableHead className="pl-4">Grupo</TableHead><TableHead>Situação</TableHead><TableHead>Plano</TableHead><TableHead className="text-center">Atletas</TableHead>
@@ -132,14 +142,7 @@ export default function SuperPage() {
                   <TableCell className="whitespace-nowrap">{dt(g.created_at)}</TableCell>
                   <TableCell className="whitespace-nowrap">{g.status === "teste" ? dt(g.trial_ends_at) : "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{dt(g.last_activity)}</TableCell>
-                  <TableCell><div className="flex flex-wrap justify-end gap-1 pr-2">
-                    {g.status === "suspensa" || g.status === "cancelada"
-                      ? <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")}>Reativar</Button>
-                      : <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }}>Suspender</Button>}
-                    {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias</Button>}
-                    {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")}>Ativar</Button>}
-                    <Button size="sm" variant="ghost" disabled={busy} onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }}>Nota</Button>
-                  </div></TableCell>
+                  <TableCell>{actions(g)}</TableCell>
                 </TableRow>
               )
             })}
@@ -147,9 +150,37 @@ export default function SuperPage() {
         </Table>
       </Card>
 
+      <div className="grid gap-3 md:grid-cols-2 2xl:hidden">
+        {shown.map((g) => {
+          const full = g.athletes_limit != null && g.athletes >= g.athletes_limit
+          return (
+            <Card key={g.id}><CardContent className="space-y-3 pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0"><div className="truncate font-semibold">{g.name}</div><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
+                <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">{STATUS[g.status] ?? g.status}</span>
+              </div>
+              {g.status_reason && <p className="text-xs text-muted-foreground">{g.status_reason}</p>}
+              <dl className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-lg bg-secondary/60 py-2"><dd className={`text-base font-semibold tabular-nums ${full ? "text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? `/${g.athletes_limit}` : ""}</dd><dt className="text-muted-foreground">Atletas</dt></div>
+                <div className="rounded-lg bg-secondary/60 py-2"><dd className="text-base font-semibold tabular-nums">{g.admins}</dd><dt className="text-muted-foreground">Admins</dt></div>
+                <div className="rounded-lg bg-secondary/60 py-2"><dd className="text-base font-semibold tabular-nums">{g.matches}</dd><dt className="text-muted-foreground">Jogos</dt></div>
+              </dl>
+              <p className="text-xs text-muted-foreground">Criado em {dt(g.created_at)}{g.status === "teste" ? ` · teste até ${dt(g.trial_ends_at)}` : ""} · atividade {dt(g.last_activity)}</p>
+              <label className="flex items-center gap-2 text-sm"><span className="text-muted-foreground">Plano</span>
+                <NativeSelect aria-label={`Plano de ${g.name}`} className="h-10 flex-1" value={g.plan_code} disabled={busy}
+                  onChange={(e) => act(() => db().rpc("sa_set_org_plan", { p_org: g.id, p_plan: e.target.value }), "Plano alterado.")}>
+                  {plans.filter((p) => p.active || p.code === g.plan_code).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+                </NativeSelect></label>
+              {actions(g)}
+            </CardContent></Card>
+          )
+        })}
+        {shown.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">Nenhum grupo encontrado.</p>}
+      </div>
+
       <Card><CardContent className="space-y-3 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Novo grupo</h2>
-        <form className="grid gap-3 sm:grid-cols-4" onSubmit={(e) => { e.preventDefault(); act(async () => {
+        <form className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4" onSubmit={(e) => { e.preventDefault(); act(async () => {
           const r = await db().rpc("sa_create_org", { p_slug: nw.slug, p_name: nw.name, p_plan: nw.plan })
           if (r.error || !nw.email.trim()) return r
           return db().rpc("sa_assign_admin", { p_org: r.data as string, p_email: nw.email.trim() })
@@ -159,7 +190,7 @@ export default function SuperPage() {
           <div className="space-y-1.5"><Label htmlFor="np">Plano</Label>
             <NativeSelect id="np" className="w-full" value={nw.plan} onChange={(e) => setNw((x) => ({ ...x, plan: e.target.value }))}>{plans.filter((p) => p.active).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}</NativeSelect></div>
           <div className="space-y-1.5"><Label htmlFor="ne">E-mail do administrador <span className="font-normal text-muted-foreground">(conta já cadastrada)</span></Label><Input id="ne" type="email" value={nw.email} onChange={(e) => setNw((x) => ({ ...x, email: e.target.value }))} /></div>
-          <div className="sm:col-span-4"><Button type="submit" variant="brand" disabled={busy}>Criar grupo</Button></div>
+          <div className="sm:col-span-2 2xl:col-span-4"><Button type="submit" variant="brand" disabled={busy}>Criar grupo</Button></div>
         </form>
       </CardContent></Card>
 
@@ -187,11 +218,11 @@ function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: b
     if (isNew) setV({ code: "", name: "", price: "0.00", max: "", active: true })
   }
   return (
-    <div className="grid items-center gap-2 sm:grid-cols-[8rem_1fr_7rem_7rem_auto_auto]">
+    <div className="grid items-end gap-2 rounded-xl border p-3 2xl:grid-cols-[8rem_1fr_7rem_7rem_auto_auto] 2xl:rounded-none 2xl:border-0 2xl:p-0">
       {isNew ? <Input aria-label="Código do novo plano" placeholder="código" value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} /> : <span className="text-xs text-muted-foreground">{p.code} · {p.orgs} grupo(s)</span>}
-      <Input aria-label="Nome do plano" placeholder="Nome" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} />
-      <Input aria-label="Preço mensal (R$)" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} />
-      <Input aria-label="Limite de atletas" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} />
+      <label className="space-y-1 text-xs text-muted-foreground 2xl:space-y-0"><span className="2xl:sr-only">Nome do plano</span><Input aria-label="Nome do plano" placeholder="Nome" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></label>
+      <label className="space-y-1 text-xs text-muted-foreground 2xl:space-y-0"><span className="2xl:sr-only">Preço mensal (R$)</span><Input aria-label="Preço mensal (R$)" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} /></label>
+      <label className="space-y-1 text-xs text-muted-foreground 2xl:space-y-0"><span className="2xl:sr-only">Limite de atletas</span><Input aria-label="Limite de atletas" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} /></label>
       <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={v.active} onChange={(e) => setV({ ...v, active: e.target.checked })} /> Ativo</label>
       <Button size="sm" variant="outline" disabled={busy || !v.name.trim()} onClick={save}>{isNew ? "Criar" : "Salvar"}</Button>
     </div>

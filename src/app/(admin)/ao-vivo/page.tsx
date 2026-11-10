@@ -49,9 +49,22 @@ export default function LivePage() {
   const [swapping, setSwapping] = React.useState<string | null>(null) // atleta cujo gol será passado para outro
   const [history, setHistory] = React.useState<Goal[]>([])
   const [busy, setBusy] = React.useState(false)
+  // Jogo em andamento: mantém a tela acesa (celular no campo não pode apagar) e religa ao voltar para a aba.
+  const playing = !!data?.matches.some((m) => m.status === "em_andamento")
+  React.useEffect(() => {
+    if (!playing || !("wakeLock" in navigator)) return
+    let lock: WakeLockSentinel | null = null, gone = false
+    const ask = () => navigator.wakeLock.request("screen").then((l) => { if (gone) l.release(); else lock = l }).catch(() => {})
+    ask()
+    const onVis = () => document.visibilityState === "visible" && ask()
+    document.addEventListener("visibilitychange", onVis)
+    return () => { gone = true; document.removeEventListener("visibilitychange", onVis); lock?.release().catch(() => {}) }
+  }, [playing])
+
   if (!supabaseConfigured) return <SetupNotice />
 
   const live = data?.matches.find((m) => m.status === "em_andamento") ?? null
+
   const upcoming = data?.matches.filter((m) => m.status === "agendado") ?? []
   const changed = () => { reload(); window.dispatchEvent(new Event(MATCHES_CHANGED)) }
 
@@ -105,6 +118,7 @@ export default function LivePage() {
     }
     setBusy(false)
     if (err) { toast.error(err); reload(); return }
+    navigator.vibrate?.(delta === 1 ? 40 : [20, 40, 20])   // confirma o toque sem olhar para a tela
     setHistory((h) => (delta === 1 ? [...h, g] : fromUndo ? h.slice(0, -1) : []))
     changed()
   }
@@ -175,33 +189,33 @@ export default function LivePage() {
       {data && live && (
         <div className="space-y-4">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border bg-card p-4 text-center">
-            <div className="truncate text-sm font-medium">{live.team_a}</div><div />
-            <div className="truncate text-sm font-medium">{live.team_b}</div>
-            <div className="text-6xl font-bold tabular-nums text-primary">{live.score_a ?? 0}</div>
+            <div className="text-sm leading-tight font-medium break-words">{live.team_a}</div><div />
+            <div className="text-sm leading-tight font-medium break-words">{live.team_b}</div>
+            <div className="text-7xl font-bold tabular-nums text-primary sm:text-6xl">{live.score_a ?? 0}</div>
             <div className="text-2xl text-muted-foreground">×</div>
-            <div className="text-6xl font-bold tabular-nums text-primary">{live.score_b ?? 0}</div>
+            <div className="text-7xl font-bold tabular-nums text-primary sm:text-6xl">{live.score_b ?? 0}</div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="brand" className="h-20 text-base whitespace-normal" disabled={busy} onClick={() => setPicking("a")}>⚽ Gol<br />{live.team_a}</Button>
-            <Button variant="brand" className="h-20 text-base whitespace-normal" disabled={busy} onClick={() => setPicking("b")}>⚽ Gol<br />{live.team_b}</Button>
+          <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-3 rounded-2xl bg-background/90 p-2 shadow-lg backdrop-blur max-sm:pb-[max(.5rem,env(safe-area-inset-bottom))] sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
+            <Button variant="brand" className="h-24 text-base whitespace-normal sm:h-20" disabled={busy} onClick={() => setPicking("a")}>⚽ Gol<br />{live.team_a}</Button>
+            <Button variant="brand" className="h-24 text-base whitespace-normal sm:h-20" disabled={busy} onClick={() => setPicking("b")}>⚽ Gol<br />{live.team_b}</Button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button variant="outline" disabled={!last || busy} onClick={() => last && apply(last, -1, true)}>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+            <Button variant="outline" className="h-11 sm:h-auto" disabled={!last || busy} onClick={() => last && apply(last, -1, true)}>
               {busy ? <Loader2 className="animate-spin" /> : <Undo2 />} Desfazer{last ? `: ${name(last.athlete)}` : ""}
             </Button>
-            <Button variant="outline" disabled={busy} onClick={finish}>Finalizar jogo</Button>
+            <Button variant="outline" className="h-11 sm:h-auto" disabled={busy} onClick={finish}>Finalizar jogo</Button>
           </div>
           {scorers.length > 0 && (
             <div className="space-y-2">
               <h2 className="text-sm font-semibold tracking-wide text-primary uppercase">Corrigir gols (Diretoria)</h2>
               <ul className="divide-y rounded-xl border">
                 {scorers.map((a) => (
-                  <li key={a.id} className="flex items-center gap-2 px-3 py-2">
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{shown(a)} <span className="text-muted-foreground">⚽ {data.goals[a.id]}</span></span>
-                    <Button variant="outline" size="sm" disabled={busy} onClick={() => setSwapping(a.id)}>Trocar autor</Button>
-                    <Button variant="outline" size="sm" disabled={busy} onClick={() => setRemoving(a.id)}>Excluir 1 gol</Button>
+                  <li key={a.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                    <span className="min-w-0 basis-full truncate text-sm font-medium sm:basis-0 sm:flex-1">{shown(a)} <span className="text-muted-foreground">⚽ {data.goals[a.id]}</span></span>
+                    <Button variant="outline" size="sm" className="max-sm:h-10 max-sm:flex-1" disabled={busy} onClick={() => setSwapping(a.id)}>Trocar autor</Button>
+                    <Button variant="outline" size="sm" className="max-sm:h-10 max-sm:flex-1" disabled={busy} onClick={() => setRemoving(a.id)}>Excluir 1 gol</Button>
                   </li>
                 ))}
               </ul>
@@ -216,13 +230,13 @@ export default function LivePage() {
           <DialogHeader><DialogTitle>Quem fez o gol{live && picking ? ` (${picking === "a" ? live.team_a : live.team_b})` : ""}?</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-2">
             {data?.athletes.map((a) => (
-              <Button key={a.id} variant="outline" className="h-12 justify-between" disabled={busy}
+              <Button key={a.id} variant="outline" className="h-14 justify-between sm:h-12" disabled={busy}
                 onClick={async () => { const s = picking!; setPicking(null); await apply({ side: s, athlete: a.id }, 1) }}>
                 <span className="truncate">{shown(a)}</span>
                 {(data.goals[a.id] ?? 0) > 0 && <span className="text-xs text-muted-foreground">⚽{data.goals[a.id]}</span>}
               </Button>
             ))}
-            <Button variant="ghost" className="col-span-2 h-12" disabled={busy}
+            <Button variant="ghost" className="col-span-2 h-14 sm:h-12" disabled={busy}
               onClick={async () => { const s = picking!; setPicking(null); await apply({ side: s, athlete: null }, 1) }}>
               Gol contra / sem autor
             </Button>
