@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useLoad } from "@/hooks/use-load"
 import { kitDataUrl } from "@/lib/kit"
 import { CARD_SIZE, canvasToBlob, drawLineupCard, type CardFormat, type CardPlayer } from "@/lib/lineup-card"
-import { autoDistribute, shownName, whatsappMessage, type LineupAthlete, type LineupEntry, type LineupTeam } from "@/lib/lineup"
+import { autoDistribute, cardLabels, shownName, whatsappMessage, type LineupAthlete, type LineupEntry, type LineupTeam } from "@/lib/lineup"
 import { hhmm, shortDate, splitMatches } from "@/lib/matches"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Match } from "@/lib/types"
@@ -88,8 +88,9 @@ export default function LineupPage() {
   const assigned = new Set(entries.map((e) => e.athlete_id))
   const pool = (data?.athletes ?? []).filter((a) => !assigned.has(a.id))
 
+  const labels = React.useMemo(() => cardLabels(entries.map((e) => byId.get(e.athlete_id)).filter((a): a is LineupAthlete => !!a)), [entries, byId])
   const toPlayers = React.useCallback((t: LineupTeam): CardPlayer[] =>
-    entries.filter((e) => e.team === t).map((e) => ({ name: shownName(byId.get(e.athlete_id) ?? { full_name: "?", nickname: null }), keeper: keep.has(e.athlete_id), number: e.shirt_number }))
+    entries.filter((e) => e.team === t).map((e) => ({ name: labels.get(e.athlete_id) ?? "?", keeper: keep.has(e.athlete_id), number: e.shirt_number }))
       .sort((x, y) => Number(y.keeper) - Number(x.keeper)), [entries, keep, byId])
 
   // Redesenha a prévia (o mesmo canvas que será exportado).

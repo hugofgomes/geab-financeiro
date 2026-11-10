@@ -7,6 +7,24 @@ export type LineupAthlete = { id: string; full_name: string; nickname: string | 
 
 export const shownName = (a: Pick<LineupAthlete, "full_name" | "nickname">) => (a.nickname?.trim() || a.full_name.trim())
 
+const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+const firstWord = (t: string) => t.trim().split(/\s+/)[0] ?? ""
+
+/** Nome do card: só o primeiro nome (ou o apelido, se houver). Repetidos ganham a inicial do sobrenome: "Lucas S.". */
+export function cardLabels(list: LineupAthlete[]): Map<string, string> {
+  const base = new Map(list.map((a) => [a.id, a.nickname?.trim() ? firstWord(a.nickname) : cap(firstWord(a.full_name))]))
+  const count = new Map<string, number>()
+  for (const n of base.values()) count.set(n.toLowerCase(), (count.get(n.toLowerCase()) ?? 0) + 1)
+  const out = new Map<string, string>()
+  for (const a of list) {
+    const n = base.get(a.id)!
+    const parts = a.full_name.trim().split(/\s+/)
+    const last = parts.length > 1 ? parts[parts.length - 1] : ""
+    out.set(a.id, (count.get(n.toLowerCase()) ?? 0) > 1 && last ? `${n} ${last.charAt(0).toUpperCase()}.` : n)
+  }
+  return out
+}
+
 /** Embaralha (Fisher-Yates) sem mexer na lista original. */
 function shuffle<T>(list: T[]) {
   const a = [...list]
