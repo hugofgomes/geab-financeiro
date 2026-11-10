@@ -7,7 +7,7 @@ import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { useOrg } from "@/hooks/use-org"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, Building2, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, Building2, Crown, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -33,7 +33,8 @@ const ADMIN = [
 const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
-const titleOf = (path: string) => [...NAV, ...ADMIN, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
+const PLATFORM = { href: "/super", label: "Plataforma", icon: Crown }
+const titleOf = (path: string) => [...NAV, ...ADMIN, PLATFORM, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
 
@@ -92,6 +93,8 @@ function UserMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   const org = useOrg()
+  const [isPlatform, setIsPlatform] = React.useState(false)
+  React.useEffect(() => { supabase().rpc("is_platform_admin").then((r) => setIsPlatform(r.data === true), () => {}) }, [])
   const [open, setOpen] = React.useState(false)
   const [pending, setPending] = React.useState(0)
   const [birthdays, setBirthdays] = React.useState<string[]>([])
@@ -158,6 +161,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="space-y-1">
             <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase">Administração</p>
             {ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
+            {isPlatform && <SideLink {...PLATFORM} path={path} />}
             <SideLink {...ACCOUNT} path={path} />
           </div>
         </nav>

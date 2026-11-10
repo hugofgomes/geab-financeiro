@@ -24,13 +24,16 @@ const uid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
 const U = { geabAdmin: uid(1), geabAtleta: uid(2), geabPending: uid(3), peladaAdmin: uid(4) }
 
 /** Executa fn numa transação como o usuário (role authenticated) ou como service_role; sempre desfaz no final. */
-async function as(who, fn) {
+async function as(who, fn, commit = false) {
   await db.query("begin")
+  let done = false
   try {
     if (who === "service") await db.query("set local role service_role")
     else { await db.query("set local role authenticated"); await db.query("select set_config('request.jwt.claim.sub', $1, true)", [who]) }
-    return await fn()
-  } finally { await db.query("rollback") }
+    const r = await fn()
+    if (commit) { await db.query("commit"); done = true }
+    return r
+  } finally { if (!done) await db.query("rollback") }
 }
 async function err(sql, p = []) {
   await db.query("savepoint s")
@@ -243,6 +246,82 @@ await as(U.peladaAdmin, async () => {
   await db.query("rollback") }
 await db.query(`update public.organizations set status='ativa' where slug='pelada'`)
 await as(U.peladaAdmin, async () => { ok("reativar devolve o acesso", (await one(`select count(*)::int from public.athletes`)) >= 1) })
+
+section("Etapa 3: super admin, planos e limites")
+ok("GEAB foi para o plano ilimitado e os demais para o teste gratuito", (await one(`select p.code from public.organizations o join public.plans p on p.id=o.plan_id where o.slug='geab'`)) === "ilimitado" && (await one(`select p.code from public.organizations o join public.plans p on p.id=o.plan_id where o.slug='pelada'`)) === "teste")
+await db.query(`insert into auth.users (id, email) values ($1,'dono@plataforma')`, [uid(600)])
+await as(U.peladaAdmin, async () => {
+  for (const sql of [`select public.sa_overview()`, `select * from public.sa_orgs()`, `select * from public.sa_plans()`,
+    `select public.sa_set_org_status('${geab}', 'suspensa')`, `select public.sa_set_org_plan('${geab}', 'basico')`, `select public.sa_extend_trial('${geab}', 5)`,
+    `select public.sa_set_notes('${geab}', 'x')`, `select public.sa_create_org('hack', 'Hack')`, `select public.sa_upsert_plan('x', 'X', 0, 1, true)`,
+    `select public.sa_assign_admin('${geab}', 'dono@plataforma')`]) {
+    const e = await err(sql); ok(`admin comum é barrado: ${sql.slice(7, 40)}`, !!e && /Acesso restrito/.test(e), e ?? "executou!")
+  }
+  ok("admin comum não lê platform_admins nem org_internal", !!(await err(`select * from public.platform_admins`)) || (await one(`select count(*)::int from public.platform_admins`)) === 0)
+  ok("admin comum não lê as anotações internas", (await one(`select count(*)::int from public.org_internal`)) === 0)
+  ok("is_platform_admin é falso para admin comum", (await one(`select public.is_platform_admin()`)) === false)
+})
+await db.query(`insert into public.platform_admins (user_id) values ($1)`, [uid(600)])
+await db.query(`update public.organizations set status='ativa', plan_id=(select id from public.plans where code='basico') where slug='pelada'`)
+await as(uid(600), async () => {
+  ok("is_platform_admin é verdadeiro para o dono", (await one(`select public.is_platform_admin()`)) === true)
+  const o = await one(`select public.sa_overview()`)
+  ok("overview: contagens de grupos", o.orgs_total >= 3 && o.orgs_ativa >= 2 && o.orgs_teste >= 1, JSON.stringify(o))
+  ok("overview: MRR soma só grupos ativos pagantes (Básico = 2990)", o.mrr_cents === 2990, `mrr=${o.mrr_cents}`)
+  ok("overview: receita por plano", o.by_plan.some((x) => x.plan === "Básico" && x.mrr_cents === 2990), JSON.stringify(o.by_plan))
+  const orgs = await q(`select * from public.sa_orgs()`)
+  const g = orgs.find((x) => x.slug === "geab")
+  ok("sa_orgs: só agregados (sem nomes de atletas, pagamentos ou contatos)", Object.keys(g).join() === "id,slug,name,status,plan_code,plan_name,athletes,athletes_limit,admins,matches,created_at,trial_ends_at,last_activity,notes,status_reason", Object.keys(g).join())
+  ok("sa_orgs: contagens corretas do GEAB", g.athletes === 1 && g.admins === 1 && g.matches === 1 && g.plan_code === "ilimitado", JSON.stringify(g))
+  ok("o dono NÃO vê dados dos grupos pelas tabelas (isolamento intacto)", (await one(`select count(*)::int from public.athletes`)) === 0 && (await one(`select count(*)::int from public.payments`)) === 0)
+  await db.query(`select public.sa_set_notes($1, 'cliente piloto')`, [P.org])
+  ok("anotação interna salva e visível ao dono", (await q(`select notes from public.sa_orgs() where slug='pelada'`))[0].notes === "cliente piloto")
+  await db.query(`select public.sa_extend_trial($1, 10)`, [P.org])
+  ok("estender teste soma dias", (await one(`select trial_ends_at > now() + interval '9 days' from public.sa_orgs() where id=$1`, [P.org])) === true)
+  ok("dias do teste fora de 1..90 recusado", /1 a 90/.test(await err(`select public.sa_extend_trial($1, 200)`, [P.org]) ?? ""))
+  ok("situação inválida recusada", /inválida/.test(await err(`select public.sa_set_org_status($1, 'xyz')`, [P.org]) ?? ""))
+  ok("plano inexistente recusado", /não encontrado/.test(await err(`select public.sa_set_org_plan($1, 'nao-existe')`, [P.org]) ?? ""))
+  const plans = await q(`select * from public.sa_plans()`)
+  ok("sa_plans lista os planos com a contagem de grupos", plans.length >= 4 && plans.find((x) => x.code === "basico").orgs >= 1)
+  await db.query(`select public.sa_upsert_plan('mini', 'Mini', 1000, 1, true)`)
+  ok("criar plano pelo painel", (await q(`select * from public.plans where code='mini'`)).length === 1)
+  await db.query(`select public.sa_set_org_plan($1, 'mini')`, [P.org])
+  ok("trocar o plano de um grupo", (await one(`select plan_code from public.sa_orgs() where id=$1`, [P.org])) === "mini")
+}, true)
+section("Limite de atletas do plano (Mini = 1 atleta ativo; a Pelada já tem 1)")
+await as(U.peladaAdmin, async () => {
+  const e = await err(`insert into public.athletes (full_name) values ('Segundo')`)
+  ok("passar do limite é recusado com mensagem clara", !!e && /Limite de 1 atletas/.test(e), e ?? "")
+  ok("atleta inativo não conta nem é bloqueado", (await err(`insert into public.athletes (full_name, active) values ('Inativo', false)`)) === null)
+  const e2 = await err(`update public.athletes set active = true where full_name = 'Inativo'`)
+  ok("reativar acima do limite também é recusado", !!e2 && /Limite/.test(e2), e2 ?? "")
+})
+await as(uid(600), async () => { await db.query(`select public.sa_upsert_plan('mini', 'Mini', 1000, 5, true)`) }, true)
+await as(U.peladaAdmin, async () => { ok("ampliar o plano libera novos atletas", (await err(`insert into public.athletes (full_name) values ('Segundo')`)) === null) })
+await as(U.geabAdmin, async () => { ok("plano ilimitado não tem limite", (await err(`insert into public.athletes (full_name) values ('Mais um')`)) === null) })
+
+section("Suspender, reativar e criar grupo pelo painel")
+await as(uid(600), async () => {
+  await db.query(`select public.sa_set_org_status($1, 'suspensa', 'inadimplente')`, [P.org])
+  const r = (await q(`select status, status_reason from public.sa_orgs() where slug='pelada'`))[0]
+  ok("suspender registra o motivo", r.status === "suspensa" && r.status_reason === "inadimplente", JSON.stringify(r))
+}, true)
+await as(U.peladaAdmin, async () => { ok("grupo suspenso pelo painel perde o acesso", (await one(`select count(*)::int from public.athletes`)) === 0) })
+ok("a ação do dono ficou na auditoria do grupo", (await one(`select count(*)::int from public.audit_log where tenant_id=$1 and action='SA_SET_STATUS' and user_id=$2`, [P.org, uid(600)])) === 1)
+await as(uid(600), async () => { await db.query(`select public.sa_set_org_status($1, 'ativa', null)`, [P.org]) }, true)
+await as(U.peladaAdmin, async () => { ok("reativar devolve o acesso", (await one(`select count(*)::int from public.athletes`)) >= 1) })
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'novo@clube','{"full_name":"Dona do Clube"}')`, [uid(601)])
+let clubId
+await as(uid(600), async () => {
+  clubId = await one(`select public.sa_create_org('clube-novo', 'Clube Novo', 'pro')`)
+  ok("criar grupo pelo painel", !!clubId)
+  ok("endereço repetido é recusado", /indisponível/.test(await err(`select public.sa_create_org('clube-novo', 'Outro', 'pro')`) ?? ""))
+  await db.query(`select public.sa_assign_admin($1, 'novo@clube')`, [clubId])
+  ok("e-mail sem conta é recusado", /Nenhuma conta/.test(await err(`select public.sa_assign_admin($1, 'ninguem@x')`, [clubId]) ?? ""))
+  ok("conta que já tem grupo é recusada", /já pertence/.test(await err(`select public.sa_assign_admin($1, 'admin@pelada')`, [clubId]) ?? ""))
+}, true)
+ok("vincular administrador existente", (await one(`select count(*)::int from public.profiles where id=$1 and tenant_id=$2 and role='admin'`, [uid(601), clubId])) === 1)
+await as(uid(601), async () => { ok("o novo administrador vê o grupo dele e nada dos outros", (await one(`select count(*)::int from public.organizations`)) === 1 && (await one(`select count(*)::int from public.athletes`)) === 0) })
 
 section("Auditoria")
 await as(U.peladaAdmin, async () => {

@@ -34,6 +34,14 @@ Teste de isolamento (Postgres local descartável, sem tocar na produção): `npm
 - **Integrações globais** (Pix BTG/OpenPix, WhatsApp, e-mail) usam credenciais do servidor e ficam restritas ao grupo dono (`PLATFORM_ORG_SLUG`, padrão `geab`);
   os demais usam o Pix manual até haver credencial por grupo (etapa de assinaturas/integrações). Webhooks já identificam o grupo pela cobrança.
 
+## Multi-tenant — etapa 3 (dono da plataforma)
+`0018_super_admin.sql`: `platform_admins`, planos (`plans`, com limite de atletas por plano), anotações internas (`org_internal`) e funções `sa_*`.
+- Tela `/super` ("Plataforma" no menu, só aparece para o dono): MRR/ARR estimados pelos planos, grupos (situação, plano, atletas/limite, atividade),
+  suspender/reativar, +7 dias de teste, criar grupo, vincular administrador e editar planos. **O dono vê só agregados**: nomes de atletas, pagamentos e contatos continuam isolados.
+- Limite do plano: ultrapassar o número de atletas ativos é recusado pelo banco (inclusive reativar atleta). GEAB fica no plano interno "ilimitado".
+- **Tornar-se dono da plataforma** (uma vez, no SQL Editor, trocando o e-mail): `insert into public.platform_admins (user_id) select id from auth.users where email = 'seu@email.com';`
+- Ainda não existe: cobrança/inadimplência reais (etapa de assinaturas), chamados de suporte e armazenamento de arquivos.
+
 ## O que NÃO existe ainda
 Importação da planilha, conciliação por extrato OFX/CSV, Pix com identificador por cobrança (depende de provedor),
 WhatsApp Business API (depende de aprovação da Meta), fluxos n8n, Docker/VPS, backups automáticos.
