@@ -56,3 +56,12 @@ WhatsApp Business API (depende de aprovação da Meta), fluxos n8n, Docker/VPS, 
 ## Regras garantidas pelo banco
 Pagamento acima do valor da mensalidade é recusado; o mesmo identificador bancário nunca baixa duas vezes;
 status da mensalidade é recalculado por trigger; só o administrador escreve; o atleta só enxerga os próprios dados.
+
+## Etapa 4: teste de 10 dias e assinatura (Asaas)
+
+- **Bloqueio automático:** grupo novo nasce em `teste` com 10 dias. Passou do prazo, o próprio banco deixa de reconhecer o grupo (`org_usable` dentro de `current_tenant`), sem agendador. O usuário cai na tela `/assinatura`; os dados ficam guardados.
+- **Assinatura:** `/assinatura` (só o administrador paga) → `POST /api/assinatura` cria cliente e assinatura mensal no Asaas (`billingType: UNDEFINED`: Pix, boleto ou cartão) e devolve o link de pagamento. O valor vem de `plans.price_cents`, nunca do navegador.
+- **Webhook:** `POST /api/webhooks/asaas` (cabeçalho `asaas-access-token`). `PAYMENT_CONFIRMED/RECEIVED` ativa o grupo no plano; `PAYMENT_OVERDUE` suspende (motivo "inadimplência") e volta sozinho ao pagar; `SUBSCRIPTION_DELETED/INACTIVATED` cancela. Suspensão manual do super admin não é desfeita por pagamento.
+- **Variáveis (Coolify):** `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (texto longo que você inventa e repete no painel do Asaas), `ASAAS_ENV` (`sandbox` ou `production`), além de `SUPABASE_SERVICE_ROLE_KEY`.
+- **No painel do Asaas:** Integrações → Webhooks → URL `https://SEU-DOMINIO/api/webhooks/asaas`, token igual ao `ASAAS_WEBHOOK_TOKEN`, eventos de cobrança e de assinatura.
+- Preços: Básico R$ 99 e Pro R$ 150 (migration 0022).

@@ -3,13 +3,14 @@
 import { Menu } from "@base-ui/react/menu"
 import { BirthdayCard } from "@/components/birthday-card"
 import { SidePanel } from "@/components/side-panel"
+import { TrialBanner } from "@/components/trial-banner"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
 import { useOrg } from "@/hooks/use-org"
 import { useRole } from "@/hooks/use-role"
 import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, Building2, Crown, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, Building2, CreditCard, Crown, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -30,6 +31,7 @@ const ADMIN = [
   { href: "/grupo", label: "Meu grupo", icon: Building2 },
   { href: "/importar", label: "Importar planilha", icon: FileUp },
   { href: "/usuarios", label: "Usuários e privilégios", icon: ShieldCheck },
+  { href: "/assinatura", label: "Assinatura", icon: CreditCard },
 ]
 
 const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
@@ -202,6 +204,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
         <div className="mx-auto flex max-w-[90rem] flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
           <main className="min-w-0 flex-1 space-y-6" data-readonly={readOnly ? "" : undefined}>
+            {role === "admin" && <TrialBanner />}
             {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
             {children}
           </main>

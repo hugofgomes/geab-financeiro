@@ -9,6 +9,6 @@ export const ROLE_HELP: Record<Role, string> = {
 }
 
 /** Área administrativa e telas de operação: fora do alcance da Diretoria (que só consulta). */
-const ADMIN_ONLY = ["/usuarios", "/importar", "/grupo", "/super", "/ao-vivo"]
+const ADMIN_ONLY = ["/usuarios", "/importar", "/grupo", "/super", "/ao-vivo", "/assinatura"]
 export const isAdminOnlyPath = (p: string) => ADMIN_ONLY.some((x) => p === x || p.startsWith(x + "/"))
 export const isStaff = (r: string | null | undefined) => r === "admin" || r === "diretoria"
