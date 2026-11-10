@@ -3,6 +3,7 @@
 import { NativeSelect } from "@/components/native-select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useOrg } from "@/hooks/use-org"
 import { MATCHES_CHANGED, shortDate } from "@/lib/matches"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Scorer, ScorerStats } from "@/lib/types"
@@ -110,12 +111,13 @@ export function ScorersCard() {
   const [season, setSeason] = React.useState<number | null>(null)
   const [open, setOpen] = React.useState<string | null>(null)
   const { rows, seasons, error } = useScorers(season)
+  const org = useOrg()
   const current = seasons[0] ?? null
   if (!supabaseConfigured) return null
   return (
     <section aria-labelledby="pn-art" className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="pn-art" className="flex items-center gap-2 text-sm font-semibold tracking-wide text-primary uppercase"><span aria-hidden>🏆</span> Artilharia do GEAB</h2>
+        <h2 id="pn-art" className="flex items-center gap-2 text-sm font-semibold tracking-wide text-primary uppercase"><span aria-hidden>🏆</span> Artilharia{org ? ` · ${org.name}` : ""}</h2>
         {seasons.length > 1 && (
           <NativeSelect aria-label="Temporada" className="h-7 text-xs" value={season ?? current ?? ""} onChange={(e) => setSeason(Number(e.target.value) === current ? null : Number(e.target.value))}>
             {seasons.map((y) => <option key={y} value={y}>{y}</option>)}

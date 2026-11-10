@@ -1,6 +1,8 @@
 "use client"
 
 import { SetupNotice } from "@/components/setup-notice"
+import { OrgHeading } from "@/components/org-heading"
+import { usePublicOrg } from "@/hooks/use-org"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -44,20 +46,18 @@ function Form() {
       <Button type="submit" className="w-full" disabled={busy}>
         {busy && <Loader2 className="animate-spin" />} Entrar
       </Button>
-      <p className="text-center text-sm text-muted-foreground">Primeiro acesso? <Link href="/cadastro" className="underline">Cadastre-se</Link></p>
+      <p className="text-center text-sm text-muted-foreground">Primeiro acesso? <Link href="/cadastro" className="underline">Cadastre-se</Link> · <Link href="/novo-grupo" className="underline">Criar meu grupo</Link></p>
     </form>
   )
 }
 
 export default function LoginPage() {
+  const { org } = usePublicOrg()
   if (!supabaseConfigured) return <SetupNotice />
   return (
     <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
       <div className="w-full max-w-sm space-y-6 rounded-xl bg-card p-6 shadow-xl">
-        <div className="text-center">
-          <h1 className="text-xl font-bold tracking-wide uppercase">GEAB Futebol</h1>
-          <p className="text-sm text-muted-foreground">Financeiro · desde 1998</p>
-        </div>
+        <OrgHeading org={org} subtitle={org?.tagline ? `Financeiro · ${org.tagline}` : "Financeiro"} />
         <React.Suspense>
           <Form />
         </React.Suspense>

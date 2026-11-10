@@ -4,9 +4,10 @@ import { Menu } from "@base-ui/react/menu"
 import { BirthdayCard } from "@/components/birthday-card"
 import { SidePanel } from "@/components/side-panel"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
+import { useOrg } from "@/hooks/use-org"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Bell, Building2, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -24,6 +25,7 @@ const NAV = [
 ]
 
 const ADMIN = [
+  { href: "/grupo", label: "Meu grupo", icon: Building2 },
   { href: "/importar", label: "Importar planilha", icon: FileUp },
   { href: "/usuarios", label: "Usuários e privilégios", icon: ShieldCheck },
 ]
@@ -31,7 +33,7 @@ const ADMIN = [
 const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
-const titleOf = (path: string) => [...NAV, ...ADMIN, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? "GEAB Futebol"
+const titleOf = (path: string) => [...NAV, ...ADMIN, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
 
@@ -89,6 +91,7 @@ function UserMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) 
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
+  const org = useOrg()
   const [open, setOpen] = React.useState(false)
   const [pending, setPending] = React.useState(0)
   const [birthdays, setBirthdays] = React.useState<string[]>([])
@@ -136,7 +139,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
-          <span className="text-[15px] font-bold tracking-[0.14em] uppercase">GEAB Futebol</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {org?.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={org.logo_url} alt="" className="h-8 w-auto max-w-10 shrink-0 object-contain" />
+            )}
+            <span className="truncate text-[15px] font-bold tracking-[0.14em] uppercase">{org?.name ?? "\u00a0"}</span>
+          </span>
           <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="grid size-8 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden">
             <X className="size-5" />
           </button>

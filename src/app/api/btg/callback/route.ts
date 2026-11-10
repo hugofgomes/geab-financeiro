@@ -1,5 +1,5 @@
 import { connectWithCode } from "@/lib/btg"
-import { adminClient } from "@/lib/server-auth"
+import { adminClient, isOwnerOrg } from "@/lib/server-auth"
 import { NextResponse } from "next/server"
 import { btgRedirectUri, publicOrigin } from "@/lib/origin"
 
@@ -14,6 +14,7 @@ export async function GET(req: Request) {
   }
   const sb = await adminClient()
   if (!sb) return NextResponse.redirect(`${origin}/login`)
+  if (!(await isOwnerOrg(sb))) return done("btg=nao-configurado")
   const url = new URL(req.url)
   const cookie = req.headers.get("cookie")?.match(/(?:^|;\s*)btg_state=([0-9a-f]+)/)?.[1]
   const verifier = req.headers.get("cookie")?.match(/(?:^|;\s*)btg_verifier=([A-Za-z0-9_-]+)/)?.[1]

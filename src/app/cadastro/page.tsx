@@ -1,6 +1,9 @@
 "use client"
 
 import { SetupNotice } from "@/components/setup-notice"
+import { OrgHeading } from "@/components/org-heading"
+import { usePublicOrg } from "@/hooks/use-org"
+import { clientSlug } from "@/lib/tenant"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -24,13 +27,11 @@ function maskPhone(v: string) {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
+  const { org } = usePublicOrg()
   return (
     <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl bg-card p-6 shadow-xl">
-        <div className="text-center">
-          <h1 className="text-xl font-bold tracking-wide uppercase">GEAB Futebol</h1>
-          <p className="text-sm text-muted-foreground">Cadastro de atleta</p>
-        </div>
+        <OrgHeading org={org} subtitle="Cadastro de atleta" />
         {children}
       </div>
     </div>
@@ -61,7 +62,7 @@ function Sent({ email }: { email: string }) {
           Enviamos uma mensagem de confirmação para <strong className="text-foreground">{email}</strong>.
           Abra o e-mail e clique no link para confirmar o cadastro. Se não encontrar, olhe a caixa de spam.
         </p>
-        <p className="text-sm text-muted-foreground">Depois da confirmação, a administração do GEAB aprova o seu acesso.</p>
+        <p className="text-sm text-muted-foreground">Depois da confirmação, a administração do grupo aprova o seu acesso.</p>
         <Button variant="outline" onClick={resend} disabled={left > 0}>
           {left > 0 ? `Reenviar e-mail em ${left}s` : "Reenviar e-mail"}
         </Button>
@@ -101,14 +102,14 @@ export default function SignupPage() {
     const { error: err } = await supabase().auth.signUp({
       email,
       password: f.senha,
-      options: { data: { signup_form: "true", full_name: nome, nickname: f.apelido.trim(), phone: fone, birth_date: f.nascimento, whatsapp_consent: String(wa) } },
+      options: { data: { signup_form: "true", full_name: nome, nickname: f.apelido.trim(), phone: fone, birth_date: f.nascimento, whatsapp_consent: String(wa), tenant_slug: clientSlug() ?? "" } },
     })
     setBusy(false)
     if (err) {
       const m = err.message.toLowerCase()
       if (m.includes("rate limit") || err.status === 429) return setError("Muitas tentativas. Aguarde alguns minutos e tente de novo.")
       if (m.includes("password")) return setError("Senha fraca. Use 8 ou mais caracteres, misturando letras e números.")
-      if (m.includes("signups not allowed")) return setError("O cadastro está temporariamente fechado. Fale com a administração do GEAB.")
+      if (m.includes("signups not allowed")) return setError("O cadastro está temporariamente fechado. Fale com a administração do grupo.")
       return setError("Não foi possível concluir o cadastro. Confira os dados e tente novamente.")
     }
     setSent(email)
@@ -159,7 +160,7 @@ export default function SignupPage() {
         </label>
         <label className="flex items-start gap-2 text-sm">
           <Checkbox checked={lgpd} onCheckedChange={(v) => setLgpd(v === true)} className="mt-0.5" />
-          <span>Autorizo o GEAB a guardar meus dados (nome, contato, data de nascimento e pagamentos) apenas para o controle das mensalidades.</span>
+          <span>Autorizo o grupo a guardar meus dados (nome, contato, data de nascimento e pagamentos) apenas para o controle das mensalidades.</span>
         </label>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={busy}>

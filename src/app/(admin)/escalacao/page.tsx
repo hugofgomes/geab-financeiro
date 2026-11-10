@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLoad } from "@/hooks/use-load"
+import { useOrg } from "@/hooks/use-org"
 import { kitDataUrl } from "@/lib/kit"
 import { CARD_SIZE, canvasToBlob, drawLineupCard, type CardFormat, type CardPlayer } from "@/lib/lineup-card"
 import { autoDistribute, cardLabels, shownName, whatsappMessage, type LineupAthlete, type LineupEntry, type LineupTeam } from "@/lib/lineup"
@@ -42,6 +43,7 @@ async function load(): Promise<Data> {
 const matchLabel = (m: Match) => `${shortDate(m.match_date)}${hhmm(m.match_time) ? ` ${hhmm(m.match_time)}` : ""} · ${m.team_a} × ${m.team_b}`
 
 export default function LineupPage() {
+  const org = useOrg()
   const { data, error, loading, reload } = useLoad(load, [])
   const [tab, setTab] = React.useState<"montar" | "historico">("montar")
   const [matchId, setMatchId] = React.useState<string | null>(null)
@@ -97,10 +99,10 @@ export default function LineupPage() {
   React.useEffect(() => {
     if (!showCard || !match || !canvasRef.current) return
     let alive = true
-    drawLineupCard(canvasRef.current, { format, date: match.match_date, time: match.match_time, venue: venue || match.venue || null, azul: toPlayers("a"), branco: toPlayers("b"), reservas: toPlayers("reserva") })
+    drawLineupCard(canvasRef.current, { orgName: org?.name ?? "", tagline: org?.tagline ?? null, website: org?.website ?? null, logoUrl: org?.logo_url ?? null, format, date: match.match_date, time: match.match_time, venue: venue || match.venue || null, azul: toPlayers("a"), branco: toPlayers("b"), reservas: toPlayers("reserva") })
       .catch((e) => alive && toast.error(e instanceof Error ? e.message : "Erro ao desenhar o card"))
     return () => { alive = false }
-  }, [showCard, match, format, venue, toPlayers])
+  }, [showCard, match, format, venue, toPlayers, org])
 
   if (!supabaseConfigured) return <SetupNotice />
 
@@ -175,14 +177,14 @@ export default function LineupPage() {
       setTimeout(() => URL.revokeObjectURL(a.href), 4000)
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar a imagem") }
   }
-  const message = () => match ? whatsappMessage({ match_date: match.match_date, match_time: match.match_time, venue: venue || match.venue }) : ""
+  const message = () => match ? whatsappMessage({ match_date: match.match_date, match_time: match.match_time, venue: venue || match.venue }, org?.name ?? "GEAB Futebol") : ""
   async function share() {
     if (!canvasRef.current || !match) return
     try {
       const blob = await canvasToBlob(canvasRef.current)
       const file = new File([blob], fileName(), { type: "image/png" })
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: message(), title: "Escalação GEAB" })
+        await navigator.share({ files: [file], text: message(), title: `Escalação ${org?.name ?? ""}` })
       } else {
         await download()
         try { await navigator.clipboard.writeText(message()) } catch { /* sem permissão de área de transferência */ }
@@ -285,8 +287,8 @@ export default function LineupPage() {
                     {data.matches.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}{data.counts[m.id] ? " ✓" : ""}</option>)}
                   </NativeSelect></div>
                 <div className="space-y-1.5"><Label htmlFor="ev">Local da partida</Label>
-                  <Input id="ev" maxLength={120} placeholder="Ex.: Arena GEAB" value={venue} disabled={locked} onChange={(e) => setVenue(e.target.value)} /></div>
-                {match && <p className="text-sm text-muted-foreground sm:col-span-2"><b>Escalação oficial GEAB</b> · {shortDate(match.match_date)} · {hhmm(match.match_time) ?? "horário a definir"} · {venue || "local a definir"} · Azul <b>{nA}</b> × Branco <b>{nB}</b>{nR ? ` · ${nR} reserva(s)` : ""}</p>}
+                  <Input id="ev" maxLength={120} placeholder="Ex.: Arena do grupo" value={venue} disabled={locked} onChange={(e) => setVenue(e.target.value)} /></div>
+                {match && <p className="text-sm text-muted-foreground sm:col-span-2"><b>Escalação oficial {org?.name}</b> · {shortDate(match.match_date)} · {hhmm(match.match_time) ?? "horário a definir"} · {venue || "local a definir"} · Azul <b>{nA}</b> × Branco <b>{nB}</b>{nR ? ` · ${nR} reserva(s)` : ""}</p>}
                 {locked && <p className="flex items-center gap-1.5 text-sm font-medium text-primary sm:col-span-2"><Lock className="size-4" /> Escalação confirmada. Para editar, reabra a edição.</p>}
               </CardContent></Card>
 

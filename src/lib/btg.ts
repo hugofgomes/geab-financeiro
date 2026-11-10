@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto"
 import { serviceClient } from "@/lib/supabase/service"
+import { platformOrgSlug } from "@/lib/server-auth"
 
 /** Integração direta com o BTG Pactual Empresas (Pix Cobrança dinâmico). Fluxo OAuth 2.0 Authorization Code com PKCE (BTG Id): o app é do tipo público, então não há Client Secret. */
 const sandbox = () => (process.env.BTG_ENV || "production").toLowerCase() === "sandbox"
@@ -48,13 +49,20 @@ async function tokenRequest(form: Record<string, string>): Promise<Required<Pick
   return j as Required<Pick<TokenResponse, "access_token">> & TokenResponse
 }
 
+/** Id do grupo dono das credenciais BTG (o único que pode usá-las). */
+async function ownerTenantId(sb: NonNullable<ReturnType<typeof serviceClient>>) {
+  const { data } = await sb.from("organizations").select("id").eq("slug", platformOrgSlug()).maybeSingle()
+  if (!data?.id) throw new Error("Grupo dono das credenciais não encontrado.")
+  return data.id as string
+}
+
 async function saveTokens(t: TokenResponse & { access_token: string }, previousRefresh?: string, userId?: string) {
   const sb = serviceClient()
   if (!sb) throw new Error("Servidor sem chave de serviço configurada.")
   const refresh = t.refresh_token || previousRefresh
   if (!refresh) throw new Error("O BTG não devolveu o token de renovação.")
   const { error } = await sb.from("btg_connection").upsert({
-    id: 1, access_token: t.access_token, refresh_token: refresh,
+    tenant_id: await ownerTenantId(sb), id: 1, access_token: t.access_token, refresh_token: refresh,
     expires_at: new Date(Date.now() + (t.expires_in ?? 3600) * 1000).toISOString(),
     scope: t.scope ?? null, updated_at: new Date().toISOString(),
     ...(userId ? { connected_by: userId, connected_at: new Date().toISOString() } : {}),
@@ -72,7 +80,7 @@ type Conn = { access_token: string; refresh_token: string; expires_at: string }
 async function loadConn(): Promise<Conn | null> {
   const sb = serviceClient()
   if (!sb) return null
-  const { data } = await sb.from("btg_connection").select("access_token, refresh_token, expires_at").eq("id", 1).maybeSingle()
+  const { data } = await sb.from("btg_connection").select("access_token, refresh_token, expires_at").eq("tenant_id", await ownerTenantId(sb)).maybeSingle()
   return (data as Conn | null) ?? null
 }
 

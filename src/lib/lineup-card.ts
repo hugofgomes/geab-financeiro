@@ -4,6 +4,10 @@ import { hhmm, shortDate, weekdayOf } from "@/lib/matches"
 export type CardPlayer = { name: string; keeper: boolean; number: string }
 export type CardFormat = "vertical" | "quadrado"
 export type CardData = {
+  orgName: string
+  tagline: string | null
+  website: string | null
+  logoUrl: string | null
   format: CardFormat
   date: string
   time: string | null
@@ -107,6 +111,16 @@ export async function drawLineupCard(canvas: HTMLCanvasElement, d: CardData) {
   const imgs = new Map<string, HTMLImageElement>()
   await Promise.all([...need].map(async ([k, [c, n]]) => { imgs.set(k, await kitImage(c, n)) }))
 
+  // Logotipo do grupo (opcional): se a imagem não carregar ou bloquear exportação (CORS), o card sai sem ele.
+  let logo: HTMLImageElement | null = null
+  if (d.logoUrl) {
+    logo = await new Promise<HTMLImageElement | null>((res) => {
+      const i = new Image(); i.crossOrigin = "anonymous"
+      i.onload = () => res(i); i.onerror = () => res(null); i.src = d.logoUrl!
+      setTimeout(() => res(null), 6000)
+    })
+  }
+
   // Fundo
   const g = ctx.createLinearGradient(0, 0, W * 0.4, H)
   g.addColorStop(0, "#0A2A55"); g.addColorStop(1, C.navy)
@@ -116,8 +130,12 @@ export async function drawLineupCard(canvas: HTMLCanvasElement, d: CardData) {
   ctx.restore()
 
   // Cabeçalho
-  ctx.textAlign = "center"; ctx.fillStyle = "#FFFFFF"; ctx.font = font(70, 900)
-  ctx.fillText("GEAB FUTEBOL", W / 2, 92)
+  const logoBox = logo ? 120 : 0
+  if (logo) {
+    const k = Math.min(logoBox / logo.width, logoBox / logo.height)
+    ctx.drawImage(logo, 40, 24 + (logoBox - logo.height * k) / 2, logo.width * k, logo.height * k)
+  }
+  drawFitted(ctx, d.orgName.toUpperCase(), W / 2, 22, W - 2 * (logoBox ? logoBox + 60 : 60), 80, "#FFFFFF", 70, 26, 900)
   ctx.fillStyle = C.sky; ctx.font = font(34, 800)
   if ("letterSpacing" in ctx) (ctx as unknown as { letterSpacing: string }).letterSpacing = "6px"
   ctx.fillText("ESCALAÇÃO OFICIAL", W / 2, 142)
@@ -148,8 +166,9 @@ export async function drawLineupCard(canvas: HTMLCanvasElement, d: CardData) {
 
   // Rodapé
   ctx.fillStyle = C.blue; ctx.fillRect(0, H - footerH, W, 3)
-  ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "center"; ctx.font = font(28, 800); ctx.fillText("GEAB Futebol  ·  Tradição, amizade e futebol", W / 2, H - 52)
-  ctx.fillStyle = C.sky; ctx.font = font(26, 700); ctx.fillText("geabfutebol.com.br", W / 2, H - 18)
+  const foot = d.tagline ? `${d.orgName}  ·  ${d.tagline}` : d.orgName
+  drawFitted(ctx, foot, W / 2, d.website ? H - 82 : H - 66, W - 80, 36, "#FFFFFF", 28, 14, 800)
+  if (d.website) drawFitted(ctx, d.website, W / 2, H - 44, W - 80, 30, C.sky, 26, 14, 700)
 }
 
 export function canvasToBlob(canvas: HTMLCanvasElement) {

@@ -25,7 +25,14 @@ histórico de aberturas, auditoria, RLS (admin × atleta).
 `supabase/migrations/0016_multitenant.sql`: organizações, `tenant_id` em todas as tabelas, RLS por organização, gatilhos de proteção
 (escrita e referências entre organizações) e funções do banco filtradas. Os dados atuais viram a organização `geab`.
 Teste de isolamento (Postgres local descartável, sem tocar na produção): `npm i --no-save embedded-postgres pg && node supabase/tests/run-tests.mjs`.
-**Antes de criar a 2ª organização**, as rotas de servidor (webhooks OpenPix/BTG, `btg.ts`) precisam informar o `tenant_id`; até lá a omissão falha de propósito.
+
+## Multi-tenant — etapa 2 (grupos)
+`0017_organizations_app.sql`: identidade do grupo (nome, logotipo https, cor, site, lema), criação de grupo no cadastro (`/novo-grupo`,
+14 dias de teste), `org_public` (login/cadastro), `update_organization`, suspensão (grupo suspenso perde o acesso) e slugs reservados.
+- Telas: `/novo-grupo` (público), `/grupo` (Meu grupo). Nome/logotipo do grupo aparecem no painel, login, cadastro, portal e card da escalação.
+- Endereço por grupo: defina `NEXT_PUBLIC_BASE_DOMAIN` (ex.: `plataforma.com.br`) e aponte `*.plataforma.com.br` para o app; `slug.plataforma.com.br` abre o grupo.
+- **Integrações globais** (Pix BTG/OpenPix, WhatsApp, e-mail) usam credenciais do servidor e ficam restritas ao grupo dono (`PLATFORM_ORG_SLUG`, padrão `geab`);
+  os demais usam o Pix manual até haver credencial por grupo (etapa de assinaturas/integrações). Webhooks já identificam o grupo pela cobrança.
 
 ## O que NÃO existe ainda
 Importação da planilha, conciliação por extrato OFX/CSV, Pix com identificador por cobrança (depende de provedor),

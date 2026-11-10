@@ -1,7 +1,7 @@
 import { btgConfigured, btgStatus, createBtgCollection } from "@/lib/btg"
 import { createPixCharge, openpixConfigured } from "@/lib/openpix"
 import { formatCompetence } from "@/lib/format"
-import { adminClient } from "@/lib/server-auth"
+import { adminClient, isOwnerOrg } from "@/lib/server-auth"
 import { NextResponse } from "next/server"
 
 export const maxDuration = 60
@@ -11,8 +11,10 @@ const DAYS = 30
 const provider = () => (btgConfigured() ? "btg" : openpixConfigured() ? "openpix" : null)
 
 export async function GET() {
-  if (!(await adminClient())) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
-  const p = provider()
+  const sb = await adminClient()
+  if (!sb) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
+  // Credenciais globais do servidor pertencem a um único grupo: os demais usam o Pix manual por enquanto.
+  const p = (await isOwnerOrg(sb)) ? provider() : null
   // Só os NOMES das variáveis que faltam (nunca valores), para a tela dizer o que fazer.
   const missing = p ? [] : ["BTG_CLIENT_ID", "BTG_COMPANY_ID", "BTG_PIX_KEY"].filter((k) => (k === "BTG_COMPANY_ID" ? !/^\d{14}$/.test((process.env[k] || "").replace(/\D/g, "")) : !process.env[k]))
   return NextResponse.json({ configured: !!p, provider: p, missing, connected: p === "btg" ? (await btgStatus()).connected : p === "openpix" })
@@ -24,8 +26,8 @@ type Result = { charge_id: string; status: "criada" | "existente" | "ignorada" |
 export async function POST(req: Request) {
   const sb = await adminClient()
   if (!sb) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
-  const prov = provider()
-  if (!prov) return NextResponse.json({ error: "Pix automático não configurado neste servidor." }, { status: 503 })
+  const prov = (await isOwnerOrg(sb)) ? provider() : null
+  if (!prov) return NextResponse.json({ error: "Pix automático não configurado para este grupo." }, { status: 503 })
   if (prov === "btg" && !(await btgStatus()).connected) return NextResponse.json({ error: "Conecte o BTG primeiro (botão “Conectar BTG”)." }, { status: 409 })
   const body = (await req.json().catch(() => ({}))) as { charge_ids?: unknown }
   const ids = Array.isArray(body.charge_ids) ? [...new Set(body.charge_ids.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)))] : []

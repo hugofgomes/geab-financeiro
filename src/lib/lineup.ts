@@ -44,13 +44,13 @@ export function autoDistribute(ids: string[], keepers: Set<string>, base: Lineup
   return out
 }
 
-export function whatsappMessage(m: Pick<Match, "match_date" | "match_time"> & { venue?: string | null }) {
+export function whatsappMessage(m: Pick<Match, "match_date" | "match_time"> & { venue?: string | null }, orgName = "GEAB Futebol") {
   return [
-    "⚽ *GEAB FUTEBOL — ESCALAÇÃO OFICIAL*", "",
+    `⚽ *${orgName.toUpperCase()} — ESCALAÇÃO OFICIAL*`, "",
     "🔵 TIME AZUL x ⚪ TIME BRANCO", "",
     `📅 Data: ${shortDate(m.match_date)}`, "",
     `⏰ Horário: ${hhmm(m.match_time) ?? "a definir"}`, "",
     `📍 Local: ${m.venue?.trim() || "a definir"}`, "",
-    "🔥 Mais um grande jogo do GEAB!",
+    `🔥 Mais um grande jogo do ${orgName}!`,
   ].join("\n")
 }

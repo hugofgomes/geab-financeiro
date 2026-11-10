@@ -1,6 +1,8 @@
 "use client"
 
 import { SetupNotice } from "@/components/setup-notice"
+import { OrgHeading } from "@/components/org-heading"
+import { usePublicOrg } from "@/hooks/use-org"
 import { Button } from "@/components/ui/button"
 import { useLoad } from "@/hooks/use-load"
 import { formatDate } from "@/lib/format"
@@ -36,7 +38,7 @@ function Content() {
           <h2 className="text-lg font-semibold">{confirmed ? "E-mail confirmado!" : "Cadastro recebido"}</h2>
           <p className="text-sm text-muted-foreground">
             Recebemos o cadastro de <strong className="text-foreground">{data.full_name}</strong> em {formatDate(data.created_at.slice(0, 10))}.
-            Agora é só aguardar: a administração do GEAB vai aprovar o seu acesso.
+            Agora é só aguardar: a administração do grupo vai aprovar o seu acesso.
           </p>
           <Button variant="outline" onClick={reload} disabled={loading}>Verificar aprovação</Button>
         </>
@@ -44,7 +46,7 @@ function Content() {
         <>
           <Clock className="mx-auto size-10 text-amber-600" aria-hidden />
           <h2 className="text-lg font-semibold">Acesso ainda não liberado</h2>
-          <p className="text-sm text-muted-foreground">Seu usuário existe, mas ainda não foi vinculado a um atleta. Fale com a administração do GEAB.</p>
+          <p className="text-sm text-muted-foreground">Seu usuário existe, mas ainda não foi vinculado a um atleta. Fale com a administração do grupo.</p>
         </>
       )}
       <div><Button variant="ghost" size="sm" onClick={signOut}>Sair</Button></div>
@@ -53,13 +55,12 @@ function Content() {
 }
 
 export default function SignupStatusPage() {
+  const { org } = usePublicOrg()
   if (!supabaseConfigured) return <SetupNotice />
   return (
     <div className="grid min-h-dvh place-items-center bg-[#1C3D63] p-4">
       <div className="w-full max-w-md space-y-5 rounded-xl bg-card p-6 shadow-xl">
-        <div className="text-center">
-          <h1 className="text-xl font-bold tracking-wide uppercase">GEAB Futebol</h1>
-        </div>
+        <OrgHeading org={org} subtitle="" />
         <React.Suspense><Content /></React.Suspense>
       </div>
     </div>

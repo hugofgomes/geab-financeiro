@@ -1,6 +1,7 @@
 "use client"
 
 import { NameCard, PasswordCard } from "@/components/account-cards"
+import { useOrg } from "@/hooks/use-org"
 import { BirthdayCard } from "@/components/birthday-card"
 import { SidePanel } from "@/components/side-panel"
 import { SetupNotice } from "@/components/setup-notice"
@@ -23,6 +24,7 @@ import * as React from "react"
 import { toast } from "sonner"
 
 export default function AthletePortal() {
+  const org = useOrg()
   const { data, error, loading, reload } = useLoad(async () => {
     const sb = supabase()
     const [a, c, p, x, st] = await Promise.all([
@@ -74,7 +76,7 @@ export default function AthletePortal() {
   return (
     <div className="min-h-dvh">
       <header className="border-b bg-[#1C3D63] text-white shadow-sm">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-bold tracking-wide uppercase">GEAB Futebol</span>
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4"><span className="font-bold tracking-wide uppercase">{org?.name ?? "\u00a0"}</span>
           <Button variant="ghost" size="sm" onClick={signOut} className="text-white/80 hover:bg-white/10 hover:text-white"><LogOut /> Sair</Button></div>
       </header>
       {data && (
@@ -143,7 +145,7 @@ export default function AthletePortal() {
                     <p className="text-xs text-muted-foreground">Pague pelo app do seu banco. Seu pagamento é conferido pela Diretoria e a mensalidade passa para “Pago” depois da conferência (não é instantâneo).</p>
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-muted-foreground">Quando o GEAB gerar o Pix da sua mensalidade, o QR Code e o Pix Copia e Cola aparecerão aqui. Enquanto isso, siga as instruções de pagamento do grupo.</p>
+                  <p className="mt-3 text-xs text-muted-foreground">Quando o grupo gerar o Pix da sua mensalidade, o QR Code e o Pix Copia e Cola aparecerão aqui. Enquanto isso, siga as instruções de pagamento do grupo.</p>
                 )}
               </CardContent>
             </Card>
@@ -167,7 +169,7 @@ export default function AthletePortal() {
                     ["WhatsApp", data.athlete.phone ? `+${data.athlete.phone}` : "—"],
                     ["Mensalidade", `${formatBRL(data.athlete.monthly_fee)} · vence dia ${data.athlete.due_day}`],
                     ["Situação", data.athlete.active ? "Ativo" : "Inativo"],
-                    ["No GEAB desde", formatDate(data.athlete.joined_at)],
+                    ["No grupo desde", formatDate(data.athlete.joined_at)],
                   ] as const).map(([k, v]) => <div key={k} className="flex justify-between gap-3 border-b py-1.5 sm:block sm:border-0"><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd></div>)}
                 </dl>
               </CardContent>

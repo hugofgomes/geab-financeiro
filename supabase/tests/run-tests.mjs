@@ -64,6 +64,7 @@ for (const t of ["athletes","profiles","charges","payments","expenses","other_in
 section("Migração dos dados existentes")
 await db.query(fs.readFileSync(path.join(migDir, "0016_multitenant.sql"), "utf8"))
 const geab = await one(`select id from public.organizations where slug='geab'`)
+for (const f of files.filter((f) => f >= "0017")) await db.query(fs.readFileSync(path.join(migDir, f), "utf8"))   // 0017+
 for (const t of Object.keys(before)) {
   const n = await one(`select count(*)::int from public.${t}`)
   const orphan = await one(`select count(*)::int from public.${t} where tenant_id is distinct from $1`, [geab])
@@ -205,6 +206,43 @@ await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($
 ok("sem tenant_slug e 2+ organizações: não cria solicitação", (await one(`select count(*)::int from public.signup_requests where user_id=$1`, [uid(302)])) === 0)
 await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'x@x','{"signup_form":"true","full_name":"Ghost","tenant_slug":"nao-existe"}')`, [uid(303)])
 ok("organização inexistente: não cria solicitação", (await one(`select count(*)::int from public.signup_requests where user_id=$1`, [uid(303)])) === 0)
+
+section("Etapa 2: novos grupos, identidade e suspensão")
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'dono@futsal','{"full_name":"Dona Futsal","new_org_slug":"futsal-amigos","new_org_name":"Futsal dos Amigos"}')`, [uid(401)])
+const fut = await q(`select o.id, o.status, o.trial_ends_at is not null as trial, p.role from public.organizations o join public.profiles p on p.tenant_id = o.id and p.id = $1 where o.slug = 'futsal-amigos'`, [uid(401)])
+ok("cadastro com new_org cria o grupo em teste e torna o usuário administrador", fut.length === 1 && fut[0].status === "teste" && fut[0].trial && fut[0].role === "admin", JSON.stringify(fut))
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'x@dup','{"new_org_slug":"geab","new_org_name":"Copia"}'),($2,'y@res','{"new_org_slug":"admin","new_org_name":"Reservado"}')`, [uid(402), uid(403)])
+ok("slug já usado ou reservado não cria grupo", (await one(`select count(*)::int from public.organizations where name in ('Copia','Reservado')`)) === 0)
+ok("slug_available recusa usado, reservado e inválido", !(await one(`select public.slug_available('geab')`)) && !(await one(`select public.slug_available('www')`)) && !(await one(`select public.slug_available('A_b')`)) && (await one(`select public.slug_available('time-novo')`)))
+await as(uid(401), async () => {
+  ok("dono do novo grupo não vê nada do GEAB nem da Pelada", (await one(`select count(*)::int from public.athletes`)) === 0 && (await one(`select count(*)::int from public.expenses`)) === 0)
+  await db.query(`select public.update_organization('Futsal Premium', 'https://exemplo.com/logo.png', '#0057B8', 'futsal.com.br', 'Lema')`)
+  ok("Diretoria edita a identidade do próprio grupo", (await one(`select name from public.organizations`)) === "Futsal Premium")
+  ok("logotipo não-https é recusado", /https/.test(await err(`select public.update_organization('X','javascript:alert(1)',null,null,null)`) ?? ""))
+  ok("cor inválida é recusada", /Cor/.test(await err(`select public.update_organization('X',null,'azul',null,null)`) ?? ""))
+})
+await as(U.peladaAdmin, async () => {
+  await db.query(`select public.update_organization('Pelada Renomeada', null, null, null, null)`)
+  ok("Pelada renomeada", (await one(`select name from public.organizations`)) === "Pelada Renomeada")
+})
+ok("nome do GEAB intacto", (await one(`select name from public.organizations where slug='geab'`)) === "GEAB Futebol")
+{ // consulta pública (sem login)
+  await db.query("begin"); await db.query("set local role anon")
+  const pub = await q(`select * from public.org_public('geab')`)
+  ok("org_public (anon) devolve só dados de identidade", pub.length === 1 && Object.keys(pub[0]).sort().join() === "logo_url,name,primary_color,slug,tagline,website", JSON.stringify(Object.keys(pub[0] ?? {})))
+  ok("org_public sem slug com 2+ grupos: nada", (await q(`select * from public.org_public(null)`)).length === 0)
+  ok("anon não lê tabelas", !!(await err(`select * from public.athletes`)) || (await one(`select count(*)::int from public.athletes`)) === 0)
+  await db.query("rollback")
+}
+await db.query(`update public.organizations set status='suspensa' where slug='pelada'`)
+await as(U.peladaAdmin, async () => {
+  ok("grupo suspenso perde o acesso a tudo", (await one(`select count(*)::int from public.athletes`)) === 0 && (await one(`select count(*)::int from public.charges`)) === 0 && !!(await err(`select public.generate_charges('2027-01-01')`)))
+})
+{ await db.query("begin"); await db.query("set local role anon")
+  ok("org_public esconde grupo suspenso", (await q(`select * from public.org_public('pelada')`)).length === 0)
+  await db.query("rollback") }
+await db.query(`update public.organizations set status='ativa' where slug='pelada'`)
+await as(U.peladaAdmin, async () => { ok("reativar devolve o acesso", (await one(`select count(*)::int from public.athletes`)) >= 1) })
 
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
