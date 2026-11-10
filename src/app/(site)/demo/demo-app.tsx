@@ -100,7 +100,7 @@ export function DemoApp() {
 
       <div className="mt-10 rounded-3xl bg-[#17365D] p-8 text-center text-white">
         <h2 className="text-2xl font-bold !text-white">Gostou? Crie o seu grupo.</h2>
-        <ul className="mx-auto mt-4 hidden max-w-xs space-y-2 text-left sm:block [&_li]:text-blue-100 [&_span]:bg-white [&_span]:text-[#17365D]"><Benefit>Teste gratuito para até 30 atletas</Benefit><Benefit>Seus dados separados dos de outros grupos</Benefit></ul>
+        <ul className="mx-auto mt-4 hidden max-w-xs space-y-2 text-left sm:block [&_li]:text-blue-100 [&_span]:bg-white [&_span]:text-[#17365D]"><Benefit>Teste gratuito por 10 dias, até 30 jogadores</Benefit><Benefit>Seus dados separados dos de outros grupos</Benefit></ul>
         <Link href="/novo-grupo" className="mt-6 inline-flex rounded-full bg-white px-7 py-3 text-sm font-medium text-[#17365D] transition hover:-translate-y-0.5">Criar meu grupo</Link>
       </div>
     </div>

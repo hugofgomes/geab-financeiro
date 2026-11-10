@@ -30,9 +30,9 @@ function Block({ id, tint, flip, title, text, items, cta, children }: { id: stri
 }
 
 const PLANS = [
-  { name: "Teste gratuito", price: "Grátis", note: "Para conhecer a plataforma", athletes: "Até 30 atletas", cta: "Criar meu grupo", hot: false },
-  { name: "Básico", price: "R$ 29,90", note: "por mês", athletes: "Até 60 atletas", cta: "Criar meu grupo", hot: true },
-  { name: "Pro", price: "R$ 59,90", note: "por mês", athletes: "Até 200 atletas", cta: "Criar meu grupo", hot: false },
+  { name: "Teste gratuito", price: "Grátis", note: "por 10 dias", athletes: "Até 30 jogadores", cta: "Criar meu grupo", hot: false },
+  { name: "Básico", price: "R$ 99", note: "por mês", athletes: "Até 60 jogadores", cta: "Criar meu grupo", hot: true },
+  { name: "Pro", price: "R$ 150", note: "por mês", athletes: "Até 200 jogadores", cta: "Criar meu grupo", hot: false },
 ]
 const INCLUDED = ["Cadastro de atletas", "Mensalidades e caixa", "Jogos e escalações", "Gols e artilharia", "Card para WhatsApp", "Três níveis de acesso"]
 
