@@ -24,7 +24,8 @@ export function AthleteDialog({ open, athlete, onClose, onSaved }: { open: boole
   const [d, setD] = React.useState<Draft>(empty)
   const [busy, setBusy] = React.useState(false)
   const [invite, setInvite] = React.useState(false)
-  React.useEffect(() => { if (open) { setD(athlete ? fromAthlete(athlete) : empty); setInvite(!athlete) } }, [open, athlete])
+  const [cred, setCred] = React.useState<{ email: string; senha: string } | null>(null)
+  React.useEffect(() => { if (open) { setCred(null); setD(athlete ? fromAthlete(athlete) : empty); setInvite(!athlete) } }, [open, athlete])
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }))
 
   async function save(e: React.FormEvent) {
@@ -47,20 +48,30 @@ export function AthleteDialog({ open, athlete, onClose, onSaved }: { open: boole
     let msg = athlete ? "Atleta atualizado." : "Atleta cadastrado."
     if (invite && row.email) {
       const res = await fetch("/api/atletas/acesso", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ athlete_id: r.data.id }) })
-      const j = (await res.json().catch(() => ({}))) as { error?: string }
-      if (res.ok) msg += ` Convite enviado para ${row.email}.`
+      const j = (await res.json().catch(() => ({}))) as { error?: string; senha?: string }
+      if (res.ok && j.senha) { setCred({ email: row.email, senha: j.senha }); msg += " Acesso criado." }
       else toast.error(`Atleta salvo, mas o acesso não foi criado: ${j.error ?? "erro desconhecido"}`, { duration: 9000 })
     }
     setBusy(false)
     toast.success(msg)
     onSaved()
-    onClose()
+    return msg.includes("Acesso criado") ? undefined : onClose()
   }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{athlete ? "Editar atleta" : "Novo atleta"}</DialogTitle></DialogHeader>
+        {cred ? (
+          <div className="space-y-3 text-sm">
+            <p>Acesso criado. Passe estes dados ao atleta (ele pode trocar a senha em <b>Minha conta</b>). A senha <b>não será mostrada de novo</b>.</p>
+            <div className="rounded-xl border bg-secondary p-3 font-mono text-sm break-all">E-mail: {cred.email}<br />Senha: {cred.senha}</div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { void navigator.clipboard?.writeText(`E-mail: ${cred.email}\nSenha: ${cred.senha}`); toast.success("Copiado.") }}>Copiar</Button>
+              <Button type="button" onClick={onClose}>Concluir</Button>
+            </DialogFooter>
+          </div>
+        ) : (
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="fn">Nome completo *</Label><Input id="fn" value={d.full_name} onChange={(e) => set("full_name", e.target.value)} required /></div>
           <div className="space-y-1.5"><Label htmlFor="nk">Apelido</Label><Input id="nk" value={d.nickname} onChange={(e) => set("nickname", e.target.value)} /></div>
@@ -71,13 +82,14 @@ export function AthleteDialog({ open, athlete, onClose, onSaved }: { open: boole
           <div className="space-y-1.5"><Label htmlFor="fee">Mensalidade (R$)</Label><Input id="fee" inputMode="decimal" value={d.monthly_fee} onChange={(e) => set("monthly_fee", e.target.value)} required /></div>
           <div className="space-y-1.5"><Label htmlFor="dd">Dia do vencimento (1–28)</Label><Input id="dd" inputMode="numeric" value={d.due_day} onChange={(e) => set("due_day", e.target.value)} required /></div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={d.whatsapp_consent} onCheckedChange={(v) => set("whatsapp_consent", v)} /> O atleta aceita receber mensagens pelo WhatsApp</label>
-          <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={invite} onCheckedChange={setInvite} disabled={!d.email.trim()} /> Criar acesso ao sistema e enviar convite por e-mail{!d.email.trim() && <span className="text-xs text-muted-foreground">(informe o e-mail)</span>}</label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={invite} onCheckedChange={setInvite} disabled={!d.email.trim()} /> Criar acesso ao sistema (login com senha provisória){!d.email.trim() && <span className="text-xs text-muted-foreground">(informe o e-mail)</span>}</label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={d.active} onCheckedChange={(v) => set("active", v)} /> Atleta ativo</label>
           <DialogFooter className="sm:col-span-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar</Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   )
