@@ -29,6 +29,8 @@ export function AppFooter() {
         <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" title="Ver novidades e atualizações"
           className="rounded px-1 font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">Versão {APP_VERSION}</button>
         {date && <><span aria-hidden className="hidden sm:inline">|</span><span>Atualizado em {date}</span></>}
+        <span aria-hidden className="hidden sm:inline">|</span>
+        <span>Sistema desenvolvido por <a href="https://vendadigital.com" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">vendadigital</a></span>
       </p>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto">
