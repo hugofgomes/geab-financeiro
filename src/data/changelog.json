@@ -2,6 +2,17 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.5.2",
+      "date": "2026-11-11",
+      "title": "Log de acessos mais rápido de ler",
+      "novidades": [],
+      "melhorias": [
+        "Log de acessos com resumo do dia, gráfico de pessoas por dia (toque numa barra para abrir o dia), navegação entre dias, busca e atualização automática.",
+        "No celular, cada acesso aparece como cartão, sem rolagem lateral."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.5.1",
       "date": "2026-11-11",
       "title": "Recuperação de senha",
