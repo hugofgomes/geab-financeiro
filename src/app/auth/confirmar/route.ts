@@ -12,9 +12,10 @@ export async function GET(req: NextRequest) {
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? req.nextUrl.host
   const proto = req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")
   const to = (path: string) => new URL(path, `${proto}://${host}`)
-  if (!url || !key || !tokenHash || type !== "email") return NextResponse.redirect(to("/login?erro=link-invalido"))
+  if (!url || !key || !tokenHash || (type !== "email" && type !== "invite")) return NextResponse.redirect(to("/login?erro=link-invalido"))
 
-  const res = NextResponse.redirect(to("/cadastro/status?confirmado=1"))
+  // Convite de atleta criado pelo administrador: entra direto e define a senha na conta.
+  const res = NextResponse.redirect(to(type === "invite" ? "/atleta?definir-senha=1" : "/cadastro/status?confirmado=1"))
   const sb = createServerClient(url, key, {
     cookies: {
       getAll: () => req.cookies.getAll(),

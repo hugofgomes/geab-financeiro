@@ -23,7 +23,8 @@ const fromAthlete = (a: Athlete): Draft => ({
 export function AthleteDialog({ open, athlete, onClose, onSaved }: { open: boolean; athlete: Athlete | null; onClose: () => void; onSaved: () => void }) {
   const [d, setD] = React.useState<Draft>(empty)
   const [busy, setBusy] = React.useState(false)
-  React.useEffect(() => { if (open) setD(athlete ? fromAthlete(athlete) : empty) }, [open, athlete])
+  const [invite, setInvite] = React.useState(false)
+  React.useEffect(() => { if (open) { setD(athlete ? fromAthlete(athlete) : empty); setInvite(!athlete) } }, [open, athlete])
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }))
 
   async function save(e: React.FormEvent) {
@@ -41,10 +42,17 @@ export function AthleteDialog({ open, athlete, onClose, onSaved }: { open: boole
     }
     setBusy(true)
     const sb = supabase()
-    const { error } = athlete ? await sb.from("athletes").update(row).eq("id", athlete.id) : await sb.from("athletes").insert(row)
+    const r = athlete ? await sb.from("athletes").update(row).eq("id", athlete.id).select("id").single() : await sb.from("athletes").insert(row).select("id").single()
+    if (r.error) { setBusy(false); return toast.error(`Não foi possível salvar: ${r.error.message}`) }
+    let msg = athlete ? "Atleta atualizado." : "Atleta cadastrado."
+    if (invite && row.email) {
+      const res = await fetch("/api/atletas/acesso", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ athlete_id: r.data.id }) })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (res.ok) msg += ` Convite enviado para ${row.email}.`
+      else toast.error(`Atleta salvo, mas o acesso não foi criado: ${j.error ?? "erro desconhecido"}`, { duration: 9000 })
+    }
     setBusy(false)
-    if (error) return toast.error(`Não foi possível salvar: ${error.message}`)
-    toast.success(athlete ? "Atleta atualizado." : "Atleta cadastrado.")
+    toast.success(msg)
     onSaved()
     onClose()
   }
@@ -63,6 +71,7 @@ export function AthleteDialog({ open, athlete, onClose, onSaved }: { open: boole
           <div className="space-y-1.5"><Label htmlFor="fee">Mensalidade (R$)</Label><Input id="fee" inputMode="decimal" value={d.monthly_fee} onChange={(e) => set("monthly_fee", e.target.value)} required /></div>
           <div className="space-y-1.5"><Label htmlFor="dd">Dia do vencimento (1–28)</Label><Input id="dd" inputMode="numeric" value={d.due_day} onChange={(e) => set("due_day", e.target.value)} required /></div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={d.whatsapp_consent} onCheckedChange={(v) => set("whatsapp_consent", v)} /> O atleta aceita receber mensagens pelo WhatsApp</label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={invite} onCheckedChange={setInvite} disabled={!d.email.trim()} /> Criar acesso ao sistema e enviar convite por e-mail{!d.email.trim() && <span className="text-xs text-muted-foreground">(informe o e-mail)</span>}</label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={d.active} onCheckedChange={(v) => set("active", v)} /> Atleta ativo</label>
           <DialogFooter className="sm:col-span-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
