@@ -12,10 +12,17 @@ export async function GET(req: NextRequest) {
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? req.nextUrl.host
   const proto = req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")
   const to = (path: string) => new URL(path, `${proto}://${host}`)
-  if (!url || !key || !tokenHash || (type !== "email" && type !== "invite")) return NextResponse.redirect(to("/login?erro=link-invalido"))
+  const code = req.nextUrl.searchParams.get("code")
+  if (url && key && code && !tokenHash) {   // modelo padrão do Supabase (fluxo PKCE): o link volta com ?code=
+    const res = NextResponse.redirect(to("/redefinir-senha"))
+    const sb = createServerClient(url, key, { cookies: { getAll: () => req.cookies.getAll(), setAll: (list) => list.forEach(({ name, value, options }) => res.cookies.set(name, value, options)) } })
+    const { error } = await sb.auth.exchangeCodeForSession(code)
+    return error ? NextResponse.redirect(to("/login?erro=link-invalido")) : res
+  }
+  if (!url || !key || !tokenHash || (type !== "email" && type !== "invite" && type !== "recovery")) return NextResponse.redirect(to("/login?erro=link-invalido"))
 
-  // Convite de atleta criado pelo administrador: entra direto e define a senha na conta.
-  const res = NextResponse.redirect(to(type === "invite" ? "/atleta?definir-senha=1" : "/cadastro/status?confirmado=1"))
+  // Recuperação de senha e convite: entra com o link e define a senha na tela seguinte.
+  const res = NextResponse.redirect(to(type === "recovery" || type === "invite" ? "/redefinir-senha" : "/cadastro/status?confirmado=1"))
   const sb = createServerClient(url, key, {
     cookies: {
       getAll: () => req.cookies.getAll(),

@@ -28,6 +28,8 @@ export async function middleware(req: NextRequest) {
   const { data: { user } } = await sb.auth.getUser()
   // A confirmação de e-mail abre em qualquer navegador, logado ou não.
   if (path === "/auth/confirmar") return res
+  // Recuperação de senha: pedir o link (sem login) e definir a nova senha (com a sessão criada pelo link).
+  if (path === "/recuperar" || path === "/redefinir-senha") return res
   // Site comercial: público. A raiz mostra o site para quem não está logado (quem está logado vê o painel).
   if (path === "/site" || path === "/demo") return res
   if (!user && path === "/") { const u = req.nextUrl.clone(); u.pathname = "/site"; return NextResponse.rewrite(u) }
