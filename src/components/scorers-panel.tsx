@@ -4,7 +4,9 @@ import { NativeSelect } from "@/components/native-select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOrg } from "@/hooks/use-org"
-import { MATCHES_CHANGED, shortDate } from "@/lib/matches"
+import { useRole } from "@/hooks/use-role"
+import Link from "next/link"
+import { MATCHES_CHANGED, brToday, shortDate } from "@/lib/matches"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Scorer, ScorerStats } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -41,6 +43,24 @@ function useScorers(season: number | null) {
     return () => { alive = false; clearInterval(t); document.removeEventListener("visibilitychange", tick); window.removeEventListener(MATCHES_CHANGED, load) }
   }, [season])
   return state
+}
+
+type OpenMatch = { id: string; match_date: string; team_a: string; team_b: string; score_a: number | null; score_b: number | null; status: string }
+
+/** Jogos que já deveriam ter acabado mas seguem abertos: a artilharia só conta gols de jogos finalizados. */
+function useOpenMatches(enabled: boolean) {
+  const [rows, setRows] = React.useState<OpenMatch[]>([])
+  React.useEffect(() => {
+    if (!enabled || !supabaseConfigured) return
+    let alive = true
+    const load = () => supabase().from("matches").select("id, match_date, team_a, team_b, score_a, score_b, status")
+      .in("status", ["agendado", "em_andamento"]).lte("match_date", brToday()).order("match_date", { ascending: false }).limit(3)
+      .then((r) => { if (alive && !r.error) setRows((r.data ?? []) as OpenMatch[]) })
+    load()
+    window.addEventListener(MATCHES_CHANGED, load)
+    return () => { alive = false; window.removeEventListener(MATCHES_CHANGED, load) }
+  }, [enabled])
+  return rows
 }
 
 function Avatar({ name, size, leader }: { name: string; size: "lg" | "md"; leader?: boolean }) {
@@ -112,6 +132,8 @@ export function ScorersCard() {
   const [open, setOpen] = React.useState<string | null>(null)
   const { rows, seasons, error } = useScorers(season)
   const org = useOrg()
+  const { role } = useRole()
+  const pendentes = useOpenMatches(role === "admin" || role === "diretoria")
   const current = seasons[0] ?? null
   if (!supabaseConfigured) return null
   return (
@@ -124,6 +146,13 @@ export function ScorersCard() {
           </NativeSelect>
         )}
       </div>
+      {pendentes.length > 0 && (
+        <div role="note" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          <p className="font-semibold">Jogo ainda não finalizado</p>
+          <p className="mt-1">Os gols só entram na artilharia quando o jogo é <b>finalizado</b>: {pendentes.map((m) => `${shortDate(m.match_date)} (${m.team_a} ${m.score_a ?? 0} × ${m.score_b ?? 0} ${m.team_b})`).join("; ")}.</p>
+          {role === "admin" ? <Link href="/jogos" className="mt-2 inline-block rounded-md bg-amber-900 px-3 py-1.5 font-medium text-white">Abrir Jogos e finalizar</Link> : <p className="mt-1">Peça ao administrador para finalizar.</p>}
+        </div>
+      )}
       {error && !rows?.length && <p role="alert" className="text-sm text-destructive">Não foi possível carregar a artilharia: {error}</p>}
       {rows === null && !error && <div className="space-y-2"><Skeleton className="h-24" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div>}
       {rows && rows.length === 0 && !error && <p className="rounded-xl border border-dashed p-3 text-center text-sm text-muted-foreground">Ainda não há gols registrados nesta temporada. ⚽</p>}

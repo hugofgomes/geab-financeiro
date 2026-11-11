@@ -2,26 +2,61 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.2.1",
+      "date": "2026-11-11",
+      "title": "Artilharia e jogos em aberto",
+      "novidades": [],
+      "melhorias": [
+        "Aviso na artilharia quando existe jogo ainda não finalizado, com atalho para finalizá-lo."
+      ],
+      "correcoes": [
+        "Gols de um jogo ainda aberto não apareciam na artilharia e não havia nenhuma explicação na tela."
+      ]
+    },
+    {
       "version": "1.2.0",
       "date": "2026-11-10",
       "title": "Visual moderno",
-      "novidades": ["Rodapé com a versão do sistema e este histórico de atualizações.", "Menu lateral recolhível, com dicas ao passar o mouse nos ícones."],
-      "melhorias": ["Nova paleta de cores e tipografia mais legível (Inter).", "Cards de indicadores do painel redesenhados.", "Gráfico de arrecadação com valores em reais, dicas e estado vazio.", "Melhorias de responsividade em celular, tablet e desktop."],
+      "novidades": [
+        "Rodapé com a versão do sistema e este histórico de atualizações.",
+        "Menu lateral recolhível, com dicas ao passar o mouse nos ícones."
+      ],
+      "melhorias": [
+        "Nova paleta de cores e tipografia mais legível (Inter).",
+        "Cards de indicadores do painel redesenhados.",
+        "Gráfico de arrecadação com valores em reais, dicas e estado vazio.",
+        "Melhorias de responsividade em celular, tablet e desktop."
+      ],
       "correcoes": []
     },
     {
       "version": "1.1.0",
       "date": null,
       "title": "Jogos, escalação e plataforma",
-      "novidades": ["Gols ao vivo: marcar os gols durante a partida; o administrador edita e exclui.", "Escalação com times Azul e Branco e card para WhatsApp (1080×1920).", "Três níveis de acesso: atleta, diretoria e administrador.", "Vários grupos na mesma plataforma, com painel do dono (planos e limites).", "Site comercial e demonstração navegável."],
-      "melhorias": ["Telas otimizadas para celular.", "Atletas em ordem alfabética em todas as telas."],
+      "novidades": [
+        "Gols ao vivo: marcar os gols durante a partida; o administrador edita e exclui.",
+        "Escalação com times Azul e Branco e card para WhatsApp (1080×1920).",
+        "Três níveis de acesso: atleta, diretoria e administrador.",
+        "Vários grupos na mesma plataforma, com painel do dono (planos e limites).",
+        "Site comercial e demonstração navegável."
+      ],
+      "melhorias": [
+        "Telas otimizadas para celular.",
+        "Atletas em ordem alfabética em todas as telas."
+      ],
       "correcoes": []
     },
     {
       "version": "1.0.0",
       "date": null,
       "title": "Lançamento inicial",
-      "novidades": ["Cadastro de atletas e pré-cadastro com aprovação.", "Controle de mensalidades, caixa e extrato.", "Cadastro de jogos e artilharia.", "Importação de planilha.", "Cobrança por Pix e avisos por WhatsApp e e-mail."],
+      "novidades": [
+        "Cadastro de atletas e pré-cadastro com aprovação.",
+        "Controle de mensalidades, caixa e extrato.",
+        "Cadastro de jogos e artilharia.",
+        "Importação de planilha.",
+        "Cobrança por Pix e avisos por WhatsApp e e-mail."
+      ],
       "melhorias": [],
       "correcoes": []
     }
