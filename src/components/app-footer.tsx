@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { APP_VERSION, CHANGELOG, RELEASE_DATE, fmtDate } from "@/lib/version"
+import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import * as React from "react"
 
 const SECTIONS = [["novidades", "Novidades"], ["melhorias", "Melhorias"], ["correcoes", "Correções"]] as const
@@ -9,6 +10,13 @@ const SECTIONS = [["novidades", "Novidades"], ["melhorias", "Melhorias"], ["corr
 /** Rodapé institucional: versão e data vêm de package.json + src/data/changelog.json. Clique na versão abre o histórico. */
 export function AppFooter() {
   const [open, setOpen] = React.useState(false)
+  // Registra o acesso do dia (uma chamada por aba/dia; o banco soma os acessos por usuário).
+  React.useEffect(() => {
+    if (!supabaseConfigured) return
+    const key = `geab.acesso.${new Date().toISOString().slice(0, 10)}`
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1") } catch {}
+    supabase().rpc("log_access", { p_ua: navigator.userAgent }).then(() => {}, () => {})
+  }, [])
   const date = fmtDate(RELEASE_DATE)
   const year = RELEASE_DATE?.slice(0, 4)
   return (

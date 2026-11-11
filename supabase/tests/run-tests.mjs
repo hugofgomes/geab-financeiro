@@ -393,6 +393,21 @@ await as(U.geabAdmin, async () => {
 await as(D, async () => { ok("diretoria não edita o rodapé", /Apenas/.test(await err(`select public.update_organization('X', null, null, null, null, 'hack')`) ?? "")) })
 ok("rodapé de outro grupo não é afetado", (await one(`select card_footer from public.organizations where slug='geab'`) ) === "GEAB - Grêmio Amigos da Bola")
 
+section("Log de acessos (0023)")
+await as(U.geabAdmin, async () => { await db.query(`select public.log_access('Mozilla iPhone')`); await db.query(`select public.log_access('Mozilla iPhone')`) }, true)
+await as(U.peladaAdmin, async () => { await db.query(`select public.log_access(null)`) }, true)
+await as(U.geabAdmin, async () => {
+  ok("admin comum não lê o log (tabela fechada)", (await one(`select count(*)::int from public.access_log`)) === 0)
+  ok("admin comum não usa sa_access_daily", /restrito/i.test(await err(`select * from public.sa_access_daily(7)`) ?? ""))
+  ok("admin comum não usa sa_access_day", /restrito/i.test(await err(`select * from public.sa_access_day(current_date)`) ?? ""))
+})
+await as(uid(600), async () => {
+  const d = await q(`select * from public.sa_access_daily(7)`)
+  ok("resumo diário: 2 pessoas em 2 grupos, 3 aberturas", d.length === 1 && d[0].users === 2 && d[0].orgs === 2 && d[0].hits === 3, JSON.stringify(d))
+  const r = await q(`select * from public.sa_access_day($1)`, [d[0].day])
+  ok("detalhe do dia lista as pessoas com grupo e aberturas", r.length === 2 && r.some((x) => x.hits === 2 && x.org_name), JSON.stringify(r))
+})
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

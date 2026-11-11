@@ -10,7 +10,7 @@ import { useRole } from "@/hooks/use-role"
 import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Bell, Building2, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Activity, Bell, Building2, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -38,8 +38,8 @@ const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
 const PLATFORM = { href: "/super", label: "Painel do SaaS", icon: Crown }
-const SAAS_LINKS = [{ href: "/site", label: "Site comercial", icon: Globe }, { href: "/demo", label: "Demonstração", icon: Play }]
-const titleOf = (path: string) => [...NAV, ...ADMIN, PLATFORM, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
+const SAAS_LINKS = [{ href: "/super/acessos", label: "Log de acessos", icon: Activity }, { href: "/site", label: "Site comercial", icon: Globe }, { href: "/demo", label: "Demonstração", icon: Play }]
+const titleOf = (path: string) => [...NAV, ...ADMIN, ...SAAS_LINKS, PLATFORM, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
 
