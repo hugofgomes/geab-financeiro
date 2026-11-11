@@ -2,6 +2,20 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.5.0",
+      "date": "2026-11-11",
+      "title": "Teste de 10 dias e assinatura",
+      "novidades": [
+        "Grupos novos têm 10 dias de teste grátis (até 30 jogadores). Terminado o prazo, o acesso é bloqueado com aviso e nenhum dado é apagado.",
+        "Tela Assinatura para o administrador contratar o plano Básico (R$ 99/mês) ou Pro (R$ 150/mês) pelo Asaas, com Pix, boleto ou cartão.",
+        "Pagamento confirmado libera o grupo automaticamente; mensalidade em atraso suspende o acesso."
+      ],
+      "melhorias": [
+        "Aviso com os dias restantes do teste no topo do sistema."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.4.0",
       "date": "2026-11-11",
       "title": "Log de acessos diários",
