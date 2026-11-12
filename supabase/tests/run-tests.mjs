@@ -71,10 +71,14 @@ for (const f of files.filter((f) => f >= "0017")) await db.query(fs.readFileSync
 for (const t of Object.keys(before)) {
   const n = await one(`select count(*)::int from public.${t}`)
   const orphan = await one(`select count(*)::int from public.${t} where tenant_id is distinct from $1`, [geab])
-  ok(`${t}: ${before[t]} linhas preservadas, todas na organização geab`, n === before[t] && orphan === 0, `n=${n} orfas=${orphan}`)
+  // A migration 0024 renomeia a equipe nos jogos existentes e a auditoria registra uma linha por jogo alterado.
+  const extra = t === "audit_log" ? await one(`select count(*)::int from public.audit_log where entity = 'matches' and action = 'UPDATE'`) : 0
+  ok(`${t}: ${before[t]} linhas preservadas, todas na organização geab`, n === before[t] + extra && orphan === 0, `n=${n} orfas=${orphan} extra=${extra}`)
 }
 
 // Transição: com uma única organização, o servidor ainda grava sem informar o tenant.
+ok("0024: jogos existentes passam de Equipe Branca para Equipe Branco", (await one(`select count(*)::int from public.matches where team_b = 'Equipe Branca'`)) === 0 && (await one(`select count(*)::int from public.matches where team_b = 'Equipe Branco'`)) >= 1)
+
 section("Transição (1 organização)")
 await as("service", async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Servidor',1)`)

@@ -22,7 +22,7 @@ const STATUS: Record<MatchStatus, string> = { agendado: "Agendado", em_andamento
 type Form = { date: string; time: string; a: string; b: string; sa: string; sb: string; status: MatchStatus }
 type Row = { athlete_id: string; goals: string }
 type Ath = { id: string; full_name: string; nickname: string | null }
-const blank = (): Form => ({ date: brToday(), time: "", a: "Equipe Azul", b: "Equipe Branca", sa: "", sb: "", status: "agendado" })
+const blank = (): Form => ({ date: brToday(), time: "", a: "Equipe Azul", b: "Equipe Branco", sa: "", sb: "", status: "agendado" })
 const label = (a: Ath) => a.nickname ? `${a.nickname} (${a.full_name})` : a.full_name
 
 function MatchDialog({ m, onClose, onSaved }: { m: Match | "novo" | null; onClose: () => void; onSaved: () => void }) {
