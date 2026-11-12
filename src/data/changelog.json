@@ -2,6 +2,20 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.6.0",
+      "date": "2026-11-12",
+      "title": "Nova Área do Atleta",
+      "novidades": [
+        "Área do Atleta redesenhada como central do atleta: próximo jogo com contagem de dias, mensalidade com pagamento por Pix, desempenho, último jogo, artilharia com a sua posição em destaque e aniversariantes.",
+        "Abas Visão geral, Jogos, Financeiro e Perfil (menu inferior no celular), com histórico dos seus jogos e gols e histórico de pagamentos.",
+        "Edição de dados pessoais, contatos e senha em janelas próprias, com medidor de força da senha e botão para mostrar ou ocultar."
+      ],
+      "melhorias": [
+        "Avisos no sino do topo: mensalidade a vencer ou vencida, jogo próximo e aniversários do dia."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.5.5",
       "date": "2026-11-11",
       "title": "Telas do celular no site de vendas",
