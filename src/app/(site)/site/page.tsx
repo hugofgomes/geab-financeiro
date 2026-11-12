@@ -2,6 +2,7 @@ import { Benefit, CircleDollarSign, DashboardScreen, Float, FinanceScreen, Lapto
 import { Reveal } from "@/components/site/reveal"
 import { ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 
 export const metadata: Metadata = {
@@ -28,6 +29,13 @@ function Block({ id, tint, flip, title, text, items, cta, children }: { id: stri
     </section>
   )
 }
+
+const TELAS = [
+  { src: "/site/celular-painel.png", w: 660, h: 1240, title: "Painel", text: "Atletas ativos, recebimentos e o próximo jogo num só olhar." },
+  { src: "/site/celular-atletas.png", w: 656, h: 1242, title: "Atletas", text: "Todo o elenco com posição, número e gols." },
+  { src: "/site/celular-jogos.png", w: 650, h: 1238, title: "Jogos", text: "Calendário, confirmação de presença e escalação." },
+  { src: "/site/celular-caixa.png", w: 650, h: 1244, title: "Caixa", text: "Quem pagou, quem está pendente, com um toque para marcar pago." },
+]
 
 const PLANS = [
   { name: "Teste gratuito", price: "Grátis", note: "por 10 dias", athletes: "Até 30 jogadores", cta: "Criar meu grupo", hot: false },
@@ -66,7 +74,28 @@ export default function SitePage() {
           <Float icon={Users} title="Pendentes" value="3 atletas" className="bottom-2 left-0 sm:-left-2" delay={2} />
         </div>
       </Block>
-      <p className="mx-auto -mt-10 max-w-6xl px-5 pb-10 text-center text-xs text-slate-400">Imagens ilustrativas: nomes e valores são fictícios.</p>
+
+      <section id="celular" aria-labelledby="celular-t" className="scroll-mt-16 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl px-5">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <h2 id="celular-t" className={H2}>Seu grupo na palma da mão.</h2>
+            <p className="mt-5 text-lg text-slate-600">Funciona direto no navegador do celular, sem instalar nada. Confira as telas principais.</p>
+          </Reveal>
+          <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-8 lg:grid-cols-4">
+            {TELAS.map((t, i) => (
+              <li key={t.src}>
+                <Reveal delay={i * 90} className="flex flex-col items-center text-center">
+                  <Image src={t.src} width={t.w} height={t.h} sizes="(min-width: 1024px) 240px, 45vw" alt={`Tela ${t.title} do GEAB Futebol no celular (dados ilustrativos)`}
+                    className="h-auto w-full max-w-[15rem] drop-shadow-[0_24px_30px_rgba(23,54,93,.22)]" />
+                  <h3 className="mt-5 text-base font-semibold text-[#17365D]">{t.title}</h3>
+                  <p className="mt-1 max-w-[16rem] text-sm text-slate-600">{t.text}</p>
+                </Reveal>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      <p className="mx-auto max-w-6xl px-5 pb-10 text-center text-xs text-slate-400">Imagens ilustrativas: nomes e valores são fictícios.</p>
 
       <section id="planos" aria-labelledby="planos-t" className="scroll-mt-16 bg-gradient-to-b from-[#F3F8FE] to-white py-20 sm:py-28">
         <div className="mx-auto max-w-6xl px-5">

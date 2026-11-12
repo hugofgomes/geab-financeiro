@@ -2,6 +2,16 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.5.5",
+      "date": "2026-11-11",
+      "title": "Telas do celular no site de vendas",
+      "novidades": [
+        "Site comercial com a seção Seu grupo na palma da mão, mostrando as telas Painel, Atletas, Jogos e Caixa no celular."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "version": "1.5.4",
       "date": "2026-11-11",
       "title": "Nome da equipe Branco",
