@@ -1,3 +1,4 @@
+import { AthleteShowcase } from "@/components/site/athlete-showcase"
 import { Benefit, CircleDollarSign, DashboardScreen, Float, FinanceScreen, Laptop, LineupCardPhone, LineupScreen, Phone, Trophy, Users } from "@/components/site/mockups"
 import { Reveal } from "@/components/site/reveal"
 import { ArrowRight } from "lucide-react"
@@ -73,6 +74,11 @@ export default function SitePage() {
           <Float icon={CircleDollarSign} title="Recebido no mês" value="R$ 1.270" className="top-0 right-0 sm:-right-2" />
           <Float icon={Users} title="Pendentes" value="3 atletas" className="bottom-2 left-0 sm:-left-2" delay={2} />
         </div>
+      </Block>
+
+      <Block id="atleta" title="Uma central para cada atleta." text="Cada jogador acompanha o próximo jogo, a mensalidade, os gols e a artilharia no celular, sem depender de mensagem no grupo."
+        items={["Próximo jogo e último resultado", "Mensalidade com pagamento por Pix", "Gols e posição na artilharia", "Histórico de jogos e de pagamentos", "Perfil e senha sob controle do atleta"]}>
+        <AthleteShowcase />
       </Block>
 
       <section id="celular" aria-labelledby="celular-t" className="scroll-mt-16 py-16 sm:py-24">

@@ -2,6 +2,16 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.6.1",
+      "date": "2026-11-12",
+      "title": "Área do atleta no site de vendas",
+      "novidades": [
+        "Site comercial com a seção Uma central para cada atleta, com as telas Visão geral, Jogos, Financeiro e Perfil da nova Área do Atleta (dados fictícios)."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "version": "1.6.0",
       "date": "2026-11-12",
       "title": "Nova Área do Atleta",
