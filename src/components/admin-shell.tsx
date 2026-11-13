@@ -135,6 +135,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { role } = useRole()
   const readOnly = role !== "admin"      // Diretoria (e enquanto o nível carrega): sem controles de edição
   const [isPlatform, setIsPlatform] = React.useState(false)
+  const [mods, setMods] = React.useState<string[] | null>(null)   // módulos do plano (nulo = ainda carregando: mostra tudo)
+  React.useEffect(() => { supabase().rpc("my_modules").then((r) => setMods(Array.isArray(r.data) ? (r.data as string[]) : null), () => {}) }, [])
   React.useEffect(() => { supabase().rpc("is_platform_admin").then((r) => setIsPlatform(r.data === true), () => {}) }, [])
   const [open, setOpen] = React.useState(false)
   const [collapsed, setCollapsed] = React.useState(false)
@@ -203,11 +205,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <nav className={cn("flex-1 space-y-6 overflow-y-auto px-3 py-5", collapsed && "lg:space-y-3")} aria-label="Principal">
           <div className="space-y-1">
             <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>Gestão</p>
-            {NAV.filter((n) => role === "admin" || !isAdminOnlyPath(n.href)).map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
+            {NAV.filter((n) => (role === "admin" || !isAdminOnlyPath(n.href)) && (!mods || !((n.href === "/ao-vivo" && !mods.includes("ao_vivo"))))).map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
           </div>
           <div className="space-y-1">
             <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>{role === "admin" ? "Administração" : "Conta"}</p>
-            {role === "admin" && ADMIN.map((n) => <SideLink key={n.href} {...n} path={path} />)}
+            {role === "admin" && ADMIN.filter((n) => !mods || n.href !== "/importar" || mods.includes("importar")).map((n) => <SideLink key={n.href} {...n} path={path} />)}
             <SideLink {...ACCOUNT} path={path} />
           </div>
           {role === "admin" && isPlatform && (

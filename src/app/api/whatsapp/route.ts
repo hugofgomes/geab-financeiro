@@ -1,4 +1,4 @@
-import { adminClient, isOwnerOrg } from "@/lib/server-auth"
+import { adminClient, isOwnerOrg, MODULE_OFF, moduleEnabled } from "@/lib/server-auth"
 import { sendPaymentConfirmations, whatsappConfigured } from "@/lib/whatsapp-send"
 import { NextResponse } from "next/server"
 
@@ -8,6 +8,7 @@ export const maxDuration = 60
 export async function GET() {
   const sb = await adminClient()
   if (!sb) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
+  if (!(await moduleEnabled(sb, "mensagens"))) return NextResponse.json(MODULE_OFF, { status: 403 })
   return NextResponse.json({ configured: whatsappConfigured() && (await isOwnerOrg(sb)) })
 }
 
@@ -15,6 +16,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const sb = await adminClient()
   if (!sb) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
+  if (!(await moduleEnabled(sb, "mensagens"))) return NextResponse.json(MODULE_OFF, { status: 403 })
   if (!whatsappConfigured() || !(await isOwnerOrg(sb))) return NextResponse.json({ error: "WhatsApp automático não configurado neste servidor." }, { status: 503 })
   const body = (await req.json().catch(() => ({}))) as { charge_ids?: unknown }
   const ids = Array.isArray(body.charge_ids) ? [...new Set(body.charge_ids.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)))] : []

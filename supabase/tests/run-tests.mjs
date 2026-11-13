@@ -514,6 +514,39 @@ section("Painel do SaaS: suspensão, exclusão e exclusão definitiva (0027)")
   ok("exclusão definitiva fica registrada", (await one(`select count(*)::int from public.platform_purges where slug='time-x'`)) === 1)
 }
 
+section("Planos, módulos e limites (0028)")
+{
+  const errq = async (sql) => { try { await q(sql); return null } catch (e) { return e.message } }
+  const A = { org: uid(970), a1: uid(971), a2: uid(972) }
+  await q(`insert into auth.users (id, email) values ($1,'p1@x'), ($2,'p2@x')`, [A.a1, A.a2])
+  await q(`insert into public.plans (code, name, price_cents, max_athletes, max_admins, modules, trial_days) values ('um_admin','Um admin',1000,10,1,array['pix'],5)`)
+  await q(`insert into public.organizations (id, slug, name, status, plan_id) values ($1,'lim-adm','Lim Adm','ativa',(select id from public.plans where code='um_admin'))`, [A.org])
+  await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'A1','admin')`, [A.org, A.a1])
+  ok("segundo administrador acima do limite do plano é barrado", /Limite de 1 administrador/.test(await errq(`insert into public.profiles (tenant_id, id, full_name, role) values ('${A.org}','${A.a2}','A2','admin')`) ?? ""))
+  ok("diretoria não conta no limite de administradores", (await errq(`insert into public.profiles (tenant_id, id, full_name, role) values ('${A.org}','${A.a2}','A2','diretoria')`)) === null)
+  ok("promover a administrador acima do limite é barrado", /Limite/.test(await errq(`update public.profiles set role='admin' where id='${A.a2}'`) ?? ""))
+  await q(`update public.plans set max_admins = null where code='um_admin'`)
+  ok("sem limite, promover funciona", (await errq(`update public.profiles set role='admin' where id='${A.a2}'`)) === null)
+  await as(A.a1, async () => { ok("my_modules devolve os módulos do plano do grupo", (await one(`select public.my_modules()`)).join() === "pix") })
+  await as(U.geabAdmin, async () => {
+    ok("GEAB mantém todos os módulos", (await one(`select public.my_modules()`)).length === 4)
+    ok("admin comum não lê sa_plans", /restrito/i.test(await err(`select * from public.sa_plans()`) ?? ""))
+  })
+  await as(uid(600), async () => {
+    const pr = (await q(`select * from public.sa_plans()`)).find((x) => x.code === "premium")
+    ok("Premium existe inativo e sem preço (para o dono configurar)", pr && pr.active === false && pr.price_cents === 0, JSON.stringify(pr))
+    ok("módulo inexistente é recusado", /Módulo inválido|violates/.test(await err(`select public.sa_upsert_plan('x1','X',100,5,true,1,array['inexistente'],5,null)`) ?? ""))
+    await db.query(`select public.sa_upsert_plan('pro', 'Profissional', 15000, 200, true, 3, array['importar','pix'], 14, 'asaas-pro')`)
+    const p = (await q(`select * from public.sa_plans()`)).find((x) => x.code === "pro")
+    ok("plano salvo com limite de admins, módulos, teste e referência", p.max_admins === 3 && p.modules.join() === "importar,pix" && p.trial_days === 14 && p.gateway_ref === "asaas-pro", JSON.stringify(p))
+  }, true)
+  await q(`update public.plans set trial_days = 7 where code = 'teste'`)
+  await q(`insert into public.organizations (id, slug, name, status) values ('${uid(973)}','novo-t','Novo T','teste')`)
+  ok("duração do teste vem do plano", (await one(`select round(extract(epoch from (trial_ends_at - now())) / 86400)::int from public.organizations where id=$1`, [uid(973)])) === 7)
+  await q(`update public.plans set trial_days = 10 where code = 'teste'`)
+  ok("preço do plano à venda continua R$ 150 e o nome mudou", (await one(`select price_cents from public.plans where code='pro'`)) === 15000)
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

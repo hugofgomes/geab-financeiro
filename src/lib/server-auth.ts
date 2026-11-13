@@ -34,3 +34,10 @@ export async function sessionUser() {
   const { data: { user } } = await sb.auth.getUser()
   return user
 }
+
+/** O plano do grupo inclui este módulo? (a regra é do banco: my_modules vem do plano da organização do usuário) */
+export async function moduleEnabled(sb: NonNullable<Awaited<ReturnType<typeof adminClient>>>, mod: "importar" | "ao_vivo" | "pix" | "mensagens") {
+  const { data } = await sb.rpc("my_modules")
+  return Array.isArray(data) && data.includes(mod)
+}
+export const MODULE_OFF = { error: "Este recurso não está incluído no plano do grupo. Fale com o suporte." }

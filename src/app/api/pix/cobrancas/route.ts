@@ -1,7 +1,7 @@
 import { btgConfigured, btgStatus, createBtgCollection } from "@/lib/btg"
 import { createPixCharge, openpixConfigured } from "@/lib/openpix"
 import { formatCompetence } from "@/lib/format"
-import { adminClient, isOwnerOrg } from "@/lib/server-auth"
+import { adminClient, isOwnerOrg, MODULE_OFF, moduleEnabled } from "@/lib/server-auth"
 import { NextResponse } from "next/server"
 
 export const maxDuration = 60
@@ -13,6 +13,7 @@ const provider = () => (btgConfigured() ? "btg" : openpixConfigured() ? "openpix
 export async function GET() {
   const sb = await adminClient()
   if (!sb) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
+  if (!(await moduleEnabled(sb, "pix"))) return NextResponse.json(MODULE_OFF, { status: 403 })
   // Credenciais globais do servidor pertencem a um único grupo: os demais usam o Pix manual por enquanto.
   const p = (await isOwnerOrg(sb)) ? provider() : null
   // Só os NOMES das variáveis que faltam (nunca valores), para a tela dizer o que fazer.
@@ -26,6 +27,7 @@ type Result = { charge_id: string; status: "criada" | "existente" | "ignorada" |
 export async function POST(req: Request) {
   const sb = await adminClient()
   if (!sb) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
+  if (!(await moduleEnabled(sb, "pix"))) return NextResponse.json(MODULE_OFF, { status: 403 })
   const prov = (await isOwnerOrg(sb)) ? provider() : null
   if (!prov) return NextResponse.json({ error: "Pix automático não configurado para este grupo." }, { status: 503 })
   if (prov === "btg" && !(await btgStatus()).connected) return NextResponse.json({ error: "Conecte o BTG primeiro (botão “Conectar BTG”)." }, { status: 409 })

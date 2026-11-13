@@ -2,6 +2,21 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.10.0",
+      "date": "2026-11-13",
+      "title": "Planos, módulos e limites",
+      "novidades": [
+        "Planos editáveis pelo dono da plataforma: nome, preço, limite de atletas, limite de administradores, duração do teste e módulos incluídos.",
+        "Módulos por plano (importar planilha, gols ao vivo, Pix automático, WhatsApp e e-mail): módulo desligado some do menu e é bloqueado no servidor.",
+        "Plano Premium criado (inativo e sem preço, para o dono definir) e plano Pro renomeado para Profissional, mantendo os preços atuais.",
+        "Campo de referência do plano no gateway de pagamento, como preparação para integração futura."
+      ],
+      "melhorias": [
+        "A duração do teste gratuito de novos grupos passa a vir do plano de teste (padrão 10 dias)."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.9.0",
       "date": "2026-11-13",
       "title": "Suspensão e exclusão segura de clientes",

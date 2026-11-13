@@ -32,7 +32,8 @@ type Dash = {
   overdue: number; trials_expired: number; new_month: number; cancelled_month: number; inactive_30d: number
   growth: { month: string; novos: number; total: number }[]; mrr: { month: string; mrr_cents: number; ativas: number }[]
 }
-type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; active: boolean; sort_order: number; orgs: number }
+type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; active: boolean; sort_order: number; orgs: number; max_admins: number | null; modules: string[]; trial_days: number; gateway_ref: string | null }
+const MODULES: [string, string][] = [["importar", "Importar planilha"], ["ao_vivo", "Gols ao vivo"], ["pix", "Pix automático"], ["mensagens", "WhatsApp e e-mail"]]
 type Data = { overview: Overview; orgs: Org[]; plans: Plan[]; dash: Dash }
 
 const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada", excluida: "Excluída" }
@@ -365,35 +366,52 @@ export default function SuperPage() {
 
       <Card><CardContent className="space-y-3 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Planos</h2>
-        <p className="text-xs text-muted-foreground">Os valores iniciais são exemplos: ajuste preço e limite de atletas. Limite vazio = ilimitado. Plano desativado some das escolhas, mas os grupos que já o usam continuam nele.</p>
+        <p className="text-xs text-muted-foreground">Limite vazio = ilimitado. Plano desativado some das escolhas de assinatura, mas os grupos que já o usam continuam nele (o Premium nasce inativo e sem preço: defina o valor e ative). Módulos desligados bloqueiam o recurso no servidor e somem do menu. A duração do teste vale para novos grupos. A referência do gateway é só um campo de preparação: a cobrança atual usa o preço do plano no Asaas.</p>
         <div className="space-y-2">
-          {plans.map((p) => <PlanRow key={p.code} p={p} busy={busy} onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: p.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active }), "Plano salvo.")} />)}
-          <PlanRow key="novo" p={{ code: "", name: "", price_cents: 0, max_athletes: null, active: true, sort_order: 0, orgs: 0 }} busy={busy} isNew onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: v.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active }), "Plano criado.")} />
+          {plans.map((p) => <PlanRow key={p.code} p={p} busy={busy} onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: p.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway }), "Plano salvo.")} />)}
+          <PlanRow key="novo" p={{ code: "", name: "", price_cents: 0, max_athletes: null, active: true, sort_order: 0, orgs: 0, max_admins: null, modules: MODULES.map(([k]) => k), trial_days: 10, gateway_ref: null }} busy={busy} isNew onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: v.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway }), "Plano criado.")} />
         </div>
       </CardContent></Card>
     </>
   )
 }
 
-function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: boolean; onSave: (v: { code: string; name: string; price: number; max: number | null; active: boolean }) => void }) {
-  const [v, setV] = React.useState({ code: p.code, name: p.name, price: (p.price_cents / 100).toFixed(2), max: p.max_athletes == null ? "" : String(p.max_athletes), active: p.active })
+function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: boolean; onSave: (v: { code: string; name: string; price: number; max: number | null; active: boolean; admins: number | null; modules: string[]; trial: number; gateway: string }) => void }) {
+  const [v, setV] = React.useState({ code: p.code, name: p.name, price: (p.price_cents / 100).toFixed(2), max: p.max_athletes == null ? "" : String(p.max_athletes), admins: p.max_admins == null ? "" : String(p.max_admins),
+    trial: String(p.trial_days), gateway: p.gateway_ref ?? "", active: p.active, modules: p.modules })
   const save = () => {
     const price = Math.round(Number(v.price.replace(",", ".")) * 100)
     if (!Number.isFinite(price) || price < 0) return toast.error("Preço inválido.")
     const max = v.max.trim() === "" ? null : Number(v.max)
     if (max != null && (!Number.isInteger(max) || max < 1)) return toast.error("Limite de atletas inválido.")
+    const admins = v.admins.trim() === "" ? null : Number(v.admins)
+    if (admins != null && (!Number.isInteger(admins) || admins < 1)) return toast.error("Limite de administradores inválido.")
+    const trial = Number(v.trial)
+    if (!Number.isInteger(trial) || trial < 1 || trial > 90) return toast.error("Duração do teste: de 1 a 90 dias.")
     if (isNew && !/^[a-z0-9_]{2,30}$/.test(v.code)) return toast.error("Código: 2 a 30 letras minúsculas, números ou _.")
-    onSave({ code: v.code, name: v.name.trim(), price, max, active: v.active })
-    if (isNew) setV({ code: "", name: "", price: "0.00", max: "", active: true })
+    onSave({ code: v.code, name: v.name.trim(), price, max, active: v.active, admins, modules: v.modules, trial, gateway: v.gateway })
+    if (isNew) setV({ code: "", name: "", price: "0.00", max: "", admins: "", trial: "10", gateway: "", active: true, modules: MODULES.map(([k]) => k) })
   }
+  const toggle = (k: string) => setV((x) => ({ ...x, modules: x.modules.includes(k) ? x.modules.filter((m) => m !== k) : [...x.modules, k] }))
   return (
-    <div className="grid items-end gap-2 rounded-xl border p-3 2xl:grid-cols-[8rem_1fr_7rem_7rem_auto_auto] 2xl:rounded-none 2xl:border-0 2xl:p-0">
-      {isNew ? <Input aria-label="Código do novo plano" placeholder="código" value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} /> : <span className="text-xs text-muted-foreground">{p.code} · {p.orgs} grupo(s)</span>}
-      <label className="space-y-1 text-xs text-muted-foreground 2xl:space-y-0"><span className="2xl:sr-only">Nome do plano</span><Input aria-label="Nome do plano" placeholder="Nome" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></label>
-      <label className="space-y-1 text-xs text-muted-foreground 2xl:space-y-0"><span className="2xl:sr-only">Preço mensal (R$)</span><Input aria-label="Preço mensal (R$)" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} /></label>
-      <label className="space-y-1 text-xs text-muted-foreground 2xl:space-y-0"><span className="2xl:sr-only">Limite de atletas</span><Input aria-label="Limite de atletas" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} /></label>
-      <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={v.active} onChange={(e) => setV({ ...v, active: e.target.checked })} /> Ativo</label>
-      <Button size="sm" variant="outline" disabled={busy || !v.name.trim()} onClick={save}>{isNew ? "Criar" : "Salvar"}</Button>
+    <div className="space-y-3 rounded-xl border p-3">
+      <div className="grid items-end gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {isNew ? <label className="space-y-1 text-xs text-muted-foreground">Código<Input aria-label="Código do novo plano" placeholder="ex.: elite" value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} /></label>
+          : <div className="text-xs text-muted-foreground">{p.code} · {p.orgs} grupo(s)</div>}
+        <label className="space-y-1 text-xs text-muted-foreground">Nome<Input aria-label="Nome do plano" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Preço mensal (R$)<Input aria-label="Preço mensal (R$)" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Limite de atletas<Input aria-label="Limite de atletas" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Limite de administradores<Input aria-label="Limite de administradores" inputMode="numeric" placeholder="ilimitado" value={v.admins} onChange={(e) => setV({ ...v, admins: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Duração do teste (dias)<Input aria-label="Duração do teste em dias" inputMode="numeric" value={v.trial} onChange={(e) => setV({ ...v, trial: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2">Referência no gateway (opcional)<Input aria-label="Referência do plano no gateway" maxLength={100} value={v.gateway} onChange={(e) => setV({ ...v, gateway: e.target.value })} /></label>
+      </div>
+      <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <legend className="sr-only">Módulos do plano</legend>
+        <span className="text-muted-foreground">Módulos:</span>
+        {MODULES.map(([k, label]) => <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={v.modules.includes(k)} onChange={() => toggle(k)} /> {label}</label>)}
+        <label className="ml-auto flex items-center gap-1.5"><input type="checkbox" checked={v.active} onChange={(e) => setV({ ...v, active: e.target.checked })} /> Ativo (à venda)</label>
+        <Button size="sm" variant="outline" disabled={busy || !v.name.trim()} onClick={save}>{isNew ? "Criar" : "Salvar"}</Button>
+      </fieldset>
     </div>
   )
 }

@@ -13,12 +13,14 @@ async function requireAdmin() {
   const { data: { user } } = await sb.auth.getUser()
   if (!user) return false
   const { data: p } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()
-  return p?.role === "admin" && p.active === true
+  if (!(p?.role === "admin" && p.active === true)) return false
+  const { data: mods } = await sb.rpc("my_modules")
+  return Array.isArray(mods) && mods.includes("importar")
 }
 
 /** Lê uma planilha "publicada na web" do Google Sheets e devolve o CSV de cada aba. */
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Acesso restrito ao administrador." }, { status: 403 })
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Acesso restrito ao administrador ou recurso fora do plano do grupo." }, { status: 403 })
   const { url } = (await req.json().catch(() => ({}))) as { url?: string }
   let base: URL
   try {
