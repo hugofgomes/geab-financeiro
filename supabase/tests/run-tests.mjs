@@ -547,6 +547,47 @@ section("Planos, módulos e limites (0028)")
   ok("preço do plano à venda continua R$ 150 e o nome mudou", (await one(`select price_cents from public.plans where code='pro'`)) === 15000)
 }
 
+section("Modo espião: suporte somente leitura (0029)")
+{
+  const S = { own: uid(980), boss: uid(981), tgt: uid(982), tAdm: uid(983), ath: uid(984), ch: uid(985) }
+  const errq = async (sql) => { try { await q(sql); return null } catch (e) { return e.message } }
+  await q(`insert into auth.users (id, email) values ($1,'boss@x'), ($2,'talvo@x')`, [S.boss, S.tAdm])
+  await q(`insert into public.organizations (id, slug, name, status, plan_id) values ($1,'dono-esp','Dono Esp','ativa',(select id from public.plans where code='ilimitado')), ($2,'alvo-esp','Alvo Esp','teste',(select id from public.plans where code='teste'))`, [S.own, S.tgt])
+  await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Dono','admin'), ($3,$4,'Adm Alvo','admin')`, [S.own, S.boss, S.tgt, S.tAdm])
+  await q(`insert into public.platform_admins (user_id) values ($1)`, [S.boss])
+  await q(`insert into public.athletes (id, tenant_id, full_name) values ($1,$2,'Atleta Alvo')`, [S.ath, S.tgt])
+  await q(`insert into public.charges (id, tenant_id, athlete_id, competence, due_date, amount) values ($1,$2,$3,'2026-11-01','2026-11-10',100)`, [S.ch, S.tgt, S.ath])
+  await as(S.tAdm, async () => { ok("admin comum não inicia modo espião", /restrito/i.test(await err(`select public.sa_support_start('${S.own}','teste',30)`) ?? "")) })
+  await as(S.boss, async () => {
+    ok("sem sessão, o dono não vê dados do cliente", (await one(`select count(*)::int from public.athletes where full_name = 'Atleta Alvo'`)) === 0)
+    ok("motivo é obrigatório", /motivo/i.test(await err(`select public.sa_support_start('${S.tgt}','',30)`) ?? ""))
+    ok("não entra no próprio grupo", /próprio/i.test(await err(`select public.sa_support_start('${S.own}','suporte',30)`) ?? ""))
+    ok("duração fora do limite é recusada", /Duração/.test(await err(`select public.sa_support_start('${S.tgt}','suporte',999)`) ?? ""))
+    await db.query(`select public.sa_support_start($1,'cliente pediu ajuda',30)`, [S.tgt])
+  }, true)
+  await as(S.boss, async () => {
+    ok("em modo espião, o dono vê os dados do cliente", (await one(`select count(*)::int from public.athletes where full_name = 'Atleta Alvo'`)) === 1 && (await one(`select count(*)::int from public.charges`)) === 1)
+    ok("em modo espião, não vê dados do próprio grupo nem de outros", (await one(`select count(*)::int from public.athletes where full_name <> 'Atleta Alvo'`)) === 0)
+    ok("banner: my_support_session informa o grupo", (await one(`select org_name from public.my_support_session()`)) === "Alvo Esp")
+    ok("insert é bloqueado", /somente leitura/.test(await err(`insert into public.athletes (tenant_id, full_name) values ('${S.tgt}','Novo')`) ?? ""))
+    ok("update é bloqueado", /somente leitura/.test(await err(`update public.athletes set full_name='X' where id='${S.ath}'`) ?? ""))
+    ok("delete é bloqueado", /somente leitura/.test(await err(`delete from public.charges where id='${S.ch}'`) ?? ""))
+    ok("função de escrita do admin também é bloqueada", /somente leitura|restrito|Apenas/i.test(await err(`select public.update_my_profile('Outro Nome', 'x')`) ?? "x"))
+  })
+  ok("os dados do cliente continuam intactos", (await one(`select full_name from public.athletes where id=$1`, [S.ath])) === "Atleta Alvo" && (await one(`select count(*)::int from public.charges where tenant_id=$1`, [S.tgt])) === 1)
+  ok("acesso de suporte aparece na auditoria do cliente", (await one(`select count(*)::int from public.audit_log where action='SA_SPY_START' and tenant_id=$1`, [S.tgt])) === 1)
+  await as(S.tAdm, async () => { ok("o próprio cliente não é afetado e não vê sessão", (await one(`select count(*)::int from public.athletes`)) === 1 && (await q(`select * from public.my_support_session()`)).length === 0) })
+  await as(S.boss, async () => { await db.query(`select public.sa_support_stop()`) }, true)
+  await as(S.boss, async () => {
+    ok("ao sair, volta a ver só o próprio grupo", (await one(`select count(*)::int from public.athletes where full_name = 'Atleta Alvo'`)) === 0)
+    ok("ao sair, escrita volta ao normal", (await err(`insert into public.athletes (tenant_id, full_name) values ('${S.own}','Meu atleta')`)) === null)
+  })
+  ok("saída registrada na auditoria do cliente", (await one(`select count(*)::int from public.audit_log where action='SA_SPY_END' and tenant_id=$1`, [S.tgt])) === 1)
+  await q(`insert into public.support_sessions (user_id, org_id, expires_at) values ($1,$2, now() - interval '1 minute')`, [S.boss, S.tgt])
+  await as(S.boss, async () => { ok("sessão expirada não dá acesso", (await one(`select count(*)::int from public.athletes where full_name = 'Atleta Alvo'`)) === 0) })
+  await q(`delete from public.support_sessions`)
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

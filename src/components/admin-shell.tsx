@@ -3,6 +3,7 @@
 import { Menu } from "@base-ui/react/menu"
 import { AppFooter } from "@/components/app-footer"
 import { BirthdayCard } from "@/components/birthday-card"
+import { SpyBanner } from "@/components/spy-banner"
 import { SidePanel } from "@/components/side-panel"
 import { TrialBanner } from "@/components/trial-banner"
 import { isBirthday, markSeen, seenToday } from "@/lib/birthday"
@@ -255,6 +256,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
         <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
           <main className="min-w-0 flex-1 space-y-6" data-readonly={readOnly ? "" : undefined}>
+            <SpyBanner />
             {role === "admin" && <TrialBanner />}
             {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
             {children}

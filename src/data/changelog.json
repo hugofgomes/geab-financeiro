@@ -2,6 +2,18 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.11.0",
+      "date": "2026-11-13",
+      "title": "Modo espião para suporte",
+      "novidades": [
+        "Modo espião: o dono da plataforma abre o painel de qualquer cliente, como o administrador dele, somente leitura, com motivo obrigatório e duração limitada (até 4 horas).",
+        "Faixa fixa Modo espião com botão para sair; nenhuma alteração é possível durante o acesso, nem por rotas do servidor.",
+        "Início e fim de cada acesso de suporte ficam no histórico do cliente, e o cadastro de novo grupo informa que a equipe pode acessar a conta para suporte."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "version": "1.10.0",
       "date": "2026-11-13",
       "title": "Planos, módulos e limites",

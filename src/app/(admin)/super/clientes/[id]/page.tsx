@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLoad } from "@/hooks/use-load"
 import { formatBRL } from "@/lib/format"
 import { supabase } from "@/lib/supabase/client"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import * as React from "react"
@@ -37,7 +37,7 @@ const ROLE: Record<string, string> = { admin: "Administrador", diretoria: "Diret
 const ACTION: Record<string, string> = {
   SA_SET_STATUS: "Situação alterada", SA_SET_PLAN: "Plano alterado", SA_EXTEND_TRIAL: "Teste estendido", SA_CREATE_ORG: "Grupo criado",
   SA_ASSIGN_ADMIN: "Administrador vinculado", SA_SET_CONTACT: "Contato do responsável alterado", SA_UPDATE_ORG: "Cadastro/identidade alterados",
-  SA_DELETE_ORG: "Cliente excluído (recuperável)", SA_RESTORE_ORG: "Cliente restaurado", SA_EXPORT_ORG: "Dados exportados",
+  SA_DELETE_ORG: "Cliente excluído (recuperável)", SA_RESTORE_ORG: "Cliente restaurado", SA_EXPORT_ORG: "Dados exportados", SA_SPY_START: "Acesso de suporte (modo espião) iniciado", SA_SPY_END: "Acesso de suporte encerrado",
 }
 const dt = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "—")
 const dtm = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
@@ -121,6 +121,35 @@ function DeleteDialog({ org, mode, onClose, onDone }: { org: Detail["org"]; mode
   )
 }
 
+/** Entrada no modo espião: exige o motivo (fica no histórico do cliente) e dura no máximo 4 horas. */
+function SpyDialog({ org, open, onClose }: { org: Detail["org"]; open: boolean; onClose: () => void }) {
+  const [reason, setReason] = React.useState("")
+  const [minutes, setMinutes] = React.useState("60")
+  const [busy, setBusy] = React.useState(false)
+  React.useEffect(() => { if (open) { setReason(""); setMinutes("60") } }, [open])
+  async function go(e: React.FormEvent) {
+    e.preventDefault(); setBusy(true)
+    const { error } = await supabase().rpc("sa_support_start", { p_org: org.id, p_reason: reason, p_minutes: Number(minutes) })
+    if (error) { setBusy(false); return toast.error(error.message) }
+    window.location.href = "/"
+  }
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Modo espião — {org.name}</DialogTitle>
+          <DialogDescription>Você verá o painel do grupo como o administrador dele, somente leitura. O acesso fica registrado no histórico do cliente.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={go} className="grid gap-3">
+          <div className="space-y-1.5"><Label htmlFor="s-r">Motivo do acesso</Label><Input id="s-r" required minLength={3} maxLength={200} placeholder="Ex.: cliente pediu ajuda com mensalidades" value={reason} onChange={(e) => setReason(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label htmlFor="s-m">Duração (minutos, 5 a 240)</Label><Input id="s-m" type="number" min={5} max={240} value={minutes} onChange={(e) => setMinutes(e.target.value)} required /></div>
+          <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={busy || reason.trim().length < 3}><Eye /> Entrar</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function ClientePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -130,6 +159,7 @@ export default function ClientePage() {
     return r.data as Detail
   }, [id])
   const [busy, setBusy] = React.useState(false)
+  const [spy, setSpy] = React.useState(false)
   const [del, setDel] = React.useState<"soft" | "purge" | null>(null)
   const [f, setF] = React.useState({ name: "", website: "", tagline: "", color: "", logo: "", footer: "" })
   const [c, setC] = React.useState({ name: "", email: "", phone: "" })
@@ -172,6 +202,7 @@ export default function ClientePage() {
             {deleted && <p className="text-sm text-red-800">Excluído em {dtm(o.deleted_at ?? o.created_at)}{o.deleted_by ? ` por ${o.deleted_by}` : ""}. Recuperável até {dt(o.purge_after)}; a exclusão definitiva só é liberada depois dessa data.</p>}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setSpy(true)}><Eye /> Modo espião</Button>
             {deleted ? <>
               <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_restore_org", { p_org: o.id }), "Cliente restaurado.")}>Restaurar cliente</Button>
               <Button variant="destructive" disabled={!canPurge} title={canPurge ? undefined : `Disponível após ${dt(o.purge_after)}`} onClick={() => setDel("purge")}>Excluir definitivamente</Button>
@@ -186,6 +217,7 @@ export default function ClientePage() {
         </div>
       </div>
 
+      <SpyDialog org={o} open={spy} onClose={() => setSpy(false)} />
       <DeleteDialog org={o} mode={del} onClose={() => setDel(null)} onDone={(purged) => { setDel(null); if (purged) router.push("/super"); else reload() }} />
       <Tabs defaultValue="geral">
         <TabsList className="h-auto flex-wrap">

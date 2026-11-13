@@ -21,7 +21,10 @@ export async function adminClient() {
   const { data: { user } } = await sb.auth.getUser()
   if (!user) return null
   const { data: p } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()
-  return p?.role === "admin" && p.active === true ? sb : null
+  if (!(p?.role === "admin" && p.active === true)) return null
+  // Modo espião é somente leitura: as rotas que agem com a conta do administrador ficam fechadas enquanto ele estiver ativo.
+  const { data: spy } = await sb.rpc("my_support_session")
+  return Array.isArray(spy) && spy.length ? null : sb
 }
 
 /** Usuário logado (qualquer nível), sem checar perfil: serve à assinatura, que precisa funcionar com o grupo bloqueado. */

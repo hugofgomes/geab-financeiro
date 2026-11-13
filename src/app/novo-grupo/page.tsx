@@ -103,6 +103,7 @@ export default function NewGroupPage() {
             </label>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Criar grupo</Button>
+            <p className="text-center text-xs text-muted-foreground">Ao criar o grupo, você concorda que a equipe da plataforma possa acessar a conta, somente para leitura e com registro de cada acesso, para dar suporte.</p>
             <p className="text-center text-sm text-muted-foreground">Já tem conta? <Link href="/login" className="underline">Entrar</Link></p>
           </form>
         )}
