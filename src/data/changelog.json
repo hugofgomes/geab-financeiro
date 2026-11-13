@@ -2,6 +2,16 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.11.1",
+      "date": "2026-11-13",
+      "title": "Correção do modo espião",
+      "novidades": [],
+      "melhorias": [],
+      "correcoes": [
+        "Modo espião abria a tela de assinatura em vez do painel do cliente: o bloqueio automático agora reconhece a sessão de suporte."
+      ]
+    },
+    {
       "version": "1.11.0",
       "date": "2026-11-13",
       "title": "Modo espião para suporte",

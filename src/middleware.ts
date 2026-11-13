@@ -43,6 +43,8 @@ export async function middleware(req: NextRequest) {
     p = (await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle()).data as typeof p
     blocked = false
   }
+  // Modo espião: o banco mostra o grupo visitado no lugar do próprio, então a checagem acima não vale para o dono em sessão de suporte.
+  if (blocked && (await sb.rpc("my_support_session")).data?.length) blocked = false
   // Teste vencido, pagamento pendente ou grupo cancelado: só a tela de assinatura (e sua API) ficam acessíveis.
   if (blocked) return path === "/assinatura" || path.startsWith("/api/assinatura") ? res : go("/assinatura")
   // Usuário confirmado, mas ainda sem perfil liberado (pré-cadastro aguardando aprovação).
