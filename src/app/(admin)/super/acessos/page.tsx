@@ -49,6 +49,8 @@ export default function AccessLogPage() {
 
   const today = todayBR()
   // Linha do tempo completa do período (dias sem acesso aparecem zerados no gráfico).
+  // ao aparecer, o gráfico já rola até o dia mais recente (ref estável: não "pula" a cada atualização)
+  const barsRef = React.useCallback((el: HTMLDivElement | null) => { if (el) el.scrollLeft = el.scrollWidth }, [])
   const series = React.useMemo(() => {
     const map = new Map((resumo.data ?? []).map((d) => [d.day, d]))
     return Array.from({ length: days }, (_, i) => { const day = addDays(today, i - days + 1); return map.get(day) ?? { day, users: 0, orgs: 0, hits: 0 } })
@@ -104,17 +106,19 @@ export default function AccessLogPage() {
           <section aria-label="Pessoas por dia" className="rounded-xl border bg-card p-3.5 shadow-sm sm:p-4">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-medium">Pessoas por dia</h2>
-              <span className="text-[11px] text-muted-foreground">Toque numa barra para ver o dia</span>
+              <span className="text-[11px] text-muted-foreground">Toque numa barra · role para ver os dias</span>
             </div>
-            <div className="flex h-28 items-end gap-[3px] sm:h-32" role="group" aria-label="Dias do período">
+            <div ref={barsRef} className="-mx-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0">
+            <div className="flex h-28 min-w-max items-end gap-1 sm:h-32 sm:min-w-0 sm:gap-[3px]" role="group" aria-label="Dias do período">
               {series.map((s) => (
                 <button key={s.day} type="button" onClick={() => setSel(s.day)} aria-pressed={s.day === day}
                   aria-label={`${shortDay(s.day)}: ${s.users} ${s.users === 1 ? "pessoa" : "pessoas"}`} title={`${shortDay(s.day)} · ${s.users} ${s.users === 1 ? "pessoa" : "pessoas"}`}
-                  className="group flex h-full min-w-0 flex-1 flex-col justify-end outline-none">
+                  className="group flex h-full w-10 shrink-0 flex-col justify-end outline-none sm:w-auto sm:min-w-0 sm:flex-1">
                   <span className={cn("block w-full rounded-t transition-colors", s.day === day ? "bg-[#EF3028]" : s.users ? "bg-[#1E3A5F] group-hover:bg-[#2A5A8C]" : "bg-[#E2E8F0]")}
                     style={{ height: s.users ? `${Math.max(8, (s.users / maxUsers) * 100)}%` : "4px" }} />
                 </button>
               ))}
+            </div>
             </div>
             <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground"><span>{shortDay(series[0].day)}</span><span>{shortDay(today)}</span></div>
           </section>

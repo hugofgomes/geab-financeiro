@@ -191,7 +191,7 @@ export default function ClientePage() {
   return (
     <>
       <div className="space-y-2">
-        <Link href="/super" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Voltar aos clientes</Link>
+        <Link href="/super" className="inline-flex min-h-10 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Voltar aos clientes</Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight">{o.name}
@@ -201,17 +201,17 @@ export default function ClientePage() {
             {o.status === "suspensa" && o.suspended_at && <p className="text-xs text-muted-foreground">Suspenso em {dtm(o.suspended_at)}{o.suspended_by ? ` por ${o.suspended_by}` : ""}</p>}
             {deleted && <p className="text-sm text-red-800">Excluído em {dtm(o.deleted_at ?? o.created_at)}{o.deleted_by ? ` por ${o.deleted_by}` : ""}. Recuperável até {dt(o.purge_after)}; a exclusão definitiva só é liberada depois dessa data.</p>}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setSpy(true)}><Eye /> Modo espião</Button>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+            <Button variant="outline" className="h-11 sm:h-8" onClick={() => setSpy(true)}><Eye /> Modo espião</Button>
             {deleted ? <>
-              <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_restore_org", { p_org: o.id }), "Cliente restaurado.")}>Restaurar cliente</Button>
-              <Button variant="destructive" disabled={!canPurge} title={canPurge ? undefined : `Disponível após ${dt(o.purge_after)}`} onClick={() => setDel("purge")}>Excluir definitivamente</Button>
+              <Button className="h-11 sm:h-8" variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_restore_org", { p_org: o.id }), "Cliente restaurado.")}>Restaurar cliente</Button>
+              <Button className="h-11 sm:h-8" variant="destructive" disabled={!canPurge} title={canPurge ? undefined : `Disponível após ${dt(o.purge_after)}`} onClick={() => setDel("purge")}>Excluir definitivamente</Button>
             </> : <>
             {suspended
-              ? <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_set_org_status", { p_org: o.id, p_status: "ativa", p_reason: null }), "Cliente reativado.")}>Reativar</Button>
-              : <Button variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${o.name}”? O acesso é bloqueado na hora e os dados são preservados. Motivo:`); if (r !== null) run(() => db().rpc("sa_set_org_status", { p_org: o.id, p_status: "suspensa", p_reason: r }), "Cliente suspenso.") }}>Suspender acesso</Button>}
-            {o.status === "teste" && <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_extend_trial", { p_org: o.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias de teste</Button>}
-            <Button variant="destructive" onClick={() => setDel("soft")}>Excluir</Button>
+              ? <Button className="h-11 sm:h-8" variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_set_org_status", { p_org: o.id, p_status: "ativa", p_reason: null }), "Cliente reativado.")}>Reativar</Button>
+              : <Button className="h-11 sm:h-8" variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${o.name}”? O acesso é bloqueado na hora e os dados são preservados. Motivo:`); if (r !== null) run(() => db().rpc("sa_set_org_status", { p_org: o.id, p_status: "suspensa", p_reason: r }), "Cliente suspenso.") }}>Suspender acesso</Button>}
+            {o.status === "teste" && <Button className="h-11 sm:h-8" variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_extend_trial", { p_org: o.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias de teste</Button>}
+            <Button className="h-11 sm:h-8" variant="destructive" onClick={() => setDel("soft")}>Excluir</Button>
             </>}
           </div>
         </div>
@@ -220,12 +220,12 @@ export default function ClientePage() {
       <SpyDialog org={o} open={spy} onClose={() => setSpy(false)} />
       <DeleteDialog org={o} mode={del} onClose={() => setDel(null)} onDone={(purged) => { setDel(null); if (purged) router.push("/super"); else reload() }} />
       <Tabs defaultValue="geral">
-        <TabsList className="h-auto flex-wrap">
-          <TabsTrigger value="geral">Visão geral</TabsTrigger>
-          <TabsTrigger value="usuarios">Usuários e atletas</TabsTrigger>
-          <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
-          <TabsTrigger value="config">Configurações</TabsTrigger>
-          <TabsTrigger value="atividades">Atividades</TabsTrigger>
+        <TabsList className="h-12 w-full justify-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="geral" className="h-10 shrink-0 px-4">Visão geral</TabsTrigger>
+          <TabsTrigger value="usuarios" className="h-10 shrink-0 px-4">Usuários e atletas</TabsTrigger>
+          <TabsTrigger value="assinatura" className="h-10 shrink-0 px-4">Assinatura</TabsTrigger>
+          <TabsTrigger value="config" className="h-10 shrink-0 px-4">Configurações</TabsTrigger>
+          <TabsTrigger value="atividades" className="h-10 shrink-0 px-4">Atividades</TabsTrigger>
         </TabsList>
 
         <TabsContent value="geral" className="space-y-3">
@@ -234,7 +234,7 @@ export default function ClientePage() {
             <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Responsável">{o.contact_name}</Field>
               <Field label="E-mail">{o.contact_email}</Field>
-              <Field label="WhatsApp">{wa ? <a href={wa} target="_blank" rel="noreferrer" className="text-primary hover:underline">{o.contact_phone}</a> : o.contact_phone}</Field>
+              <Field label="WhatsApp">{wa ? <a href={wa} target="_blank" rel="noreferrer" className="inline-block py-2 text-primary hover:underline">{o.contact_phone}</a> : o.contact_phone}</Field>
               <Field label="Plano">{o.plan_name} · {formatBRL(o.plan_price_cents / 100)}/mês</Field>
               <Field label="Cadastro">{dt(o.created_at)}</Field>
               <Field label="Site">{o.website}</Field>

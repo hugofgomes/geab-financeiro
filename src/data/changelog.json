@@ -2,6 +2,18 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.11.2",
+      "date": "2026-11-13",
+      "title": "Painel do SaaS otimizado para celular",
+      "novidades": [],
+      "melhorias": [
+        "Painel do SaaS no celular: botões e links com área de toque maior, abas do cliente em linha rolável, ações do cliente em grade e filtros em largura total.",
+        "Planos recolhíveis com resumo (preço, limites e grupos) e campos em duas colunas, reduzindo a rolagem na edição de planos.",
+        "Log de acessos: gráfico de dias com barras tocáveis e rolagem horizontal até o dia mais recente."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.11.1",
       "date": "2026-11-13",
       "title": "Correção do modo espião",

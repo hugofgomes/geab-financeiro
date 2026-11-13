@@ -192,16 +192,16 @@ export default function SuperPage() {
       {label}{sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : ""}</button></TableHead>
   )
   const actions = (g: Org) => g.status === "excluida" ? (
-    <div className="flex justify-end max-2xl:justify-start"><Link href={`/super/clientes/${g.id}`} className="text-sm text-primary hover:underline">Recuperar ou excluir definitivamente</Link></div>
+    <div className="flex justify-end max-2xl:justify-start"><Link href={`/super/clientes/${g.id}`} className="inline-flex min-h-10 items-center text-sm text-primary hover:underline">Recuperar ou excluir definitivamente</Link></div>
   ) : (
-    <div className="flex flex-wrap justify-end gap-1.5 pr-2 max-2xl:justify-start max-2xl:pr-0">
+    <div className="flex flex-wrap justify-end gap-2 pr-2 max-2xl:justify-start max-2xl:pr-0">
                     {g.status === "suspensa" || g.status === "cancelada"
-                      ? <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")}>Reativar</Button>
-                      : <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }}>Suspender</Button>}
-                    {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias</Button>}
-                    {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")}>Ativar</Button>}
-                    <Button size="sm" variant="ghost" onClick={() => setEdit(g)}>Contato</Button>
-                    <Button size="sm" variant="ghost" disabled={busy} onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }}>Nota</Button>
+                      ? <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")}>Reativar</Button>
+                      : <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }}>Suspender</Button>}
+                    {g.status === "teste" && <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias</Button>}
+                    {g.status === "teste" && <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")}>Ativar</Button>}
+                    <Button size="sm" variant="ghost" className="max-2xl:h-10 max-2xl:px-4" onClick={() => setEdit(g)}>Contato</Button>
+                    <Button size="sm" variant="ghost" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }}>Nota</Button>
                   </div>
   )
   const maxMrr = Math.max(1, ...o.by_plan.map((x) => x.mrr_cents))
@@ -260,7 +260,7 @@ export default function SuperPage() {
           <option value="">Todos os planos</option>
           {plans.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
         </NativeSelect>
-        <Button size="sm" variant="outline" className="h-10 sm:h-8" disabled={!filtered.length} onClick={() => exportCsv(filtered)}><Download /> CSV</Button>
+        <Button size="sm" variant="outline" className="h-10 w-full sm:h-8 sm:w-auto" disabled={!filtered.length} onClick={() => exportCsv(filtered)}><Download /> CSV</Button>
       </div>
       <Card className="hidden overflow-x-auto py-0 2xl:block">
         <Table>
@@ -274,13 +274,13 @@ export default function SuperPage() {
               const wa = whats(g.contact_phone)
               return (
                 <TableRow key={g.id}>
-                  <TableCell className="pl-4"><Link href={`/super/clientes/${g.id}`} className="font-medium text-primary hover:underline">{g.name}</Link><div className="text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></TableCell>
+                  <TableCell className="pl-4"><Link href={`/super/clientes/${g.id}`} className="inline-block py-1 font-medium text-primary hover:underline">{g.name}</Link><div className="text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></TableCell>
                   <TableCell className="text-xs">
                     {g.contact_name || g.contact_email || g.contact_phone ? <>
                       <div className="font-medium">{g.contact_name ?? "—"}</div>
                       <div className="text-muted-foreground">{g.contact_email}</div>
                       {wa && <a href={wa} target="_blank" rel="noreferrer" className="text-primary hover:underline">{g.contact_phone}</a>}
-                    </> : <button type="button" className="text-primary hover:underline" onClick={() => setEdit(g)}>Adicionar contato</button>}
+                    </> : <button type="button" className="inline-flex min-h-8 items-center text-primary hover:underline" onClick={() => setEdit(g)}>Adicionar contato</button>}
                   </TableCell>
                   <TableCell>
                     <NativeSelect aria-label={`Plano de ${g.name}`} className="h-7 text-xs" value={g.plan_code} disabled={busy}
@@ -309,16 +309,16 @@ export default function SuperPage() {
           return (
             <Card key={g.id}><CardContent className="space-y-3 pt-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><Link href={`/super/clientes/${g.id}`} className="block truncate font-semibold text-primary hover:underline">{g.name}</Link><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
+                <div className="min-w-0"><Link href={`/super/clientes/${g.id}`} className="block truncate py-1 font-semibold text-primary hover:underline">{g.name}</Link><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
                 <StatusBadge status={g.status} />
               </div>
               {g.status_reason && <p className="text-xs text-muted-foreground">{g.status_reason}</p>}
               <div className="text-xs">
                 {g.contact_name || g.contact_email || g.contact_phone ? <>
                   <span className="font-medium">{g.contact_name ?? "Responsável"}</span>{g.contact_email ? ` · ${g.contact_email}` : ""}
-                  {wa && <> · <a href={wa} target="_blank" rel="noreferrer" className="text-primary hover:underline">{g.contact_phone}</a></>}
+                  {wa && <> · <a href={wa} target="_blank" rel="noreferrer" className="inline-block py-2 text-primary hover:underline">{g.contact_phone}</a></>}
                 </> : <span className="text-muted-foreground">Sem contato do responsável</span>}
-                {" "}<button type="button" className="text-primary hover:underline" onClick={() => setEdit(g)}>editar</button>
+                {" "}<button type="button" className="inline-flex min-h-10 items-center px-1 text-primary hover:underline" onClick={() => setEdit(g)}>editar</button>
               </div>
               <dl className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="rounded-lg bg-secondary/60 py-2"><dd className={`text-base font-semibold tabular-nums ${full ? "text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? `/${g.athletes_limit}` : ""}</dd><dt className="text-muted-foreground">Atletas</dt></div>
@@ -341,8 +341,8 @@ export default function SuperPage() {
         <nav aria-label="Paginação" className="flex items-center justify-between gap-2 text-sm">
           <span className="text-muted-foreground">{cur * PAGE + 1}–{Math.min(filtered.length, cur * PAGE + PAGE)} de {filtered.length}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>Anterior</Button>
-            <Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>Próxima</Button>
+            <Button size="sm" variant="outline" className="h-10 px-4 sm:h-8" disabled={cur === 0} onClick={() => setPage(cur - 1)}>Anterior</Button>
+            <Button size="sm" variant="outline" className="h-10 px-4 sm:h-8" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>Próxima</Button>
           </div>
         </nav>
       )}
@@ -366,7 +366,7 @@ export default function SuperPage() {
 
       <Card><CardContent className="space-y-3 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Planos</h2>
-        <p className="text-xs text-muted-foreground">Limite vazio = ilimitado. Plano desativado some das escolhas de assinatura, mas os grupos que já o usam continuam nele (o Premium nasce inativo e sem preço: defina o valor e ative). Módulos desligados bloqueiam o recurso no servidor e somem do menu. A duração do teste vale para novos grupos. A referência do gateway é só um campo de preparação: a cobrança atual usa o preço do plano no Asaas.</p>
+        <details className="text-xs text-muted-foreground"><summary className="flex min-h-10 cursor-pointer items-center font-medium text-primary">Como funcionam os planos</summary><p>Limite vazio = ilimitado. Plano desativado some das escolhas de assinatura, mas os grupos que já o usam continuam nele (o Premium nasce inativo e sem preço: defina o valor e ative). Módulos desligados bloqueiam o recurso no servidor e somem do menu. A duração do teste vale para novos grupos. A referência do gateway é só um campo de preparação: a cobrança atual usa o preço do plano no Asaas.</p></details>
         <div className="space-y-2">
           {plans.map((p) => <PlanRow key={p.code} p={p} busy={busy} onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: p.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway }), "Plano salvo.")} />)}
           <PlanRow key="novo" p={{ code: "", name: "", price_cents: 0, max_athletes: null, active: true, sort_order: 0, orgs: 0, max_admins: null, modules: MODULES.map(([k]) => k), trial_days: 10, gateway_ref: null }} busy={busy} isNew onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: v.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway }), "Plano criado.")} />
@@ -393,25 +393,39 @@ function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: b
     if (isNew) setV({ code: "", name: "", price: "0.00", max: "", admins: "", trial: "10", gateway: "", active: true, modules: MODULES.map(([k]) => k) })
   }
   const toggle = (k: string) => setV((x) => ({ ...x, modules: x.modules.includes(k) ? x.modules.filter((m) => m !== k) : [...x.modules, k] }))
-  return (
-    <div className="space-y-3 rounded-xl border p-3">
-      <div className="grid items-end gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {isNew ? <label className="space-y-1 text-xs text-muted-foreground">Código<Input aria-label="Código do novo plano" placeholder="ex.: elite" value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} /></label>
-          : <div className="text-xs text-muted-foreground">{p.code} · {p.orgs} grupo(s)</div>}
-        <label className="space-y-1 text-xs text-muted-foreground">Nome<Input aria-label="Nome do plano" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></label>
-        <label className="space-y-1 text-xs text-muted-foreground">Preço mensal (R$)<Input aria-label="Preço mensal (R$)" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} /></label>
-        <label className="space-y-1 text-xs text-muted-foreground">Limite de atletas<Input aria-label="Limite de atletas" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} /></label>
-        <label className="space-y-1 text-xs text-muted-foreground">Limite de administradores<Input aria-label="Limite de administradores" inputMode="numeric" placeholder="ilimitado" value={v.admins} onChange={(e) => setV({ ...v, admins: e.target.value })} /></label>
-        <label className="space-y-1 text-xs text-muted-foreground">Duração do teste (dias)<Input aria-label="Duração do teste em dias" inputMode="numeric" value={v.trial} onChange={(e) => setV({ ...v, trial: e.target.value })} /></label>
-        <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2">Referência no gateway (opcional)<Input aria-label="Referência do plano no gateway" maxLength={100} value={v.gateway} onChange={(e) => setV({ ...v, gateway: e.target.value })} /></label>
+  const limits = [p.max_athletes == null ? "atletas ∞" : `${p.max_athletes} atletas`, p.max_admins == null ? "admins ∞" : `${p.max_admins} admin(s)`].join(" · ")
+  const body = (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 items-end gap-2 lg:grid-cols-4">
+        {isNew ? <label className="col-span-2 space-y-1 text-xs text-muted-foreground lg:col-span-1">Código<Input aria-label="Código do novo plano" className="h-11 sm:h-9" placeholder="ex.: elite" value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} /></label>
+          : <div className="col-span-2 text-xs text-muted-foreground lg:col-span-1">{p.code} · {p.orgs} grupo(s)</div>}
+        <label className="col-span-2 space-y-1 text-xs text-muted-foreground lg:col-span-1">Nome<Input aria-label="Nome do plano" className="h-11 sm:h-9" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Preço mensal (R$)<Input aria-label="Preço mensal (R$)" className="h-11 sm:h-9" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Duração do teste (dias)<Input aria-label="Duração do teste em dias" className="h-11 sm:h-9" inputMode="numeric" value={v.trial} onChange={(e) => setV({ ...v, trial: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Limite de atletas<Input aria-label="Limite de atletas" className="h-11 sm:h-9" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} /></label>
+        <label className="space-y-1 text-xs text-muted-foreground">Limite de administradores<Input aria-label="Limite de administradores" className="h-11 sm:h-9" inputMode="numeric" placeholder="ilimitado" value={v.admins} onChange={(e) => setV({ ...v, admins: e.target.value })} /></label>
+        <label className="col-span-2 space-y-1 text-xs text-muted-foreground">Referência no gateway (opcional)<Input aria-label="Referência do plano no gateway" className="h-11 sm:h-9" maxLength={100} value={v.gateway} onChange={(e) => setV({ ...v, gateway: e.target.value })} /></label>
       </div>
-      <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <legend className="sr-only">Módulos do plano</legend>
-        <span className="text-muted-foreground">Módulos:</span>
-        {MODULES.map(([k, label]) => <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={v.modules.includes(k)} onChange={() => toggle(k)} /> {label}</label>)}
-        <label className="ml-auto flex items-center gap-1.5"><input type="checkbox" checked={v.active} onChange={(e) => setV({ ...v, active: e.target.checked })} /> Ativo (à venda)</label>
-        <Button size="sm" variant="outline" disabled={busy || !v.name.trim()} onClick={save}>{isNew ? "Criar" : "Salvar"}</Button>
+      <fieldset>
+        <legend className="mb-1 text-xs text-muted-foreground">Módulos do plano</legend>
+        <div className="grid grid-cols-2 gap-x-3 sm:flex sm:flex-wrap sm:gap-x-4">
+          {MODULES.map(([k, label]) => <label key={k} className="flex min-h-11 items-center gap-2 text-sm sm:min-h-8 sm:text-xs"><input type="checkbox" className="size-5 sm:size-4" checked={v.modules.includes(k)} onChange={() => toggle(k)} /> {label}</label>)}
+        </div>
       </fieldset>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label className="flex min-h-11 items-center gap-2 text-sm sm:min-h-8 sm:text-xs"><input type="checkbox" className="size-5 sm:size-4" checked={v.active} onChange={(e) => setV({ ...v, active: e.target.checked })} /> Ativo (à venda)</label>
+        <Button size="sm" variant="outline" className="h-11 w-full sm:h-8 sm:w-auto" disabled={busy || !v.name.trim()} onClick={save}>{isNew ? "Criar plano" : "Salvar plano"}</Button>
+      </div>
     </div>
+  )
+  return (
+    <details className="group rounded-xl border p-3">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 text-sm [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0"><span className="block truncate font-medium">{isNew ? "Novo plano" : p.name}</span>
+          {!isNew && <span className="block text-xs text-muted-foreground">{formatBRL(p.price_cents / 100)}/mês · {limits} · {p.orgs} grupo(s){p.active ? "" : " · inativo"}</span>}</span>
+        <span aria-hidden className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180">▾</span>
+      </summary>
+      <div className="pt-3">{body}</div>
+    </details>
   )
 }
