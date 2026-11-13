@@ -187,6 +187,14 @@ export default function SuperPage() {
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE))
   const cur = Math.min(page, pages - 1)
   const shown = filtered.slice(cur * PAGE, cur * PAGE + PAGE)
+  const now = Date.now()
+  const attention = orgs.flatMap((g) => {
+    const w: string[] = []
+    if (g.status === "teste" && g.trial_ends_at) { const d = Math.ceil((new Date(g.trial_ends_at).getTime() - now) / DAY); if (d > 0 && d <= 7) w.push(`teste termina em ${d} dia(s)`); else if (d <= 0 && d > -14) w.push("teste vencido, sem assinatura") }
+    if (g.status === "suspensa" && /^inadimpl/.test(g.status_reason ?? "")) w.push("pagamento em atraso")
+    if (inactive(g)) w.push("sem acesso há mais de 30 dias")
+    return w.map((why) => ({ g, why }))
+  })
   const th = (key: string, label: string, cls = "") => (
     <TableHead className={cls}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => { setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 })); setPage(0) }}>
       {label}{sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : ""}</button></TableHead>
@@ -225,6 +233,20 @@ export default function SuperPage() {
         <Kpi label="Novos clientes no mês" value={String(dash.new_month)} hint={`${o.new_30d} em 30 dias`} />
         <Kpi label="Cancelamentos do mês" value={String(dash.cancelled_month)} hint={dash.inactive_30d ? `${dash.inactive_30d} sem acesso há 30 dias` : undefined} />
       </div>
+
+      {attention.length > 0 && (
+        <Card><CardContent className="space-y-2 pt-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Atenção ({attention.length})</h2>
+          <ul className="divide-y text-sm">
+            {attention.map((a) => (
+              <li key={a.g.id + a.why} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <Link href={`/super/clientes/${a.g.id}`} className="font-medium text-primary hover:underline">{a.g.name}</Link>
+                <span className="text-muted-foreground">{a.why}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent></Card>
+      )}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card><CardContent className="space-y-2 pt-4">

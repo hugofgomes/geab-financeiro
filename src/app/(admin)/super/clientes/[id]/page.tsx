@@ -29,7 +29,9 @@ type Detail = {
   billing: { paid_until?: string | null; last_event?: string | null; updated_at?: string; has_subscription?: boolean; plan_code?: string | null }
   access: { day: string; users: number; hits: number }[]
   changes: { at: string; action: string; detail: Record<string, unknown> | null }[]
+  notifs: { kind: string; ref: string; status: string; sent_at: string; to_emails: string[]; error: string | null }[]
 }
+const NOTIF: Record<string, string> = { trial_3d: "Teste termina em 3 dias", trial_1d: "Último dia do teste", trial_fim: "Teste terminou", inadimplencia: "Pagamento pendente" }
 
 const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada", excluida: "Excluída" }
 const BADGE: Record<string, string> = { teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700", excluida: "bg-red-100 text-red-800" }
@@ -154,9 +156,9 @@ export default function ClientePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { data, error, loading, reload } = useLoad(async () => {
-    const r = await supabase().rpc("sa_org_detail", { p_org: id })
+    const [r, n] = await Promise.all([supabase().rpc("sa_org_detail", { p_org: id }), supabase().rpc("sa_org_notifications", { p_org: id })])
     if (r.error) throw new Error(r.error.message)
-    return r.data as Detail
+    return { ...(r.data as Omit<Detail, "notifs">), notifs: (n.data ?? []) as Detail["notifs"] }
   }, [id])
   const [busy, setBusy] = React.useState(false)
   const [spy, setSpy] = React.useState(false)
@@ -182,7 +184,7 @@ export default function ClientePage() {
   if (error) return <p role="alert" className="text-sm text-destructive">{/Acesso restrito/.test(error) ? "Acesso restrito ao dono da plataforma." : `Erro ao carregar: ${error}`}</p>
   if (loading && !data) return <Skeleton className="h-60" />
   if (!data) return null
-  const { org: o, usage: u, staff, billing: b, access, changes } = data
+  const { org: o, usage: u, staff, billing: b, access, changes, notifs } = data
   const wa = whats(o.contact_phone)
   const suspended = o.status === "suspensa" || o.status === "cancelada"
   const deleted = o.status === "excluida"
@@ -332,6 +334,16 @@ export default function ClientePage() {
             {access.length === 0 && <p className="text-sm text-muted-foreground">Nenhum acesso registrado ainda.</p>}
             <ul className="divide-y text-sm">
               {access.slice(0, 15).map((a) => <li key={a.day} className="flex justify-between py-1.5"><span>{dt(a.day + "T12:00:00")}</span><span className="text-muted-foreground tabular-nums">{a.users} pessoa(s) · {a.hits} abertura(s)</span></li>)}
+            </ul>
+          </CardContent></Card>
+          <Card><CardContent className="space-y-2 pt-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Avisos de vencimento por e-mail</h2>
+            {notifs.length === 0 && <p className="text-sm text-muted-foreground">Nenhum aviso enviado a este cliente.</p>}
+            <ul className="divide-y text-sm">
+              {notifs.map((n) => (
+                <li key={n.kind + n.ref} className="py-2"><div className="font-medium">{NOTIF[n.kind] ?? n.kind} · {n.status === "enviada" ? "enviado" : "falhou"}</div>
+                  <div className="text-xs text-muted-foreground">{dtm(n.sent_at)} · {n.to_emails.join(", ")}{n.error ? ` · ${n.error}` : ""}</div></li>
+              ))}
             </ul>
           </CardContent></Card>
           <Card><CardContent className="space-y-2 pt-4">

@@ -63,4 +63,4 @@ export async function middleware(req: NextRequest) {
   return res
 }
 
-export const config = { matcher: ["/((?!api/versao|api/webhooks|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico)$).*)"] }
+export const config = { matcher: ["/((?!api/versao|api/webhooks|api/cron|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico)$).*)"] }

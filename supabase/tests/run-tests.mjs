@@ -588,6 +588,40 @@ section("Modo espião: suporte somente leitura (0029)")
   await q(`delete from public.support_sessions`)
 }
 
+section("Notificações de vencimento (0030)")
+{
+  const N = { t3: uid(990), t1: uid(991), fim: uid(992), ina: uid(993), long: uid(994), a3: uid(995), a1: uid(996), af: uid(997), ai: uid(998) }
+  const errq = async (sql) => { try { await q(sql); return null } catch (e) { return e.message } }
+  await q(`insert into auth.users (id, email) values ($1,'n3@x.com'), ($2,'n1@x.com'), ($3,'nf@x.com'), ($4,'ni@x.com')`, [N.a3, N.a1, N.af, N.ai])
+  const mk = async (id, slug, status, trial, adm) => {
+    await q(`insert into public.organizations (id, slug, name, status, plan_id) values ($1,$2,$2,$3,(select id from public.plans where code='teste'))`, [id, slug, status])
+    await q(`update public.organizations set trial_ends_at = $2 where id = $1`, [id, trial])
+    await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Adm','admin')`, [id, adm])
+  }
+  await mk(N.t3, "n-t3", "teste", new Date(Date.now() + 2.5 * 86400e3).toISOString(), N.a3)
+  await mk(N.t1, "n-t1", "teste", new Date(Date.now() + 0.5 * 86400e3).toISOString(), N.a1)
+  await mk(N.fim, "n-fim", "teste", new Date(Date.now() - 2 * 86400e3).toISOString(), N.af)
+  await mk(N.ina, "n-ina", "suspensa", null, N.ai)
+  await q(`insert into public.org_internal (org_id, status_reason) values ($1,'inadimplência (cobrança vencida)')`, [N.ina])
+  await q(`insert into public.organizations (id, slug, name, status, trial_ends_at, plan_id) values ($1,'n-long','n-long','teste', now() + interval '8 days',(select id from public.plans where code='teste'))`, [N.long])
+  const cand = await q(`select org_name, kind, emails from public.billing_notify_candidates() where org_name like 'n-%' order by org_name`)
+  const kinds = Object.fromEntries(cand.map((c) => [c.org_name, c.kind]))
+  ok("candidatos corretos por situação", kinds["n-t3"] === "trial_3d" && kinds["n-t1"] === "trial_1d" && kinds["n-fim"] === "trial_fim" && kinds["n-ina"] === "inadimplencia" && !("n-long" in kinds), JSON.stringify(kinds))
+  ok("destinatário é o e-mail do administrador do grupo", cand.find((c) => c.org_name === "n-t3").emails.join() === "n3@x.com")
+  const c3 = (await q(`select ref from public.billing_notify_candidates() where org_name='n-t3'`))[0]
+  await q(`select public.billing_notify_mark($1,'trial_3d',$2,array['n3@x.com'],'enviada',null)`, [N.t3, c3.ref])
+  ok("aviso enviado não é repetido", (await q(`select 1 from public.billing_notify_candidates() where org_name='n-t3'`)).length === 0)
+  await q(`select public.billing_notify_mark($1,'trial_1d',(select ref from public.billing_notify_candidates() where org_name='n-t1'),array['n1@x.com'],'falhou','smtp')`, [N.t1])
+  ok("aviso que falhou é tentado de novo", (await q(`select 1 from public.billing_notify_candidates() where org_name='n-t1'`)).length === 1)
+  await as(U.geabAdmin, async () => {
+    ok("usuário comum não chama as funções de aviso", (await err(`select * from public.billing_notify_candidates()`)) !== null && (await err(`select * from public.sa_org_notifications('${N.t3}')`)) !== null)
+  })
+  await as(uid(600), async () => {
+    const h = await q(`select kind, status from public.sa_org_notifications($1)`, [N.t3])
+    ok("dono vê o histórico de avisos do cliente", h.length === 1 && h[0].kind === "trial_3d" && h[0].status === "enviada")
+  })
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)
