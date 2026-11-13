@@ -2,6 +2,19 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.7.0",
+      "date": "2026-11-13",
+      "title": "Painel do SaaS modernizado",
+      "novidades": [
+        "Dashboard do dono da plataforma com cards de clientes ativos, suspensos, em teste, assinaturas vencidas, MRR, novos clientes e cancelamentos do mês.",
+        "Gráficos de crescimento de clientes e de evolução do faturamento recorrente (histórico do MRR passa a ser registrado mensalmente).",
+        "Gerenciar clientes: tabela com responsável, contato com link de WhatsApp, vencimento e último acesso; busca, filtros por situação e plano, ordenação, paginação e exportação em CSV.",
+        "Cadastro do responsável de cada cliente e identificação de clientes inativos há 30 dias."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "version": "1.6.1",
       "date": "2026-11-12",
       "title": "Área do atleta no site de vendas",

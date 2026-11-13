@@ -275,7 +275,7 @@ await as(uid(600), async () => {
   ok("overview: receita por plano", o.by_plan.some((x) => x.plan === "Básico" && x.mrr_cents === 9900), JSON.stringify(o.by_plan))
   const orgs = await q(`select * from public.sa_orgs()`)
   const g = orgs.find((x) => x.slug === "geab")
-  ok("sa_orgs: só agregados (sem nomes de atletas, pagamentos ou contatos)", Object.keys(g).join() === "id,slug,name,status,plan_code,plan_name,athletes,athletes_limit,admins,matches,created_at,trial_ends_at,last_activity,notes,status_reason", Object.keys(g).join())
+  ok("sa_orgs: só agregados e contato do responsável (sem nomes de atletas nem pagamentos)", Object.keys(g).join() === "id,slug,name,status,plan_code,plan_name,plan_price_cents,athletes,athletes_limit,admins,matches,created_at,trial_ends_at,paid_until,last_activity,last_access,notes,status_reason,contact_name,contact_email,contact_phone,cancelled_at", Object.keys(g).join())
   ok("sa_orgs: contagens corretas do GEAB", g.athletes === 1 && g.admins === 1 && g.matches === 1 && g.plan_code === "ilimitado", JSON.stringify(g))
   ok("o dono NÃO vê dados dos grupos pelas tabelas (isolamento intacto)", (await one(`select count(*)::int from public.athletes`)) === 0 && (await one(`select count(*)::int from public.payments`)) === 0)
   await db.query(`select public.sa_set_notes($1, 'cliente piloto')`, [P.org])
@@ -411,6 +411,29 @@ await as(uid(600), async () => {
   const r = await q(`select * from public.sa_access_day($1)`, [d[0].day])
   ok("detalhe do dia lista as pessoas com grupo e aberturas", r.length === 2 && r.some((x) => x.hits === 2 && x.org_name), JSON.stringify(r))
 })
+
+section("Painel do SaaS: dashboard e contato (0025)")
+const totalOrgs = await one(`select count(*)::int from public.organizations`)
+await as(U.geabAdmin, async () => {
+  ok("admin comum não usa sa_dashboard", /restrito/i.test(await err(`select public.sa_dashboard(6)`) ?? ""))
+  ok("admin comum não usa sa_set_contact", /restrito/i.test(await err(`select public.sa_set_contact('${P.org}', 'x', 'a@b.co', '1')`) ?? ""))
+  ok("admin comum não lê platform_mrr_history", (await one(`select count(*)::int from public.platform_mrr_history`)) === 0)
+})
+await as(uid(600), async () => {
+  await db.query(`select public.sa_set_contact($1, 'Fulano', 'fulano@x.com', '11999990000')`, [P.org])
+  const g = (await q(`select contact_name, contact_email, contact_phone from public.sa_orgs() where id=$1`, [P.org]))[0]
+  ok("contato do responsável salvo", g.contact_name === "Fulano" && g.contact_email === "fulano@x.com" && g.contact_phone === "11999990000", JSON.stringify(g))
+  ok("e-mail inválido é recusado", /inválido/i.test(await err(`select public.sa_set_contact('${P.org}', 'x', 'sem-arroba', null)`) ?? ""))
+  const d = await one(`select public.sa_dashboard(6)`)
+  ok("dashboard: séries com 6 meses e MRR do mês registrado", d.growth.length === 6 && d.mrr.length === 1 && typeof d.new_month === "number", JSON.stringify(d))
+  ok("dashboard: total acumulado do último mês bate com os grupos", d.growth[5].total === totalOrgs, JSON.stringify(d.growth[5]) + " vs " + totalOrgs)
+  })
+await q(`update public.organizations set status='cancelada' where id=$1`, [P.org])
+await as(uid(600), async () => {
+  ok("cancelamento registra a data e conta no mês", (await one(`select public.sa_dashboard(6)->>'cancelled_month'`)) === "1")
+})
+await q(`update public.organizations set status='ativa' where id=$1`, [P.org])
+ok("reativar limpa a data de cancelamento", (await one(`select cancelled_at is null from public.organizations where id=$1`, [P.org])) === true)
 
 section("Auditoria")
 await as(U.peladaAdmin, async () => {

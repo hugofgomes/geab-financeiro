@@ -11,7 +11,10 @@ import { useLoad } from "@/hooks/use-load"
 import { formatBRL } from "@/lib/format"
 import { supabase } from "@/lib/supabase/client"
 import { slugify } from "@/lib/tenant"
+import { Download } from "lucide-react"
 import * as React from "react"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 
 type Overview = {
@@ -20,21 +23,112 @@ type Overview = {
   by_plan: { plan: string; orgs: number; mrr_cents: number }[]
 }
 type Org = {
-  id: string; slug: string; name: string; status: string; plan_code: string; plan_name: string; athletes: number; athletes_limit: number | null
-  admins: number; matches: number; created_at: string; trial_ends_at: string | null; last_activity: string | null; notes: string | null; status_reason: string | null
+  id: string; slug: string; name: string; status: string; plan_code: string; plan_name: string; plan_price_cents: number; athletes: number; athletes_limit: number | null
+  admins: number; matches: number; created_at: string; trial_ends_at: string | null; paid_until: string | null; last_activity: string | null; last_access: string | null
+  notes: string | null; status_reason: string | null; contact_name: string | null; contact_email: string | null; contact_phone: string | null; cancelled_at: string | null
+}
+type Dash = {
+  overdue: number; trials_expired: number; new_month: number; cancelled_month: number; inactive_30d: number
+  growth: { month: string; novos: number; total: number }[]; mrr: { month: string; mrr_cents: number; ativas: number }[]
 }
 type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; active: boolean; sort_order: number; orgs: number }
-type Data = { overview: Overview; orgs: Org[]; plans: Plan[] }
+type Data = { overview: Overview; orgs: Org[]; plans: Plan[]; dash: Dash }
 
 const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada" }
 const dt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "—")
+const PAGE = 15
+const DAY = 86_400_000
+const BADGE: Record<string, string> = {
+  teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700",
+}
+const mes = (m: string) => { const [y, n] = m.split("-"); return `${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][Number(n) - 1]}/${y.slice(2)}` }
+/** Vencimento: fim do teste (em teste) ou fim do período pago (ativa). */
+const dueOf = (g: Org) => (g.status === "teste" ? g.trial_ends_at : g.status === "ativa" ? g.paid_until : null)
+const inactive = (g: Org) => (g.status === "ativa" || g.status === "teste") && Date.now() - new Date(g.created_at).getTime() > 30 * DAY && (!g.last_access || Date.now() - new Date(g.last_access).getTime() > 30 * DAY)
+const whats = (v: string | null) => { const d = (v ?? "").replace(/\D/g, ""); return d ? `https://wa.me/${d.length <= 11 ? "55" + d : d}` : null }
+
+function StatusBadge({ status }: { status: string }) {
+  return <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${BADGE[status] ?? "bg-secondary"}`}>{STATUS[status] ?? status}</span>
+}
+
+function csvCell(v: unknown) { const t = v == null ? "" : String(v); return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t }
+function exportCsv(rows: Org[]) {
+  const head = ["Grupo", "Endereço", "Responsável", "E-mail", "WhatsApp", "Plano", "Cadastro", "Vencimento", "Atletas", "Limite", "Situação", "Motivo", "Último acesso"]
+  const lines = rows.map((g) => [g.name, g.slug, g.contact_name, g.contact_email, g.contact_phone, g.plan_name, dt(g.created_at), dt(dueOf(g)), g.athletes, g.athletes_limit ?? "ilimitado", STATUS[g.status] ?? g.status, g.status_reason, dt(g.last_access)].map(csvCell).join(";"))
+  const blob = new Blob(["\ufeff" + [head.join(";"), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" })
+  const a = document.createElement("a")
+  a.href = URL.createObjectURL(blob); a.download = `clientes-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+const CHART_TIP = { borderRadius: 8, border: "1px solid #E1E7EF", fontSize: 12 }
+function GrowthChart({ data }: { data: Dash["growth"] }) {
+  const d = data.map((x) => ({ ...x, mes: mes(x.month) }))
+  return (
+    <div className="h-52" role="img" aria-label="Crescimento de clientes por mês">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={d} margin={{ left: -16, right: 8, top: 4 }}>
+          <CartesianGrid vertical={false} stroke="#E1E7EF" />
+          <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
+          <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={CHART_TIP} />
+          <Area type="monotone" dataKey="total" name="Clientes (acumulado)" stroke="#1E3A5F" fill="#1E3A5F" fillOpacity={0.12} strokeWidth={2} isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+function MrrChart({ data }: { data: Dash["mrr"] }) {
+  const d = data.map((x) => ({ ...x, mes: mes(x.month), mrr: x.mrr_cents / 100 }))
+  return (
+    <div className="h-52" role="img" aria-label="Evolução do faturamento recorrente por mês">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={d} margin={{ left: -8, right: 8, top: 4 }}>
+          <CartesianGrid vertical={false} stroke="#E1E7EF" />
+          <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
+          <Tooltip formatter={(v) => formatBRL(Number(v))} contentStyle={CHART_TIP} cursor={{ fill: "rgb(30 58 95 / 0.05)" }} />
+          <Bar dataKey="mrr" name="MRR" fill="#1E3A5F" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+/** Dados de contato do responsável (só o dono da plataforma vê). */
+function ContactDialog({ org, onClose, onSaved }: { org: Org | null; onClose: () => void; onSaved: () => void }) {
+  const [v, setV] = React.useState({ name: "", email: "", phone: "" })
+  const [busy, setBusy] = React.useState(false)
+  React.useEffect(() => { if (org) setV({ name: org.contact_name ?? "", email: org.contact_email ?? "", phone: org.contact_phone ?? "" }) }, [org])
+  async function save(e: React.FormEvent) {
+    e.preventDefault(); if (!org) return
+    setBusy(true)
+    const { error } = await supabase().rpc("sa_set_contact", { p_org: org.id, p_name: v.name, p_email: v.email, p_phone: v.phone })
+    setBusy(false)
+    if (error) return toast.error(error.message)
+    toast.success("Contato salvo."); onSaved(); onClose()
+  }
+  return (
+    <Dialog open={!!org} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Responsável — {org?.name}</DialogTitle><DialogDescription>Contato comercial do grupo, visível só para você.</DialogDescription></DialogHeader>
+        <form onSubmit={save} className="grid gap-3">
+          <div className="space-y-1.5"><Label htmlFor="c-n">Nome do responsável</Label><Input id="c-n" maxLength={120} value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="c-e">E-mail</Label><Input id="c-e" type="email" maxLength={160} value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label htmlFor="c-p">WhatsApp</Label><Input id="c-p" inputMode="tel" maxLength={30} placeholder="(11) 99999-0000" value={v.phone} onChange={(e) => setV({ ...v, phone: e.target.value })} /></div>
+          <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={busy}>Salvar</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 async function load(): Promise<Data> {
   const db = supabase()
-  const [o, g, p] = await Promise.all([db.rpc("sa_overview"), db.rpc("sa_orgs"), db.rpc("sa_plans")])
-  const e = o.error ?? g.error ?? p.error
+  const [o, g, p, d] = await Promise.all([db.rpc("sa_overview"), db.rpc("sa_orgs"), db.rpc("sa_plans"), db.rpc("sa_dashboard", { p_months: 12 })])
+  const e = o.error ?? g.error ?? p.error ?? d.error
   if (e) throw new Error(e.message)
-  return { overview: o.data as Overview, orgs: g.data as Org[], plans: p.data as Plan[] }
+  return { overview: o.data as Overview, orgs: g.data as Org[], plans: p.data as Plan[], dash: d.data as Dash }
 }
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -52,6 +146,10 @@ export default function SuperPage() {
   const { data, error, loading, reload } = useLoad(load, [])
   const [filter, setFilter] = React.useState("")
   const [q, setQ] = React.useState("")
+  const [planF, setPlanF] = React.useState("")
+  const [sort, setSort] = React.useState<{ key: string; dir: 1 | -1 }>({ key: "created_at", dir: -1 })
+  const [page, setPage] = React.useState(0)
+  const [edit, setEdit] = React.useState<Org | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [nw, setNw] = React.useState({ name: "", slug: "", plan: "teste", email: "" })
 
@@ -68,8 +166,29 @@ export default function SuperPage() {
   if (error) return <p role="alert" className="text-sm text-destructive">{/Acesso restrito/.test(error) ? "Acesso restrito ao dono da plataforma." : `Erro ao carregar: ${error}`}</p>
   if (loading && !data) return <Skeleton className="h-60" />
   if (!data) return null
-  const { overview: o, orgs, plans } = data
-  const shown = orgs.filter((g) => (!filter || g.status === filter) && (!q || (g.name + g.slug).toLowerCase().includes(q.toLowerCase())))
+  const { overview: o, orgs, plans, dash } = data
+  const val = (g: Org): string | number => {
+    switch (sort.key) {
+      case "name": return g.name.toLowerCase()
+      case "athletes": return g.athletes
+      case "due": return dueOf(g) ?? ""
+      case "last_access": return g.last_access ?? ""
+      case "plan": return g.plan_name.toLowerCase()
+      case "status": return g.status
+      default: return g.created_at
+    }
+  }
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  const filtered = orgs
+    .filter((g) => (!filter || g.status === filter) && (!planF || g.plan_code === planF) && (!q || norm([g.name, g.slug, g.contact_name, g.contact_email, g.contact_phone].join(" ")).includes(norm(q))))
+    .sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * sort.dir)
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE))
+  const cur = Math.min(page, pages - 1)
+  const shown = filtered.slice(cur * PAGE, cur * PAGE + PAGE)
+  const th = (key: string, label: string, cls = "") => (
+    <TableHead className={cls}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => { setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 })); setPage(0) }}>
+      {label}{sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : ""}</button></TableHead>
+  )
   const actions = (g: Org) => (
     <div className="flex flex-wrap justify-end gap-1.5 pr-2 max-2xl:justify-start max-2xl:pr-0">
                     {g.status === "suspensa" || g.status === "cancelada"
@@ -77,6 +196,7 @@ export default function SuperPage() {
                       : <Button size="sm" variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }}>Suspender</Button>}
                     {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias</Button>}
                     {g.status === "teste" && <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")}>Ativar</Button>}
+                    <Button size="sm" variant="ghost" onClick={() => setEdit(g)}>Contato</Button>
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }}>Nota</Button>
                   </div>
   )
@@ -84,18 +204,34 @@ export default function SuperPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">Painel do SaaS</h1>
-      <p className="text-sm text-muted-foreground">Visão do dono: números por grupo. Nomes de atletas, pagamentos e contatos dos grupos não aparecem aqui.</p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Painel do SaaS</h1>
+          <p className="text-sm text-muted-foreground">Visão do dono da plataforma. Nomes de atletas e pagamentos dos grupos não aparecem aqui.</p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Kpi label="Grupos" value={String(o.orgs_total)} hint={`${o.new_30d} novos em 30 dias`} />
-        <Kpi label="Ativos (pagantes)" value={String(o.orgs_ativa)} />
-        <Kpi label="Em teste" value={String(o.orgs_teste)} hint={o.trials_expiring ? `${o.trials_expiring} vencendo em 3 dias` : undefined} />
-        <Kpi label="Suspensos / cancelados" value={`${o.orgs_suspensa} / ${o.orgs_cancelada}`} />
-        <Kpi label="MRR (estimado pelos planos)" value={formatBRL(o.mrr_cents / 100)} />
-        <Kpi label="ARR (MRR × 12)" value={formatBRL((o.mrr_cents * 12) / 100)} />
-        <Kpi label="Atletas ativos" value={String(o.athletes_total)} />
-        <Kpi label="Inadimplência" value="—" hint="disponível com as assinaturas" />
+        <Kpi label="Total de clientes" value={String(o.orgs_total)} hint={`${o.athletes_total} atletas ativos`} />
+        <Kpi label="Clientes ativos" value={String(o.orgs_ativa)} hint="pagantes" />
+        <Kpi label="Clientes suspensos" value={String(o.orgs_suspensa)} hint={`${o.orgs_cancelada} cancelados no total`} />
+        <Kpi label="Em período de teste" value={String(o.orgs_teste)} hint={o.trials_expiring ? `${o.trials_expiring} vencendo em 3 dias` : dash.trials_expired ? `${dash.trials_expired} expirado(s)` : undefined} />
+        <Kpi label="Assinaturas vencidas" value={String(dash.overdue)} hint="suspensos por inadimplência" />
+        <Kpi label="MRR (receita recorrente)" value={formatBRL(o.mrr_cents / 100)} hint={`ARR ${formatBRL((o.mrr_cents * 12) / 100)}`} />
+        <Kpi label="Novos clientes no mês" value={String(dash.new_month)} hint={`${o.new_30d} em 30 dias`} />
+        <Kpi label="Cancelamentos do mês" value={String(dash.cancelled_month)} hint={dash.inactive_30d ? `${dash.inactive_30d} sem acesso há 30 dias` : undefined} />
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card><CardContent className="space-y-2 pt-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Crescimento de clientes</h2>
+          <GrowthChart data={dash.growth} />
+        </CardContent></Card>
+        <Card><CardContent className="space-y-2 pt-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Evolução do faturamento (MRR)</h2>
+          <MrrChart data={dash.mrr} />
+          <p className="text-xs text-muted-foreground">O histórico do MRR começa a ser registrado a partir de hoje; meses anteriores não existem no sistema.</p>
+        </CardContent></Card>
       </div>
 
       <Card><CardContent className="space-y-2 pt-4">
@@ -110,42 +246,54 @@ export default function SuperPage() {
       </CardContent></Card>
 
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto text-sm font-semibold uppercase tracking-wide text-primary">Grupos ({shown.length})</h2>
-        <Input aria-label="Buscar grupo" className="h-10 w-full sm:h-8 sm:w-48" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <NativeSelect aria-label="Situação" className="h-10 w-full sm:h-8 sm:w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <h2 className="mr-auto text-sm font-semibold uppercase tracking-wide text-primary">Gerenciar clientes ({filtered.length})</h2>
+        <Input aria-label="Buscar cliente" className="h-10 w-full sm:h-8 sm:w-56" placeholder="Nome, responsável, e-mail…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} />
+        <NativeSelect aria-label="Situação" className="h-10 w-full sm:h-8 sm:w-auto" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(0) }}>
           <option value="">Todas as situações</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </NativeSelect>
+        <NativeSelect aria-label="Plano" className="h-10 w-full sm:h-8 sm:w-auto" value={planF} onChange={(e) => { setPlanF(e.target.value); setPage(0) }}>
+          <option value="">Todos os planos</option>
+          {plans.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+        </NativeSelect>
+        <Button size="sm" variant="outline" className="h-10 sm:h-8" disabled={!filtered.length} onClick={() => exportCsv(filtered)}><Download /> CSV</Button>
       </div>
       <Card className="hidden overflow-x-auto py-0 2xl:block">
         <Table>
           <TableHeader><TableRow>
-            <TableHead className="pl-4">Grupo</TableHead><TableHead>Situação</TableHead><TableHead>Plano</TableHead><TableHead className="text-center">Atletas</TableHead>
-            <TableHead className="text-center">Admins</TableHead><TableHead className="text-center">Jogos</TableHead><TableHead>Criado</TableHead><TableHead>Teste até</TableHead><TableHead>Atividade</TableHead><TableHead />
+            {th("name", "Grupo", "pl-4")}<TableHead>Responsável</TableHead>{th("plan", "Plano")}{th("created_at", "Cadastro")}{th("due", "Vencimento")}
+            {th("athletes", "Atletas", "text-center")}{th("status", "Situação")}{th("last_access", "Último acesso")}<TableHead />
           </TableRow></TableHeader>
           <TableBody>
             {shown.map((g) => {
               const full = g.athletes_limit != null && g.athletes >= g.athletes_limit
+              const wa = whats(g.contact_phone)
               return (
                 <TableRow key={g.id}>
                   <TableCell className="pl-4"><div className="font-medium">{g.name}</div><div className="text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></TableCell>
-                  <TableCell>{STATUS[g.status] ?? g.status}{g.status_reason && <div className="text-xs text-muted-foreground">{g.status_reason}</div>}</TableCell>
+                  <TableCell className="text-xs">
+                    {g.contact_name || g.contact_email || g.contact_phone ? <>
+                      <div className="font-medium">{g.contact_name ?? "—"}</div>
+                      <div className="text-muted-foreground">{g.contact_email}</div>
+                      {wa && <a href={wa} target="_blank" rel="noreferrer" className="text-primary hover:underline">{g.contact_phone}</a>}
+                    </> : <button type="button" className="text-primary hover:underline" onClick={() => setEdit(g)}>Adicionar contato</button>}
+                  </TableCell>
                   <TableCell>
                     <NativeSelect aria-label={`Plano de ${g.name}`} className="h-7 text-xs" value={g.plan_code} disabled={busy}
                       onChange={(e) => act(() => db().rpc("sa_set_org_plan", { p_org: g.id, p_plan: e.target.value }), "Plano alterado.")}>
                       {plans.filter((p) => p.active || p.code === g.plan_code).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
                     </NativeSelect>
                   </TableCell>
-                  <TableCell className={`text-center tabular-nums ${full ? "font-semibold text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? ` / ${g.athletes_limit}` : ""}</TableCell>
-                  <TableCell className="text-center tabular-nums">{g.admins}</TableCell>
-                  <TableCell className="text-center tabular-nums">{g.matches}</TableCell>
                   <TableCell className="whitespace-nowrap">{dt(g.created_at)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{g.status === "teste" ? dt(g.trial_ends_at) : "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{dt(g.last_activity)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{dt(dueOf(g))}</TableCell>
+                  <TableCell className={`text-center tabular-nums ${full ? "font-semibold text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? ` / ${g.athletes_limit}` : ""}</TableCell>
+                  <TableCell><StatusBadge status={g.status} />{g.status_reason && <div className="mt-0.5 max-w-40 text-xs text-muted-foreground">{g.status_reason}</div>}</TableCell>
+                  <TableCell className="whitespace-nowrap">{dt(g.last_access)}{inactive(g) && <div className="text-xs text-amber-700">inativo</div>}</TableCell>
                   <TableCell>{actions(g)}</TableCell>
                 </TableRow>
               )
             })}
+            {shown.length === 0 && <TableRow><TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">Nenhum cliente encontrado com esses filtros.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
@@ -153,19 +301,27 @@ export default function SuperPage() {
       <div className="grid gap-3 md:grid-cols-2 2xl:hidden">
         {shown.map((g) => {
           const full = g.athletes_limit != null && g.athletes >= g.athletes_limit
+          const wa = whats(g.contact_phone)
           return (
             <Card key={g.id}><CardContent className="space-y-3 pt-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0"><div className="truncate font-semibold">{g.name}</div><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
-                <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium">{STATUS[g.status] ?? g.status}</span>
+                <StatusBadge status={g.status} />
               </div>
               {g.status_reason && <p className="text-xs text-muted-foreground">{g.status_reason}</p>}
+              <div className="text-xs">
+                {g.contact_name || g.contact_email || g.contact_phone ? <>
+                  <span className="font-medium">{g.contact_name ?? "Responsável"}</span>{g.contact_email ? ` · ${g.contact_email}` : ""}
+                  {wa && <> · <a href={wa} target="_blank" rel="noreferrer" className="text-primary hover:underline">{g.contact_phone}</a></>}
+                </> : <span className="text-muted-foreground">Sem contato do responsável</span>}
+                {" "}<button type="button" className="text-primary hover:underline" onClick={() => setEdit(g)}>editar</button>
+              </div>
               <dl className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="rounded-lg bg-secondary/60 py-2"><dd className={`text-base font-semibold tabular-nums ${full ? "text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? `/${g.athletes_limit}` : ""}</dd><dt className="text-muted-foreground">Atletas</dt></div>
                 <div className="rounded-lg bg-secondary/60 py-2"><dd className="text-base font-semibold tabular-nums">{g.admins}</dd><dt className="text-muted-foreground">Admins</dt></div>
                 <div className="rounded-lg bg-secondary/60 py-2"><dd className="text-base font-semibold tabular-nums">{g.matches}</dd><dt className="text-muted-foreground">Jogos</dt></div>
               </dl>
-              <p className="text-xs text-muted-foreground">Criado em {dt(g.created_at)}{g.status === "teste" ? ` · teste até ${dt(g.trial_ends_at)}` : ""} · atividade {dt(g.last_activity)}</p>
+              <p className="text-xs text-muted-foreground">Cadastro {dt(g.created_at)}{dueOf(g) ? ` · vence ${dt(dueOf(g))}` : ""} · último acesso {dt(g.last_access)}{inactive(g) ? " (inativo)" : ""}</p>
               <label className="flex items-center gap-2 text-sm"><span className="text-muted-foreground">Plano</span>
                 <NativeSelect aria-label={`Plano de ${g.name}`} className="h-10 flex-1" value={g.plan_code} disabled={busy}
                   onChange={(e) => act(() => db().rpc("sa_set_org_plan", { p_org: g.id, p_plan: e.target.value }), "Plano alterado.")}>
@@ -175,8 +331,18 @@ export default function SuperPage() {
             </CardContent></Card>
           )
         })}
-        {shown.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">Nenhum grupo encontrado.</p>}
+        {shown.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground md:col-span-2">Nenhum cliente encontrado com esses filtros.</p>}
       </div>
+      {filtered.length > PAGE && (
+        <nav aria-label="Paginação" className="flex items-center justify-between gap-2 text-sm">
+          <span className="text-muted-foreground">{cur * PAGE + 1}–{Math.min(filtered.length, cur * PAGE + PAGE)} de {filtered.length}</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={cur === 0} onClick={() => setPage(cur - 1)}>Anterior</Button>
+            <Button size="sm" variant="outline" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>Próxima</Button>
+          </div>
+        </nav>
+      )}
+      <ContactDialog org={edit} onClose={() => setEdit(null)} onSaved={reload} />
 
       <Card><CardContent className="space-y-3 pt-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Novo grupo</h2>
