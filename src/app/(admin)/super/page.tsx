@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/format"
 import { supabase } from "@/lib/supabase/client"
 import { slugify } from "@/lib/tenant"
 import { Download } from "lucide-react"
+import Link from "next/link"
 import * as React from "react"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -270,7 +271,7 @@ export default function SuperPage() {
               const wa = whats(g.contact_phone)
               return (
                 <TableRow key={g.id}>
-                  <TableCell className="pl-4"><div className="font-medium">{g.name}</div><div className="text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></TableCell>
+                  <TableCell className="pl-4"><Link href={`/super/clientes/${g.id}`} className="font-medium text-primary hover:underline">{g.name}</Link><div className="text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></TableCell>
                   <TableCell className="text-xs">
                     {g.contact_name || g.contact_email || g.contact_phone ? <>
                       <div className="font-medium">{g.contact_name ?? "—"}</div>
@@ -305,7 +306,7 @@ export default function SuperPage() {
           return (
             <Card key={g.id}><CardContent className="space-y-3 pt-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><div className="truncate font-semibold">{g.name}</div><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
+                <div className="min-w-0"><Link href={`/super/clientes/${g.id}`} className="block truncate font-semibold text-primary hover:underline">{g.name}</Link><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
                 <StatusBadge status={g.status} />
               </div>
               {g.status_reason && <p className="text-xs text-muted-foreground">{g.status_reason}</p>}

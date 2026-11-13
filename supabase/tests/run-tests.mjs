@@ -435,6 +435,24 @@ await as(uid(600), async () => {
 await q(`update public.organizations set status='ativa' where id=$1`, [P.org])
 ok("reativar limpa a data de cancelamento", (await one(`select cancelled_at is null from public.organizations where id=$1`, [P.org])) === true)
 
+section("Painel do SaaS: detalhe do cliente (0026)")
+await as(U.geabAdmin, async () => {
+  ok("admin comum não usa sa_org_detail", /restrito/i.test(await err(`select public.sa_org_detail('${P.org}')`) ?? ""))
+  ok("admin comum não usa sa_update_org", /restrito/i.test(await err(`select public.sa_update_org('${P.org}','x',null,null,null,null,null)`) ?? ""))
+})
+await as(uid(600), async () => {
+  const d = await one(`select public.sa_org_detail($1)`, [P.org])
+  ok("detalhe traz cadastro, uso, equipe, cobrança, acessos e alterações", ["org", "usage", "staff", "billing", "access", "changes"].every((k) => k in d), Object.keys(d).join())
+  ok("equipe lista só administração (sem atletas)", d.staff.every((x) => ["admin", "diretoria"].includes(x.role)))
+  ok("grupo inexistente é recusado", /não encontrado/i.test(await err(`select public.sa_org_detail('00000000-0000-0000-0000-000000000000')`) ?? ""))
+  await db.query(`select public.sa_update_org($1, 'Pelada FC', 'pelada.com', 'Lema', '#112233', 'https://x.co/logo.png', 'Rodapé')`, [P.org])
+  const o = (await one(`select public.sa_org_detail($1)->'org'`, [P.org]))
+  ok("edição salva cadastro e identidade visual", o.name === "Pelada FC" && o.primary_color === "#112233" && o.card_footer === "Rodapé", JSON.stringify(o))
+  ok("cor inválida é recusada", /Cor inválida/.test(await err(`select public.sa_update_org('${P.org}','x',null,null,'azul',null,null)`) ?? ""))
+  ok("logo http inseguro é recusado", /https/.test(await err(`select public.sa_update_org('${P.org}','x',null,null,null,'javascript:alert(1)',null)`) ?? ""))
+  ok("alteração aparece no histórico", (await one(`select public.sa_org_detail($1)->'changes'`, [P.org])).some((c) => c.action === "SA_UPDATE_ORG"))
+}, true)
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)
