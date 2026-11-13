@@ -5,13 +5,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLoad } from "@/hooks/use-load"
 import { formatBRL } from "@/lib/format"
 import { supabase } from "@/lib/supabase/client"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -19,6 +20,7 @@ type Detail = {
   org: {
     id: string; slug: string; name: string; status: string; created_at: string; trial_ends_at: string | null; cancelled_at: string | null
     logo_url: string | null; primary_color: string | null; website: string | null; tagline: string | null; card_footer: string | null
+    suspended_at: string | null; suspended_by: string | null; deleted_at: string | null; deleted_by: string | null; purge_after: string | null; prev_status: string | null
     status_reason: string | null; notes: string | null; contact_name: string | null; contact_email: string | null; contact_phone: string | null
     plan_code: string; plan_name: string; plan_price_cents: number; plan_max_athletes: number | null
   }
@@ -29,12 +31,13 @@ type Detail = {
   changes: { at: string; action: string; detail: Record<string, unknown> | null }[]
 }
 
-const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada" }
-const BADGE: Record<string, string> = { teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700" }
+const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada", excluida: "Excluída" }
+const BADGE: Record<string, string> = { teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700", excluida: "bg-red-100 text-red-800" }
 const ROLE: Record<string, string> = { admin: "Administrador", diretoria: "Diretoria", atleta: "Atleta" }
 const ACTION: Record<string, string> = {
   SA_SET_STATUS: "Situação alterada", SA_SET_PLAN: "Plano alterado", SA_EXTEND_TRIAL: "Teste estendido", SA_CREATE_ORG: "Grupo criado",
   SA_ASSIGN_ADMIN: "Administrador vinculado", SA_SET_CONTACT: "Contato do responsável alterado", SA_UPDATE_ORG: "Cadastro/identidade alterados",
+  SA_DELETE_ORG: "Cliente excluído (recuperável)", SA_RESTORE_ORG: "Cliente restaurado", SA_EXPORT_ORG: "Dados exportados",
 }
 const dt = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "—")
 const dtm = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
@@ -53,14 +56,81 @@ function Meter({ value, max, label }: { value: number; max: number | null; label
   )
 }
 
+type Check = { athletes: number; users: number; matches: number; charges: number; payments: number; has_subscription: boolean; paid_until: string | null; mine: boolean }
+
+/** Confirmação de exclusão (lógica ou definitiva): mostra o que será afetado e exige digitar o nome do grupo. */
+function DeleteDialog({ org, mode, onClose, onDone }: { org: Detail["org"]; mode: "soft" | "purge" | null; onClose: () => void; onDone: (purged: boolean) => void }) {
+  const [chk, setChk] = React.useState<Check | null>(null)
+  const [name, setName] = React.useState("")
+  const [reason, setReason] = React.useState("")
+  const [days, setDays] = React.useState("30")
+  const [busy, setBusy] = React.useState(false)
+  React.useEffect(() => {
+    if (!mode) return
+    setName(""); setReason(""); setDays("30"); setChk(null)
+    supabase().rpc("sa_org_delete_check", { p_org: org.id }).then((r) => { if (r.error) toast.error(r.error.message); else setChk(r.data as Check) })
+  }, [mode, org.id])
+  async function exportAll() {
+    const r = await supabase().rpc("sa_org_export", { p_org: org.id })
+    if (r.error) return toast.error(r.error.message)
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data, null, 2)], { type: "application/json" }))
+    a.download = `${org.slug}-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href)
+    toast.success("Exportação gerada. Guarde o arquivo em local seguro: contém dados pessoais.")
+  }
+  async function go(e: React.FormEvent) {
+    e.preventDefault(); setBusy(true)
+    const r = mode === "purge"
+      ? await supabase().rpc("sa_purge_org", { p_org: org.id, p_confirm_name: name })
+      : await supabase().rpc("sa_delete_org", { p_org: org.id, p_confirm_name: name, p_reason: reason, p_retention_days: Number(days) })
+    setBusy(false)
+    if (r.error) return toast.error(r.error.message)
+    toast.success(mode === "purge" ? "Cliente excluído definitivamente." : "Cliente excluído. Ele pode ser restaurado até o fim do prazo.")
+    onDone(mode === "purge")
+  }
+  const purge = mode === "purge"
+  return (
+    <Dialog open={!!mode} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{purge ? "Excluir definitivamente" : "Excluir cliente"} — {org.name}</DialogTitle>
+          <DialogDescription>{purge ? "Esta ação apaga todos os dados do grupo e NÃO pode ser desfeita." : "O acesso é bloqueado e os dados ficam guardados durante o prazo de recuperação."}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={go} className="grid gap-3">
+          {chk && (
+            <div className="space-y-1 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-medium">Dados afetados</p>
+              <p>{chk.athletes} atleta(s) · {chk.users} usuário(s) · {chk.matches} jogo(s) · {chk.charges} mensalidade(s) · {chk.payments} pagamento(s)</p>
+              {chk.has_subscription && <p>⚠ Há assinatura no Asaas{chk.paid_until ? ` (paga até ${dt(chk.paid_until)})` : ""}. Cancele-a no Asaas para não continuar cobrando.</p>}
+              {chk.mine && <p>⚠ Você pertence a este grupo: a exclusão será recusada.</p>}
+            </div>
+          )}
+          <Button type="button" variant="outline" onClick={exportAll}>Exportar dados do grupo (JSON)</Button>
+          {!purge && <>
+            <div className="space-y-1.5"><Label htmlFor="d-r">Motivo</Label><Input id="d-r" maxLength={250} value={reason} onChange={(e) => setReason(e.target.value)} required /></div>
+            <div className="space-y-1.5"><Label htmlFor="d-d">Prazo de recuperação (dias, 7 a 365)</Label><Input id="d-d" type="number" min={7} max={365} value={days} onChange={(e) => setDays(e.target.value)} required /></div>
+          </>}
+          <div className="space-y-1.5"><Label htmlFor="d-n">Digite o nome do grupo para confirmar: <b>{org.name}</b></Label><Input id="d-n" autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" variant="destructive" disabled={busy || name.trim() !== org.name || (!purge && !reason.trim())}>{purge ? "Excluir definitivamente" : "Excluir cliente"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function ClientePage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const { data, error, loading, reload } = useLoad(async () => {
     const r = await supabase().rpc("sa_org_detail", { p_org: id })
     if (r.error) throw new Error(r.error.message)
     return r.data as Detail
   }, [id])
   const [busy, setBusy] = React.useState(false)
+  const [del, setDel] = React.useState<"soft" | "purge" | null>(null)
   const [f, setF] = React.useState({ name: "", website: "", tagline: "", color: "", logo: "", footer: "" })
   const [c, setC] = React.useState({ name: "", email: "", phone: "" })
   React.useEffect(() => {
@@ -85,6 +155,8 @@ export default function ClientePage() {
   const { org: o, usage: u, staff, billing: b, access, changes } = data
   const wa = whats(o.contact_phone)
   const suspended = o.status === "suspensa" || o.status === "cancelada"
+  const deleted = o.status === "excluida"
+  const canPurge = deleted && !!o.purge_after && new Date(o.purge_after) <= new Date()
 
   return (
     <>
@@ -96,16 +168,25 @@ export default function ClientePage() {
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${BADGE[o.status] ?? "bg-secondary"}`}>{STATUS[o.status] ?? o.status}</span></h1>
             <p className="text-sm text-muted-foreground">{o.slug} · {o.plan_name} · cliente desde {dt(o.created_at)}</p>
             {o.status_reason && <p className="text-sm text-amber-800">Motivo: {o.status_reason}</p>}
+            {o.status === "suspensa" && o.suspended_at && <p className="text-xs text-muted-foreground">Suspenso em {dtm(o.suspended_at)}{o.suspended_by ? ` por ${o.suspended_by}` : ""}</p>}
+            {deleted && <p className="text-sm text-red-800">Excluído em {dtm(o.deleted_at ?? o.created_at)}{o.deleted_by ? ` por ${o.deleted_by}` : ""}. Recuperável até {dt(o.purge_after)}; a exclusão definitiva só é liberada depois dessa data.</p>}
           </div>
           <div className="flex flex-wrap gap-2">
+            {deleted ? <>
+              <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_restore_org", { p_org: o.id }), "Cliente restaurado.")}>Restaurar cliente</Button>
+              <Button variant="destructive" disabled={!canPurge} title={canPurge ? undefined : `Disponível após ${dt(o.purge_after)}`} onClick={() => setDel("purge")}>Excluir definitivamente</Button>
+            </> : <>
             {suspended
               ? <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_set_org_status", { p_org: o.id, p_status: "ativa", p_reason: null }), "Cliente reativado.")}>Reativar</Button>
               : <Button variant="outline" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${o.name}”? O acesso é bloqueado na hora e os dados são preservados. Motivo:`); if (r !== null) run(() => db().rpc("sa_set_org_status", { p_org: o.id, p_status: "suspensa", p_reason: r }), "Cliente suspenso.") }}>Suspender acesso</Button>}
             {o.status === "teste" && <Button variant="outline" disabled={busy} onClick={() => run(() => db().rpc("sa_extend_trial", { p_org: o.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias de teste</Button>}
+            <Button variant="destructive" onClick={() => setDel("soft")}>Excluir</Button>
+            </>}
           </div>
         </div>
       </div>
 
+      <DeleteDialog org={o} mode={del} onClose={() => setDel(null)} onDone={(purged) => { setDel(null); if (purged) router.push("/super"); else reload() }} />
       <Tabs defaultValue="geral">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="geral">Visão geral</TabsTrigger>

@@ -27,10 +27,12 @@ export default function SubscriptionPage() {
   const [doc, setDoc] = React.useState("")
   const [busy, setBusy] = React.useState(false)
   const [err, setErr] = React.useState<string | null>(null)
+  const [blk, setBlk] = React.useState<{ kind: string; reason: string | null; suspended_at: string | null } | null>(null)
 
   React.useEffect(() => {
     const sb = supabase()
     sb.rpc("my_billing").then((r) => setB(((r.data as Billing[] | null) ?? [])[0] ?? null))
+    sb.rpc("my_org_block").then((r) => setBlk(((r.data as { kind: string; reason: string | null; suspended_at: string | null }[] | null) ?? [])[0] ?? null))
     sb.rpc("billing_plans").then((r) => setPlans((r.data as Plan[] | null) ?? []))
   }, [])
 
@@ -47,6 +49,24 @@ export default function SubscriptionPage() {
 
   if (b === undefined) return <main className="grid min-h-dvh place-items-center text-sm text-muted-foreground">Carregando…</main>
   if (b === null) return <main className="grid min-h-dvh place-items-center p-6 text-center text-sm"><div>Não encontramos o seu grupo. <Link href="/login" className="underline">Entrar</Link></div></main>
+  if (blk?.kind === "manual" || blk?.kind === "excluida") {
+    return (
+      <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-4 py-10 text-center">
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">{b.org_name}</p>
+          <h1 className="text-2xl font-bold text-primary">{blk.kind === "excluida" ? "Este grupo está indisponível" : "Acesso temporariamente indisponível"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {blk.kind === "excluida"
+              ? "O grupo foi encerrado na plataforma. Se isso não era esperado, fale com o suporte: seus dados podem ainda estar disponíveis para recuperação."
+              : "O acesso deste grupo foi suspenso temporariamente. Seus dados continuam guardados e voltam assim que o acesso for restabelecido."}
+          </p>
+          {blk.kind === "manual" && blk.reason && <p className="rounded-xl border bg-secondary p-3 text-sm"><span className="font-medium">Motivo:</span> {blk.reason}</p>}
+          <p className="text-sm">Entre em contato com o suporte para regularizar a situação.</p>
+          <button onClick={signOut} className="text-sm text-muted-foreground underline">Sair</button>
+        </div>
+      </main>
+    )
+  }
   const h = headline(b)
   const canPay = b.is_admin && b.status !== "cancelada" && !(b.status === "ativa" && b.has_subscription)
   return (

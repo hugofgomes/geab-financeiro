@@ -2,6 +2,23 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.9.0",
+      "date": "2026-11-13",
+      "title": "Suspensão e exclusão segura de clientes",
+      "novidades": [
+        "Exclusão lógica de clientes: o acesso é bloqueado, os dados ficam guardados e o grupo pode ser restaurado durante um prazo configurável (padrão 30 dias).",
+        "Exclusão definitiva só depois do prazo, exigindo digitar o nome do grupo, com alerta dos dados afetados e aviso de assinatura ativa; apaga apenas os dados daquele grupo e deixa registro da exclusão.",
+        "Exportação de todos os dados do grupo em arquivo JSON (sem credenciais), com registro na auditoria.",
+        "Suspensão registra data e responsável; o cliente suspenso vê uma mensagem amigável com o motivo e a orientação de falar com o suporte."
+      ],
+      "melhorias": [
+        "Painel e indicadores não contam clientes excluídos; a lista oculta excluídos por padrão e permite filtrá-los."
+      ],
+      "correcoes": [
+        "Eventos de cobrança do Asaas não reativam um grupo excluído."
+      ]
+    },
+    {
       "version": "1.8.0",
       "date": "2026-11-13",
       "title": "Detalhe do cliente no painel do SaaS",

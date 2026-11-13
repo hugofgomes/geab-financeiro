@@ -35,12 +35,12 @@ type Dash = {
 type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; active: boolean; sort_order: number; orgs: number }
 type Data = { overview: Overview; orgs: Org[]; plans: Plan[]; dash: Dash }
 
-const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada" }
+const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada", excluida: "Excluída" }
 const dt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "—")
 const PAGE = 15
 const DAY = 86_400_000
 const BADGE: Record<string, string> = {
-  teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700",
+  teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700", excluida: "bg-red-100 text-red-800",
 }
 const mes = (m: string) => { const [y, n] = m.split("-"); return `${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][Number(n) - 1]}/${y.slice(2)}` }
 /** Vencimento: fim do teste (em teste) ou fim do período pago (ativa). */
@@ -181,7 +181,7 @@ export default function SuperPage() {
   }
   const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
   const filtered = orgs
-    .filter((g) => (!filter || g.status === filter) && (!planF || g.plan_code === planF) && (!q || norm([g.name, g.slug, g.contact_name, g.contact_email, g.contact_phone].join(" ")).includes(norm(q))))
+    .filter((g) => (filter ? g.status === filter : g.status !== "excluida") && (!planF || g.plan_code === planF) && (!q || norm([g.name, g.slug, g.contact_name, g.contact_email, g.contact_phone].join(" ")).includes(norm(q))))
     .sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * sort.dir)
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE))
   const cur = Math.min(page, pages - 1)
@@ -190,7 +190,9 @@ export default function SuperPage() {
     <TableHead className={cls}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => { setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 })); setPage(0) }}>
       {label}{sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : ""}</button></TableHead>
   )
-  const actions = (g: Org) => (
+  const actions = (g: Org) => g.status === "excluida" ? (
+    <div className="flex justify-end max-2xl:justify-start"><Link href={`/super/clientes/${g.id}`} className="text-sm text-primary hover:underline">Recuperar ou excluir definitivamente</Link></div>
+  ) : (
     <div className="flex flex-wrap justify-end gap-1.5 pr-2 max-2xl:justify-start max-2xl:pr-0">
                     {g.status === "suspensa" || g.status === "cancelada"
                       ? <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")}>Reativar</Button>
@@ -250,7 +252,7 @@ export default function SuperPage() {
         <h2 className="mr-auto text-sm font-semibold uppercase tracking-wide text-primary">Gerenciar clientes ({filtered.length})</h2>
         <Input aria-label="Buscar cliente" className="h-10 w-full sm:h-8 sm:w-56" placeholder="Nome, responsável, e-mail…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} />
         <NativeSelect aria-label="Situação" className="h-10 w-full sm:h-8 sm:w-auto" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(0) }}>
-          <option value="">Todas as situações</option>
+          <option value="">Todas (sem excluídos)</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </NativeSelect>
         <NativeSelect aria-label="Plano" className="h-10 w-full sm:h-8 sm:w-auto" value={planF} onChange={(e) => { setPlanF(e.target.value); setPage(0) }}>

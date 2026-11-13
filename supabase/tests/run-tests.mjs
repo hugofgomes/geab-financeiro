@@ -453,6 +453,67 @@ await as(uid(600), async () => {
   ok("alteração aparece no histórico", (await one(`select public.sa_org_detail($1)->'changes'`, [P.org])).some((c) => c.action === "SA_UPDATE_ORG"))
 }, true)
 
+section("Painel do SaaS: suspensão, exclusão e exclusão definitiva (0027)")
+{
+  const X = { org: uid(960), adm: uid(961), ath: uid(962), charge: uid(963), match: uid(964) }
+  await q(`insert into auth.users (id, email) values ($1,'x-adm@x')`, [X.adm])
+  await q(`insert into public.organizations (id, slug, name, status, plan_id) values ($1,'time-x','Time X','ativa', (select id from public.plans where code='basico'))`, [X.org])
+  await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Adm X','admin')`, [X.org, X.adm])
+  await q(`insert into public.athletes (id, tenant_id, full_name) values ($1,$2,'Atleta X')`, [X.ath, X.org])
+  await q(`insert into public.charges (id, tenant_id, athlete_id, competence, due_date, amount) values ($1,$2,$3,'2026-11-01','2026-11-10',100)`, [X.charge, X.org, X.ath])
+  await q(`insert into public.payments (tenant_id, athlete_id, charge_id, amount, paid_at) values ($1,$2,$3,40,current_date)`, [X.org, X.ath, X.charge])
+  await q(`insert into public.matches (id, tenant_id, match_date, status) values ($1,$2,current_date,'agendado')`, [X.match, X.org])
+  const before = {
+    geab: await one(`select count(*)::int from public.athletes where tenant_id = (select id from public.organizations where slug='geab')`),
+    pel: await one(`select count(*)::int from public.charges where tenant_id=$1`, [P.org]),
+  }
+  await as(U.geabAdmin, async () => {
+    ok("admin comum não exclui grupo", /restrito/i.test(await err(`select public.sa_delete_org('${X.org}','Time X','x',30)`) ?? ""))
+    ok("admin comum não exporta nem apaga", /restrito/i.test(await err(`select public.sa_org_export('${X.org}')`) ?? "") && /restrito/i.test(await err(`select public.sa_purge_org('${X.org}','Time X')`) ?? ""))
+  })
+  await as(X.adm, async () => {
+    ok("grupo ativo: my_org_block = ok", (await one(`select kind from public.my_org_block()`)) === "ok")
+  })
+  await as(uid(600), async () => {
+    await db.query(`select public.sa_set_org_status($1, 'suspensa', 'falta de contrato')`, [X.org])
+    const d = await one(`select public.sa_org_detail($1)->'org'`, [X.org])
+    ok("suspensão registra data, responsável e motivo", !!d.suspended_at && !!d.suspended_by && d.status_reason === "falta de contrato", JSON.stringify(d))
+    ok("excluir sem digitar o nome é recusado", /não confere/.test(await err(`select public.sa_delete_org('${X.org}','time x','x',30)`) ?? ""))
+    ok("prazo de recuperação inválido é recusado", /Prazo/.test(await err(`select public.sa_delete_org('${X.org}','Time X','x',1)`) ?? ""))
+    const chk = await one(`select public.sa_org_delete_check($1)`, [X.org])
+    ok("verificação mostra o que será afetado", chk.athletes === 1 && chk.payments === 1 && chk.matches === 1 && chk.users === 1, JSON.stringify(chk))
+  }, true)
+  await as(X.adm, async () => {
+    ok("suspenso manual: my_org_block mostra motivo", (await q(`select kind, reason from public.my_org_block()`))[0]?.kind === "manual")
+  })
+  await as(uid(600), async () => { await db.query(`select public.sa_delete_org($1,'Time X','encerrou',30)`, [X.org]) }, true)
+  ok("exclusão lógica não apaga nenhum dado", (await one(`select count(*)::int from public.athletes where tenant_id=$1`, [X.org])) === 1 && (await one(`select count(*)::int from public.payments where tenant_id=$1`, [X.org])) === 1)
+  await as(X.adm, async () => {
+    ok("grupo excluído: usuário sem acesso aos dados", (await one(`select count(*)::int from public.athletes`)) === 0)
+    ok("grupo excluído: my_org_block = excluida", (await one(`select kind from public.my_org_block()`)) === "excluida")
+  })
+  await q(`select public.billing_event('inexistente','PAYMENT_CONFIRMED')`)
+  await as(uid(600), async () => {
+    ok("exclusão definitiva antes do prazo é recusada", /prazo de recuperação/i.test(await err(`select public.sa_purge_org('${X.org}','Time X')`) ?? ""))
+    ok("situação de grupo excluído não é alterada sem restaurar", /restaure/i.test(await err(`select public.sa_set_org_status('${X.org}','ativa',null)`) ?? ""))
+    const ex = await one(`select public.sa_org_export($1)`, [X.org])
+    ok("exportação traz os dados do grupo e não traz credenciais", ex.tabelas.athletes.length === 1 && ex.tabelas.payments.length === 1 && !("btg_connection" in ex.tabelas), Object.keys(ex.tabelas).join())
+    await db.query(`select public.sa_restore_org($1)`, [X.org])
+  }, true)
+  ok("exportação ficou na auditoria", (await one(`select count(*)::int from public.audit_log where action='SA_EXPORT_ORG' and tenant_id=$1`, [X.org])) === 1)
+  ok("restaurar volta à situação anterior (suspensa)", (await one(`select status from public.organizations where id=$1`, [X.org])) === "suspensa")
+  await as(uid(600), async () => { await db.query(`select public.sa_set_org_status($1,'ativa',null)`, [X.org]); await db.query(`select public.sa_delete_org($1,'Time X','teste purge',7)`, [X.org]) }, true)
+  await q(`update public.org_internal set purge_after = now() - interval '1 day' where org_id=$1`, [X.org])
+  await as(uid(600), async () => {
+    ok("nome errado impede a exclusão definitiva", /não confere/.test(await err(`select public.sa_purge_org('${X.org}','Time')`) ?? ""))
+    const c = await one(`select public.sa_purge_org($1,'Time X')`, [X.org])
+    ok("exclusão definitiva apaga os dados do grupo", c.athletes === 1 && c.payments === 1, JSON.stringify(c))
+  }, true)
+  ok("grupo, usuário e dados sumiram", (await one(`select count(*)::int from public.organizations where id=$1`, [X.org])) === 0 && (await one(`select count(*)::int from auth.users where id=$1`, [X.adm])) === 0 && (await one(`select count(*)::int from public.charges where tenant_id=$1`, [X.org])) === 0)
+  ok("dados de OUTROS grupos continuam intactos", (await one(`select count(*)::int from public.athletes where tenant_id=(select id from public.organizations where slug='geab')`)) === before.geab && (await one(`select count(*)::int from public.charges where tenant_id=$1`, [P.org])) === before.pel)
+  ok("exclusão definitiva fica registrada", (await one(`select count(*)::int from public.platform_purges where slug='time-x'`)) === 1)
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)
