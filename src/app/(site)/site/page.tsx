@@ -1,6 +1,7 @@
 import { AthleteShowcase } from "@/components/site/athlete-showcase"
 import { Benefit, CircleDollarSign, DashboardScreen, Float, FinanceScreen, Laptop, LineupCardPhone, LineupScreen, Phone, Trophy, Users } from "@/components/site/mockups"
 import { Reveal } from "@/components/site/reveal"
+import { createClient } from "@supabase/supabase-js"
 import { ArrowRight } from "lucide-react"
 import type { Metadata } from "next"
 import Image from "next/image"
@@ -38,14 +39,34 @@ const TELAS = [
   { src: "/site/celular-caixa.png", w: 650, h: 1244, title: "Caixa", text: "Quem pagou, quem está pendente, com um toque para marcar pago." },
 ]
 
-const PLANS = [
-  { name: "Teste gratuito", price: "Grátis", note: "por 10 dias", athletes: "Até 30 jogadores", cta: "Criar meu grupo", hot: false },
-  { name: "Básico", price: "R$ 99", note: "por mês", athletes: "Até 60 jogadores", cta: "Criar meu grupo", hot: true },
-  { name: "Pro", price: "R$ 150", note: "por mês", athletes: "Até 200 jogadores", cta: "Criar meu grupo", hot: false },
+type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; max_admins: number | null; trial_days: number; modules: string[] }
+const MODULE_LABEL: Record<string, string> = { importar: "Importação de planilhas", ao_vivo: "Gols ao vivo", pix: "Pix automático", mensagens: "WhatsApp e e-mail" }
+const ALL_MODULES = Object.keys(MODULE_LABEL)
+// Reserva para quando o banco não responde (nome, preço e limites oficiais ficam no painel do SaaS).
+const FALLBACK: Plan[] = [
+  { code: "teste", name: "Teste gratuito", price_cents: 0, max_athletes: 30, max_admins: null, trial_days: 10, modules: ALL_MODULES },
+  { code: "basico", name: "Básico", price_cents: 9900, max_athletes: 60, max_admins: null, trial_days: 10, modules: ALL_MODULES },
+  { code: "pro", name: "Profissional", price_cents: 15000, max_athletes: 200, max_admins: null, trial_days: 10, modules: ALL_MODULES },
 ]
+export const revalidate = 300   // o site acompanha a tela de planos do painel, com até 5 minutos de atraso
+
+/** Planos vendidos e teste grátis, direto do banco (função pública public_plans). */
+async function loadPlans(): Promise<Plan[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return FALLBACK
+  try {
+    const { data, error } = await createClient(url, key, { auth: { persistSession: false } }).rpc("public_plans")
+    return !error && Array.isArray(data) && data.length ? (data as Plan[]) : FALLBACK
+  } catch { return FALLBACK }
+}
+const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 })
+
 const INCLUDED = ["Cadastro de atletas", "Mensalidades e caixa", "Jogos e escalações", "Gols e artilharia", "Card para WhatsApp", "Três níveis de acesso"]
 
-export default function SitePage() {
+export default async function SitePage() {
+  const plans = await loadPlans()
+  const paid = plans.filter((p) => p.price_cents > 0)
+  const hot = paid.length ? paid[0].code : null   // o plano de entrada recebe o selo Popular
   return (
     <>
       <Block id="gestao" tint title="Tudo do seu futebol em um só lugar." text="Organize jogadores, partidas, escalações, mensalidades e estatísticas em uma plataforma simples, inteligente e profissional."
@@ -107,17 +128,22 @@ export default function SitePage() {
         <div className="mx-auto max-w-6xl px-5">
           <Reveal className="mx-auto max-w-2xl text-center">
             <h2 id="planos-t" className={H2}>Um plano para o tamanho do seu grupo.</h2>
-            <p className="mt-4 text-lg text-slate-600">Comece grátis e evolua quando precisar. Todos os planos incluem os mesmos recursos.</p>
+            <p className="mt-4 text-lg text-slate-600">Comece grátis e evolua quando precisar. O que cada plano inclui está listado abaixo.</p>
           </Reveal>
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {PLANS.map((p, i) => (
-              <Reveal key={p.name} delay={i * 100}>
-                <div className={`flex h-full flex-col rounded-3xl border bg-white p-8 ${p.hot ? "border-[#0057B8] shadow-[0_20px_60px_-30px_rgba(0,87,184,.5)]" : "border-slate-200"}`}>
-                  <div className="flex items-center justify-between"><h3 className="text-lg font-semibold text-[#17365D]">{p.name}</h3>{p.hot && <span className="rounded-full bg-[#0057B8] px-3 py-1 text-xs font-medium text-white">Popular</span>}</div>
-                  <p className="mt-5"><span className="text-4xl font-bold text-[#17365D]">{p.price}</span> <span className="text-sm text-slate-500">{p.note}</span></p>
-                  <p className="mt-1 text-sm font-medium text-[#0057B8]">{p.athletes}</p>
-                  <ul className="mt-6 flex-1 space-y-3">{INCLUDED.map((x) => <Benefit key={x}>{x}</Benefit>)}</ul>
-                  <Link href="/novo-grupo" className={`mt-8 inline-flex justify-center rounded-full px-6 py-3 text-[15px] font-medium transition hover:-translate-y-0.5 ${p.hot ? "bg-[#0057B8] text-white hover:bg-[#004a9e]" : "border border-slate-200 text-[#17365D] hover:border-[#0057B8]/40"}`}>{p.cta}</Link>
+          <div className={`mt-14 grid gap-6 ${plans.length >= 4 ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
+            {plans.map((p, i) => (
+              <Reveal key={p.code} delay={i * 100}>
+                <div className={`flex h-full flex-col rounded-3xl border bg-white p-8 ${p.code === hot ? "border-[#0057B8] shadow-[0_20px_60px_-30px_rgba(0,87,184,.5)]" : "border-slate-200"}`}>
+                  <div className="flex items-center justify-between"><h3 className="text-lg font-semibold text-[#17365D]">{p.name}</h3>{p.code === hot && <span className="rounded-full bg-[#0057B8] px-3 py-1 text-xs font-medium text-white">Popular</span>}</div>
+                  <p className="mt-5"><span className="text-4xl font-bold text-[#17365D]">{p.price_cents ? brl(p.price_cents) : "Grátis"}</span> <span className="text-sm text-slate-500">{p.price_cents ? "por mês" : `por ${p.trial_days} dias`}</span></p>
+                  <p className="mt-1 text-sm font-medium text-[#0057B8]">{p.max_athletes ? `Até ${p.max_athletes} jogadores` : "Jogadores ilimitados"} · {p.max_admins ? `${p.max_admins} ${p.max_admins === 1 ? "administrador" : "administradores"}` : "administradores ilimitados"}</p>
+                  <ul className="mt-6 flex-1 space-y-3">
+                    {INCLUDED.map((x) => <Benefit key={x}>{x}</Benefit>)}
+                    {ALL_MODULES.map((m) => p.modules.includes(m)
+                      ? <Benefit key={m}>{MODULE_LABEL[m]}</Benefit>
+                      : <li key={m} className="flex items-start gap-3 text-[15px] text-slate-400 line-through decoration-slate-300"><span aria-hidden className="mt-0.5 grid size-5 shrink-0 place-items-center text-slate-300">–</span><span><span className="sr-only">Não inclui: </span>{MODULE_LABEL[m]}</span></li>)}
+                  </ul>
+                  <Link href="/novo-grupo" className={`mt-8 inline-flex justify-center rounded-full px-6 py-3 text-[15px] font-medium transition hover:-translate-y-0.5 ${p.code === hot ? "bg-[#0057B8] text-white hover:bg-[#004a9e]" : "border border-slate-200 text-[#17365D] hover:border-[#0057B8]/40"}`}>{p.price_cents ? `Começar com o ${p.name}` : `Testar ${p.trial_days} dias grátis`}</Link>
                 </div>
               </Reveal>
             ))}

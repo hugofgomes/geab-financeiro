@@ -50,3 +50,14 @@ end $$;
 revoke execute on function public.create_my_org(text, text), public.request_join_group(text) from public, anon;
 grant execute on function public.create_my_org(text, text), public.request_join_group(text) to authenticated;
 grant execute on function public.public_trial_days() to anon, authenticated;
+
+-- Planos exibidos no site de divulgação (nome, preço, limites e módulos vêm do banco, então o site acompanha a tela de planos).
+-- Mostra o teste gratuito e os planos pagos ativos; o plano interno e os inativos (ex.: Premium sem preço) ficam de fora.
+create function public.public_plans()
+returns table (code text, name text, price_cents int, max_athletes int, max_admins int, trial_days int, modules text[], sort_order smallint)
+language sql stable security definer set search_path = public as $$
+  select code, name, price_cents, max_athletes, max_admins, trial_days, modules, sort_order
+  from public.plans where active and (price_cents > 0 or code = 'teste') order by sort_order, price_cents
+$$;
+grant execute on function public.public_plans() to anon, authenticated;
+-- Reversão (acrescentar): drop function public.public_plans();

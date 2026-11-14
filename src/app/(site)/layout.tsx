@@ -15,14 +15,16 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           </nav>
           <div className="hidden items-center gap-3 md:flex">
             <Link href="/login" className="text-sm text-slate-600 transition-colors hover:text-[#0057B8]">Entrar</Link>
-            <Link href="/demo" className="rounded-full bg-[#0057B8] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-px hover:bg-[#004a9e]">Testar demonstração</Link>
+            <Link href="/demo" className="text-sm text-slate-600 transition-colors hover:text-[#0057B8]">Demonstração</Link>
+            <Link href="/novo-grupo" className="rounded-full bg-[#0057B8] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-px hover:bg-[#004a9e]">Criar conta grátis</Link>
           </div>
           <details className="group relative md:hidden">
             <summary aria-label="Abrir menu" className="grid size-10 cursor-pointer list-none place-items-center rounded-lg text-[#17365D] [&::-webkit-details-marker]:hidden"><Menu className="size-6" /></summary>
             <div className="absolute right-0 mt-2 w-64 space-y-1 rounded-2xl border border-slate-100 bg-white p-3 shadow-xl">
               {LINKS.map(([t, h]) => <a key={t} href={h} className="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">{t}</a>)}
               <Link href="/login" className="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">Entrar</Link>
-              <Link href="/demo" className="mt-1 flex items-center justify-center gap-2 rounded-full bg-[#0057B8] px-4 py-3 text-sm font-medium text-white">Testar demonstração <ArrowRight className="size-4" /></Link>
+              <Link href="/demo" className="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">Demonstração</Link>
+              <Link href="/novo-grupo" className="mt-1 flex items-center justify-center gap-2 rounded-full bg-[#0057B8] px-4 py-3 text-sm font-medium text-white">Criar conta grátis <ArrowRight className="size-4" /></Link>
             </div>
           </details>
         </div>

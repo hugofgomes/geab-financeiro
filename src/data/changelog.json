@@ -11,7 +11,9 @@
       ],
       "melhorias": [
         "A tela de criar grupo e a confirmação de e-mail mostram os dias de teste grátis do plano de teste (10), em vez de um número fixo.",
-        "Tela de login deixa claro o caminho de atleta e o de criar grupo."
+        "Tela de login deixa claro o caminho de atleta e o de criar grupo.",
+        "Site de divulgação: planos, preços, limites de jogadores e administradores, dias de teste e módulos incluídos agora vêm do painel de planos (o plano Pro aparece como Profissional); itens que o plano não inclui aparecem riscados, e o aviso falso de que todos os planos têm os mesmos recursos foi removido.",
+        "Site de divulgação: botão Criar conta grátis no topo e botões dos planos com o nome do plano e os dias de teste."
       ],
       "correcoes": [
         "Corrigida a tela Acesso ainda não liberado para quem se cadastrava pelo endereço principal sem grupo: o cadastro ficava sem destino e sem os 10 dias de teste."
