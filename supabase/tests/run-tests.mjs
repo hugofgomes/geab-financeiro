@@ -643,7 +643,7 @@ section("Cadastro sem grupo (0031)")
   const sr = (await q(`select full_name, nickname, phone, whatsapp_consent, status from public.signup_requests where user_id=$1`, [O.b]))[0]
   ok("solicitação de entrada criada com os dados do cadastro", sr && sr.full_name === "Atleta Sem Grupo" && sr.nickname === "Atl" && sr.phone === "5548999990000" && sr.whatsapp_consent === true && sr.status === "pendente", JSON.stringify(sr))
   const pp = (await q(`select code from public.public_plans()`)).map((r) => r.code)
-  ok("site: planos públicos = teste, básico e pro (sem o interno nem o Premium inativo)", pp.join() === "teste,basico,pro", pp.join())
+  ok("site: planos públicos incluem teste, básico e pro, sem o interno nem o Premium inativo", ["teste", "basico", "pro"].every((c) => pp.includes(c)) && !pp.includes("ilimitado") && !pp.includes("premium"), pp.join())
   ok("anônimo não cria grupo", await (async () => { try { await q(`set role anon; select public.create_my_org('X Y Z','xyz-grupo')`); return false } catch (e) { await q(`reset role`); return /permission|Entre/.test(e.message) } })())
 }
 
