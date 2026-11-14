@@ -47,7 +47,7 @@ function Form() {
         {busy && <Loader2 className="animate-spin" />} Entrar
       </Button>
       <p className="text-center text-sm"><Link href="/recuperar" className="text-muted-foreground underline">Esqueci minha senha</Link></p>
-      <p className="text-center text-sm text-muted-foreground">Primeiro acesso? <Link href="/cadastro" className="underline">Cadastre-se</Link> · <Link href="/novo-grupo" className="underline">Criar meu grupo</Link></p>
+      <p className="text-center text-sm text-muted-foreground">Sou atleta: <Link href="/cadastro" className="underline">cadastre-se</Link> · Tenho um grupo: <Link href="/novo-grupo" className="underline">criar e testar grátis</Link></p>
     </form>
   )
 }

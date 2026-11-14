@@ -2,6 +2,21 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.12.1",
+      "date": "2026-11-14",
+      "title": "Cadastro sem grupo e teste grátis",
+      "novidades": [
+        "Quem cria conta sem indicar um grupo agora escolhe, ao entrar: criar o próprio grupo (com o teste gratuito) ou pedir entrada em um grupo existente, com os dados do cadastro aproveitados."
+      ],
+      "melhorias": [
+        "A tela de criar grupo e a confirmação de e-mail mostram os dias de teste grátis do plano de teste (10), em vez de um número fixo.",
+        "Tela de login deixa claro o caminho de atleta e o de criar grupo."
+      ],
+      "correcoes": [
+        "Corrigida a tela Acesso ainda não liberado para quem se cadastrava pelo endereço principal sem grupo: o cadastro ficava sem destino e sem os 10 dias de teste."
+      ]
+    },
+    {
       "version": "1.12.0",
       "date": "2026-11-13",
       "title": "Notificações de vencimento",

@@ -622,6 +622,29 @@ section("Notificações de vencimento (0030)")
   })
 }
 
+section("Cadastro sem grupo (0031)")
+{
+  const O = { a: uid(1001), b: uid(1002), c: uid(1003), d: uid(1004) }
+  await q(`insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data) values ($1,'sg-a@x',now(),'{"full_name":"Pessoa Sem Grupo"}'), ($2,'sg-b@x',now(),'{"full_name":"Atleta Sem Grupo","nickname":"Atl","phone":"5548999990000","birth_date":"1990-05-05","whatsapp_consent":"true"}'), ($3,'sg-c@x',null,'{}')`, [O.a, O.b, O.c])
+  ok("public_trial_days = 10 (do plano de teste)", (await one(`select public.public_trial_days()`)) === 10)
+  await as(O.c, async () => { ok("e-mail não confirmado não cria grupo", /Confirme/.test(await err(`select public.create_my_org('Grupo C','grupo-c')`) ?? "")) })
+  await as(O.a, async () => {
+    ok("endereço inválido é recusado", /indisponível/.test(await err(`select public.create_my_org('Grupo A','x')`) ?? ""))
+    ok("nome curto é recusado", /nome do grupo/.test(await err(`select public.create_my_org('Ab','grupo-a')`) ?? ""))
+    await db.query(`select public.create_my_org('Grupo A','grupo-a')`)
+  }, true)
+  ok("grupo criado em teste de 10 dias", (await one(`select round(extract(epoch from (trial_ends_at - now())) / 86400)::int from public.organizations where slug='grupo-a'`)) === 10)
+  ok("a pessoa virou administradora do grupo", (await one(`select role::text from public.profiles where id=$1`, [O.a])) === "admin")
+  await as(O.a, async () => { ok("não cria um segundo grupo", /já pertence/.test(await err(`select public.create_my_org('Outro','grupo-a2')`) ?? "")) })
+  await as(O.b, async () => {
+    ok("grupo inexistente é recusado", /não encontrado/.test(await err(`select public.request_join_group('nao-existe')`) ?? ""))
+    await db.query(`select public.request_join_group('grupo-a')`)
+  }, true)
+  const sr = (await q(`select full_name, nickname, phone, whatsapp_consent, status from public.signup_requests where user_id=$1`, [O.b]))[0]
+  ok("solicitação de entrada criada com os dados do cadastro", sr && sr.full_name === "Atleta Sem Grupo" && sr.nickname === "Atl" && sr.phone === "5548999990000" && sr.whatsapp_consent === true && sr.status === "pendente", JSON.stringify(sr))
+  ok("anônimo não cria grupo", await (async () => { try { await q(`set role anon; select public.create_my_org('X Y Z','xyz-grupo')`); return false } catch (e) { await q(`reset role`); return /permission|Entre/.test(e.message) } })())
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

@@ -13,9 +13,11 @@ import * as React from "react"
 
 type Avail = "idle" | "checking" | "ok" | "taken"
 
-/** Cria um grupo novo: quem se cadastra vira a Diretoria. O grupo nasce em teste de 14 dias, depois da confirmação do e-mail. */
+/** Cria um grupo novo: quem se cadastra vira a Diretoria. O grupo nasce em teste gratuito (dias definidos no plano de teste), depois da confirmação do e-mail. */
 export default function NewGroupPage() {
   const [f, setF] = React.useState({ grupo: "", slug: "", nome: "", email: "", senha: "", senha2: "", site: "" })
+  const [days, setDays] = React.useState(10)
+  React.useEffect(() => { supabase().rpc("public_trial_days").then((r) => { if (typeof r.data === "number") setDays(r.data) }) }, [])
   const [slugTouched, setSlugTouched] = React.useState(false)
   const [avail, setAvail] = React.useState<Avail>("idle")
   const [terms, setTerms] = React.useState(false)
@@ -71,12 +73,13 @@ export default function NewGroupPage() {
         <div className="text-center">
           <h1 className="text-xl font-bold tracking-wide uppercase">Criar meu grupo</h1>
           <p className="text-sm text-muted-foreground">Mensalidades, jogos, escalações e artilharia do seu grupo de futebol</p>
+          <p className="mt-1 inline-block rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">{days} dias grátis para testar, sem cartão</p>
         </div>
         {sent ? (
           <div className="space-y-3 text-center">
             <MailCheck className="mx-auto size-10 text-primary" aria-hidden />
             <h2 className="text-lg font-semibold">Confirme o seu e-mail</h2>
-            <p className="text-sm text-muted-foreground">Enviamos um link para <b>{sent}</b>. Depois de confirmar, entre com a sua senha: o grupo já estará criado, com 14 dias de teste.</p>
+            <p className="text-sm text-muted-foreground">Enviamos um link para <b>{sent}</b>. Depois de confirmar, entre com a sua senha: o grupo já estará criado, com {days} dias de teste grátis.</p>
             <Link href="/login" className="text-sm underline">Ir para o login</Link>
           </div>
         ) : (
