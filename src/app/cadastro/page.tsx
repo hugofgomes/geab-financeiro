@@ -9,22 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
-import { normalizePhone } from "@/lib/whatsapp"
+import { maskPhone, normalizePhone } from "@/lib/whatsapp"
 import { Loader2, MailCheck, Rocket, Users } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
 const COOLDOWN = 60
-
-/** Máscara (48) 99999-8888 enquanto digita; números com + (internacionais) ficam como digitados. */
-function maskPhone(v: string) {
-  if (v.trim().startsWith("+")) return v.replace(/[^\d+ ()-]/g, "").slice(0, 20)
-  const d = v.replace(/\D/g, "").slice(0, 11)
-  if (d.length <= 2) return d
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-}
 
 function Shell({ children, group, subtitle = "Cadastro de atleta" }: { children: React.ReactNode; group?: string | null; subtitle?: string }) {
   const { org } = usePublicOrg(group)
@@ -139,6 +129,7 @@ export default function SignupPage() {
     const email = f.email.trim().toLowerCase()
     const fone = normalizePhone(f.fone)
     if (nome.length < 3 || !nome.includes(" ")) return setError("Informe seu nome completo.")
+    if (f.apelido.trim().length < 2) return setError("Informe o seu apelido (como o grupo te chama).")
     const hoje = new Date().toISOString().slice(0, 10)
     if (!f.nascimento || f.nascimento > hoje || f.nascimento < "1900-01-01") return setError("Informe uma data de nascimento válida.")
     if (!fone || fone.length < 12 || fone.length > 15) return setError("Informe o WhatsApp com DDD, por exemplo (48) 99999-8888.")
@@ -172,8 +163,8 @@ export default function SignupPage() {
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="apelido">Apelido <span className="text-muted-foreground">(opcional)</span></Label>
-            <Input id="apelido" maxLength={60} value={f.apelido} onChange={set("apelido")} />
+            <Label htmlFor="apelido">Apelido</Label>
+            <Input id="apelido" required maxLength={60} value={f.apelido} onChange={set("apelido")} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="nascimento">Data de nascimento</Label>

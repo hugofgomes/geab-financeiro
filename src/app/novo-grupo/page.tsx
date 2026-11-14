@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import { orgAddress, slugify } from "@/lib/tenant"
+import { maskPhone, normalizePhone } from "@/lib/whatsapp"
 import { Loader2, MailCheck } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -15,7 +16,7 @@ type Avail = "idle" | "checking" | "ok" | "taken"
 
 /** Cria um grupo novo: quem se cadastra vira a Diretoria. O grupo nasce em teste gratuito (dias definidos no plano de teste), depois da confirmação do e-mail. */
 export default function NewGroupPage() {
-  const [f, setF] = React.useState({ grupo: "", slug: "", nome: "", email: "", senha: "", senha2: "", site: "" })
+  const [f, setF] = React.useState({ grupo: "", slug: "", nome: "", fone: "", email: "", senha: "", senha2: "", site: "" })
   const [days, setDays] = React.useState(10)
   React.useEffect(() => { supabase().rpc("public_trial_days").then((r) => { if (typeof r.data === "number") setDays(r.data) }) }, [])
   const [slugTouched, setSlugTouched] = React.useState(false)
@@ -45,7 +46,9 @@ export default function NewGroupPage() {
     const nome = f.nome.trim().replace(/\s+/g, " "), grupo = f.grupo.trim().replace(/\s+/g, " "), email = f.email.trim().toLowerCase()
     if (grupo.length < 3) return setError("Informe o nome do grupo.")
     if (avail !== "ok") return setError("Escolha um endereço disponível para o grupo.")
-    if (nome.length < 3) return setError("Informe o seu nome completo.")
+    if (nome.length < 3 || !nome.includes(" ")) return setError("Informe o seu nome completo.")
+    const fone = normalizePhone(f.fone)
+    if (!fone || fone.length < 12 || fone.length > 15) return setError("Informe o seu WhatsApp com DDD, por exemplo (48) 99999-8888.")
     if (f.senha.length < 8) return setError("A senha precisa ter pelo menos 8 caracteres.")
     if (f.senha !== f.senha2) return setError("As senhas não conferem.")
     if (!terms) return setError("É preciso aceitar os termos para continuar.")
@@ -53,7 +56,7 @@ export default function NewGroupPage() {
     setBusy(true)
     const { error: err } = await supabase().auth.signUp({
       email, password: f.senha,
-      options: { data: { full_name: nome, new_org_name: grupo, new_org_slug: f.slug } },
+      options: { data: { full_name: nome, phone: fone, new_org_name: grupo, new_org_slug: f.slug } },
     })
     setBusy(false)
     if (err) {
@@ -93,6 +96,8 @@ export default function NewGroupPage() {
               </p></div>
             <div className="space-y-1.5"><Label htmlFor="n">Seu nome completo</Label>
               <Input id="n" autoComplete="name" required maxLength={120} value={f.nome} onChange={set("nome")} /></div>
+            <div className="space-y-1.5"><Label htmlFor="f">WhatsApp</Label>
+              <Input id="f" type="tel" inputMode="tel" autoComplete="tel" required placeholder="(48) 99999-8888" value={f.fone} onChange={(e) => setF((x) => ({ ...x, fone: maskPhone(e.target.value) }))} /></div>
             <div className="space-y-1.5"><Label htmlFor="e">E-mail</Label>
               <Input id="e" type="email" autoComplete="email" required value={f.email} onChange={set("email")} /></div>
             <div className="grid gap-3.5 sm:grid-cols-2">

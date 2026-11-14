@@ -215,7 +215,7 @@ await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($
 ok("organização inexistente: não cria solicitação", (await one(`select count(*)::int from public.signup_requests where user_id=$1`, [uid(303)])) === 0)
 
 section("Etapa 2: novos grupos, identidade e suspensão")
-await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'dono@futsal','{"full_name":"Dona Futsal","new_org_slug":"futsal-amigos","new_org_name":"Futsal dos Amigos"}')`, [uid(401)])
+await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'dono@futsal','{"full_name":"Dona Futsal","phone":"5548999991111","new_org_slug":"futsal-amigos","new_org_name":"Futsal dos Amigos"}')`, [uid(401)])
 const fut = await q(`select o.id, o.status, o.trial_ends_at is not null as trial, p.role from public.organizations o join public.profiles p on p.tenant_id = o.id and p.id = $1 where o.slug = 'futsal-amigos'`, [uid(401)])
 ok("cadastro com new_org cria o grupo em teste e torna o usuário administrador", fut.length === 1 && fut[0].status === "teste" && fut[0].trial && fut[0].role === "admin", JSON.stringify(fut))
 await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'x@dup','{"new_org_slug":"geab","new_org_name":"Copia"}'),($2,'y@res','{"new_org_slug":"admin","new_org_name":"Reservado"}')`, [uid(402), uid(403)])
@@ -622,6 +622,14 @@ section("Notificações de vencimento (0030)")
   })
 }
 
+section("Cadastro com telefone obrigatório (0032)")
+{
+  const errq = async (sql) => { try { await q(sql); return null } catch (e) { return e.message } }
+  ok("novo grupo sem telefone é recusado", /telefone/.test(await errq(`insert into auth.users (id, email, raw_user_meta_data) values ('${uid(1010)}','sf@x','{"full_name":"Sem Fone","new_org_slug":"sem-fone","new_org_name":"Sem Fone FC"}')`) ?? ""))
+  ok("novo grupo sem nome completo é recusado", /nome completo/.test(await errq(`insert into auth.users (id, email, raw_user_meta_data) values ('${uid(1011)}','sn@x','{"phone":"5548999991111","new_org_slug":"sem-nome","new_org_name":"Sem Nome FC"}')`) ?? ""))
+  ok("nada foi criado nos cadastros recusados", (await one(`select count(*)::int from public.organizations where slug in ('sem-fone','sem-nome')`)) === 0)
+}
+
 section("Cadastro sem grupo (0031)")
 {
   const O = { a: uid(1001), b: uid(1002), c: uid(1003), d: uid(1004) }
@@ -629,9 +637,10 @@ section("Cadastro sem grupo (0031)")
   ok("public_trial_days = 10 (do plano de teste)", (await one(`select public.public_trial_days()`)) === 10)
   await as(O.c, async () => { ok("e-mail não confirmado não cria grupo", /Confirme/.test(await err(`select public.create_my_org('Grupo C','grupo-c')`) ?? "")) })
   await as(O.a, async () => {
-    ok("endereço inválido é recusado", /indisponível/.test(await err(`select public.create_my_org('Grupo A','x')`) ?? ""))
+    ok("endereço inválido é recusado", /indisponível/.test(await err(`select public.create_my_org('Grupo A','x','48999998888')`) ?? ""))
+    ok("telefone é obrigatório para criar o grupo", /telefone/.test(await err(`select public.create_my_org('Grupo A','grupo-a')`) ?? ""))
     ok("nome curto é recusado", /nome do grupo/.test(await err(`select public.create_my_org('Ab','grupo-a')`) ?? ""))
-    await db.query(`select public.create_my_org('Grupo A','grupo-a')`)
+    await db.query(`select public.create_my_org('Grupo A','grupo-a','(48) 99999-8888')`)
   }, true)
   ok("grupo criado em teste de 10 dias", (await one(`select round(extract(epoch from (trial_ends_at - now())) / 86400)::int from public.organizations where slug='grupo-a'`)) === 10)
   ok("a pessoa virou administradora do grupo", (await one(`select role::text from public.profiles where id=$1`, [O.a])) === "admin")
@@ -644,6 +653,8 @@ section("Cadastro sem grupo (0031)")
   ok("solicitação de entrada criada com os dados do cadastro", sr && sr.full_name === "Atleta Sem Grupo" && sr.nickname === "Atl" && sr.phone === "5548999990000" && sr.whatsapp_consent === true && sr.status === "pendente", JSON.stringify(sr))
   const pp = (await q(`select code from public.public_plans()`)).map((r) => r.code)
   ok("site: planos públicos incluem teste, básico e pro, sem o interno nem o Premium inativo", ["teste", "basico", "pro"].every((c) => pp.includes(c)) && !pp.includes("ilimitado") && !pp.includes("premium"), pp.join())
+  ok("cadastro do grupo grava o responsável no painel do SaaS", (await q(`select contact_name, contact_email, contact_phone from public.org_internal where org_id = (select id from public.organizations where slug='futsal-amigos')`)).some((r) => r.contact_name === "Dona Futsal" && r.contact_email === "dono@futsal" && r.contact_phone === "5548999991111"))
+  ok("contato do grupo criado depois também é gravado", (await one(`select contact_phone from public.org_internal where org_id = (select id from public.organizations where slug='grupo-a')`)) === "5548999998888")
   ok("anônimo não cria grupo", await (async () => { try { await q(`set role anon; select public.create_my_org('X Y Z','xyz-grupo')`); return false } catch (e) { await q(`reset role`); return /permission|Entre/.test(e.message) } })())
 }
 

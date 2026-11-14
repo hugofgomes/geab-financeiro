@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import { slugify } from "@/lib/tenant"
+import { maskPhone, normalizePhone } from "@/lib/whatsapp"
 import type { SignupRequest } from "@/lib/types"
 import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react"
 import { toast } from "sonner"
@@ -22,12 +23,16 @@ function NoGroup() {
   const [days, setDays] = React.useState(10)
   const [name, setName] = React.useState("")
   const [slug, setSlug] = React.useState("")
+  const [fone, setFone] = React.useState("")
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState("")
   React.useEffect(() => { supabase().rpc("public_trial_days").then((r) => { if (typeof r.data === "number") setDays(r.data) }) }, [])
   async function go(e: React.FormEvent) {
-    e.preventDefault(); setError(""); setBusy(true)
-    const r = mode === "create" ? await supabase().rpc("create_my_org", { p_name: name, p_slug: slug }) : await supabase().rpc("request_join_group", { p_slug: slug })
+    e.preventDefault(); setError("")
+    const tel = normalizePhone(fone)
+    if (mode === "create" && (!tel || tel.length < 12 || tel.length > 15)) return setError("Informe o seu WhatsApp com DDD, por exemplo (48) 99999-8888.")
+    setBusy(true)
+    const r = mode === "create" ? await supabase().rpc("create_my_org", { p_name: name, p_slug: slug, p_phone: tel }) : await supabase().rpc("request_join_group", { p_slug: slug })
     setBusy(false)
     if (r.error) return setError(r.error.message)
     toast.success(mode === "create" ? "Grupo criado!" : "Pedido enviado.")
@@ -53,6 +58,7 @@ function NoGroup() {
             <Label htmlFor="g-s">{mode === "create" ? "Endereço do grupo" : "Endereço do grupo (peça à administração)"}</Label>
             <Input id="g-s" required maxLength={40} placeholder="ex.: pelada-da-quarta" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} />
           </div>
+          {mode === "create" && <div className="space-y-1.5"><Label htmlFor="g-f">Seu WhatsApp</Label><Input id="g-f" type="tel" inputMode="tel" autoComplete="tel" required placeholder="(48) 99999-8888" value={fone} onChange={(e) => setFone(maskPhone(e.target.value))} /></div>}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex gap-2">
             <Button type="button" variant="outline" className="h-11" onClick={() => { setMode(null); setError("") }}>Voltar</Button>

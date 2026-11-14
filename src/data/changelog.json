@@ -2,6 +2,19 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.12.2",
+      "date": "2026-11-14",
+      "title": "Cadastro com telefone obrigatório",
+      "novidades": [
+        "Cadastro de novo grupo agora pede o WhatsApp do responsável (com máscara e validação de DDD); o nome, o e-mail e o telefone já aparecem como contato do cliente no painel do SaaS."
+      ],
+      "melhorias": [
+        "No cadastro de atleta o apelido passou a ser obrigatório; todos os campos são exigidos já no primeiro cadastro (somente o aceite de mensagens pelo WhatsApp continua opcional, por ser um consentimento).",
+        "O banco também exige nome completo e telefone ao criar um grupo, então a regra vale mesmo fora da tela."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.12.1",
       "date": "2026-11-14",
       "title": "Cadastro sem grupo e teste grátis",
