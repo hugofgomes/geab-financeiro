@@ -10,19 +10,19 @@ export type MyOrg = Org & { id: string; status: string; trial_ends_at: string | 
 export const ORG_CHANGED = "geab:org"
 
 /** Identidade pública do grupo (login e cadastro, antes de entrar). O slug vem do endereço; sem ele, a única organização. */
-export function usePublicOrg() {
+export function usePublicOrg(slug?: string | null) {
   const [org, setOrg] = React.useState<Org | null>(null)
   const [loading, setLoading] = React.useState(true)
   React.useEffect(() => {
     if (!supabaseConfigured) { setLoading(false); return }
     let alive = true
-    supabase().rpc("org_public", { p_slug: clientSlug() }).then((r) => {
+    supabase().rpc("org_public", { p_slug: slug ?? clientSlug() }).then((r) => {
       if (!alive) return
       setOrg(((r.data ?? []) as Org[])[0] ?? null)
       setLoading(false)
     })
     return () => { alive = false }
-  }, [])
+  }, [slug])
   return { org, loading }
 }
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
+import { clientSlug } from "@/lib/tenant"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -17,6 +18,8 @@ function Form() {
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [busy, setBusy] = React.useState(false)
+  const [inGroup, setInGroup] = React.useState(false)   // endereço do próprio grupo (slug.dominio): aí o cadastro é de atleta
+  React.useEffect(() => { setInGroup(!!clientSlug()) }, [])
   const [error, setError] = React.useState(params.get("erro") === "link-invalido" ? "Link de confirmação inválido ou expirado. Faça login, ou cadastre-se de novo para receber outro e-mail." : "")
 
   async function submit(e: React.FormEvent) {
@@ -47,7 +50,7 @@ function Form() {
         {busy && <Loader2 className="animate-spin" />} Entrar
       </Button>
       <p className="text-center text-sm"><Link href="/recuperar" className="text-muted-foreground underline">Esqueci minha senha</Link></p>
-      <p className="text-center text-sm text-muted-foreground">Sou atleta: <Link href="/cadastro" className="underline">cadastre-se</Link> · Tenho um grupo: <Link href="/novo-grupo" className="underline">criar e testar grátis</Link></p>
+      <p className="text-center text-sm text-muted-foreground">{inGroup ? <>Primeiro acesso? <Link href="/cadastro" className="underline">Cadastre-se como atleta</Link></> : <>Ainda não tem conta? <Link href="/cadastro" className="font-medium underline">Criar conta e testar grátis</Link></>}</p>
     </form>
   )
 }

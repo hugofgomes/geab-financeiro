@@ -3,14 +3,14 @@
 import { SetupNotice } from "@/components/setup-notice"
 import { OrgHeading } from "@/components/org-heading"
 import { usePublicOrg } from "@/hooks/use-org"
-import { clientSlug } from "@/lib/tenant"
+import { clientSlug, slugify } from "@/lib/tenant"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import { normalizePhone } from "@/lib/whatsapp"
-import { Loader2, MailCheck } from "lucide-react"
+import { Loader2, MailCheck, Rocket, Users } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -26,12 +26,12 @@ function maskPhone(v: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
-  const { org } = usePublicOrg()
+function Shell({ children, group, subtitle = "Cadastro de atleta" }: { children: React.ReactNode; group?: string | null; subtitle?: string }) {
+  const { org } = usePublicOrg(group)
   return (
     <div className="grid min-h-dvh place-items-center bg-[#1E3A5F] p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl bg-card p-6 shadow-xl">
-        <OrgHeading org={org} subtitle="Cadastro de atleta" />
+        <OrgHeading org={org} subtitle={subtitle} />
         {children}
       </div>
     </div>
@@ -73,7 +73,53 @@ function Sent({ email }: { email: string }) {
   )
 }
 
+/** Endereço principal, sem grupo: o caminho padrão é criar o grupo (teste grátis); atleta informa o endereço do grupo dele. */
+function Chooser({ days }: { days: number }) {
+  const [slug, setSlug] = React.useState("")
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState("")
+  const [open, setOpen] = React.useState(false)
+  async function go(e: React.FormEvent) {
+    e.preventDefault(); setError(""); setBusy(true)
+    const { data } = await supabase().rpc("org_public", { p_slug: slug })
+    setBusy(false)
+    if (!Array.isArray(data) || !data.length) return setError("Grupo não encontrado. Confira o endereço com a administração do seu grupo.")
+    window.location.href = `/cadastro?grupo=${encodeURIComponent(slug)}`
+  }
+  return (
+    <div className="space-y-4">
+      <Link href="/novo-grupo" className="flex items-center gap-3 rounded-xl border-2 border-primary bg-primary/5 p-4 transition hover:bg-primary/10">
+        <Rocket className="size-7 shrink-0 text-primary" aria-hidden />
+        <span><span className="block font-semibold">Quero usar o sistema no meu grupo</span><span className="block text-sm text-muted-foreground">Criar minha conta e testar {days} dias grátis, sem cartão</span></span>
+      </Link>
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} className="flex min-h-14 w-full items-center gap-3 rounded-xl border p-4 text-left transition hover:bg-secondary">
+          <Users className="size-6 shrink-0 text-muted-foreground" aria-hidden />
+          <span><span className="block font-medium">Sou atleta de um grupo</span><span className="block text-sm text-muted-foreground">Entrar no grupo que já usa o sistema</span></span>
+        </button>
+      ) : (
+        <form onSubmit={go} className="space-y-3 rounded-xl border p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="gs">Endereço do seu grupo</Label>
+            <Input id="gs" required maxLength={40} placeholder="ex.: pelada-da-quarta" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} />
+            <p className="text-xs text-muted-foreground">Peça o endereço (ou o link de cadastro) à administração do grupo.</p>
+          </div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="h-11 w-full" disabled={busy || !slug}>{busy && <Loader2 className="animate-spin" />} Continuar</Button>
+        </form>
+      )}
+      <p className="text-center text-sm text-muted-foreground">Já tem acesso? <Link href="/login" className="underline">Entrar</Link></p>
+    </div>
+  )
+}
+
 export default function SignupPage() {
+  const [group, setGroup] = React.useState<string | null | undefined>(undefined)   // undefined: ainda lendo o endereço
+  const [days, setDays] = React.useState(10)
+  React.useEffect(() => {
+    setGroup(clientSlug() ?? new URLSearchParams(window.location.search).get("grupo")?.toLowerCase() ?? null)
+    if (supabaseConfigured) supabase().rpc("public_trial_days").then((r) => { if (typeof r.data === "number") setDays(r.data) })
+  }, [])
   const [f, setF] = React.useState({ nome: "", apelido: "", nascimento: "", fone: "", email: "", senha: "", senha2: "", site: "" })
   const [wa, setWa] = React.useState(false)
   const [lgpd, setLgpd] = React.useState(false)
@@ -82,6 +128,8 @@ export default function SignupPage() {
   const [sent, setSent] = React.useState<string | null>(null)
   if (!supabaseConfigured) return <SetupNotice />
   if (sent) return <Sent email={sent} />
+  if (group === undefined) return <Shell><Loader2 className="mx-auto animate-spin text-muted-foreground" /></Shell>
+  if (!group) return <Shell subtitle="Criar conta"><Chooser days={days} /></Shell>
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
 
   async function submit(e: React.FormEvent) {
@@ -102,7 +150,7 @@ export default function SignupPage() {
     const { error: err } = await supabase().auth.signUp({
       email,
       password: f.senha,
-      options: { data: { signup_form: "true", full_name: nome, nickname: f.apelido.trim(), phone: fone, birth_date: f.nascimento, whatsapp_consent: String(wa), tenant_slug: clientSlug() ?? "" } },
+      options: { data: { signup_form: "true", full_name: nome, nickname: f.apelido.trim(), phone: fone, birth_date: f.nascimento, whatsapp_consent: String(wa), tenant_slug: group ?? "" } },
     })
     setBusy(false)
     if (err) {
@@ -116,7 +164,7 @@ export default function SignupPage() {
   }
 
   return (
-    <Shell>
+    <Shell group={group}>
       <form method="post" onSubmit={submit} className="space-y-3.5">
         <div className="space-y-1.5">
           <Label htmlFor="nome">Nome completo</Label>
