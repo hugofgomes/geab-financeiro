@@ -1,5 +1,5 @@
 {
- "version": "1.16.0",
+ "version": "1.17.0",
  "versionDate": "2026-11-15",
  "stack": {
   "next": "15.5.29",
@@ -10,8 +10,8 @@
   {
    "id": "visao-geral",
    "title": "Visão geral",
-   "revisado": "1.13.0",
-   "markdown": "# Visão geral\n\n## O que é o sistema\nPlataforma SaaS (software por assinatura) para **gestão de grupos de futebol amador**: cadastro de atletas, mensalidades e caixa, jogos, escalações, gols e artilharia, com uma área própria para cada atleta. Nasceu como o sistema interno do **GEAB Futebol** e hoje atende **vários grupos (clientes) na mesma instalação**, cada um com os seus dados isolados.\n\n## Quem usa\n| Perfil | Quem é | O que faz |\n|---|---|---|\n| **Dono da plataforma** (Super Admin) | O proprietário do SaaS | Gerencia clientes, planos, assinaturas, suspensões e exclusões; acessa o Painel do SaaS e esta documentação |\n| **Administrador** | Quem criou o grupo (ou foi promovido) | Gerencia tudo do próprio grupo |\n| **Diretoria** | Dirigentes do grupo | Consulta tudo do grupo, sem alterar nada |\n| **Atleta** | Jogador do grupo | Vê só os próprios dados, jogos e mensalidades |\n\n## Visão do produto\n- **Site de divulgação** (`/site`): apresenta o produto, os planos (vindos do banco) e leva ao cadastro de cliente.\n- **Demonstração** (`/demo`): versão navegável com dados fictícios, sem cadastro.\n- **Teste gratuito**: todo grupo novo nasce em teste, com os dias definidos no plano de teste (hoje 10), sem cartão.\n- **Assinatura**: ao fim do teste o grupo precisa assinar (Pix, boleto ou cartão pelo Asaas) para continuar.\n\n## Endereços\n- Produção: `geab.vendadigital.com` e `futebol.vendadigital.com` (mesma instalação).\n- Cada grupo pode ter endereço próprio no formato `grupo.dominio-base` quando `NEXT_PUBLIC_BASE_DOMAIN` está configurada; sem ela, o grupo é identificado pelo parâmetro `?grupo=` no cadastro de atleta.\n\n## Tecnologias\nNext.js (App Router) e React no servidor e no navegador, Tailwind CSS para o visual, Supabase (PostgreSQL, Autenticação e regras de acesso por linha), hospedagem em VPS com Coolify (Docker). Detalhes no capítulo de arquitetura."
+   "revisado": "1.17.0",
+   "markdown": "# Visão geral\n\n## O que é o sistema\nPlataforma SaaS (software por assinatura) para **gestão de grupos de futebol amador**: cadastro de atletas, mensalidades e caixa, jogos, escalações, gols e artilharia, com uma área própria para cada atleta. Nasceu como o sistema interno do **GEAB Futebol** e hoje atende **vários grupos (clientes) na mesma instalação**, cada um com os seus dados isolados.\n\n## Quem usa\n| Perfil | Quem é | O que faz |\n|---|---|---|\n| **Dono da plataforma** (Super Admin) | O proprietário do SaaS | Gerencia clientes, planos, assinaturas, suspensões e exclusões; acessa o Painel do SaaS e esta documentação |\n| **Administrador** | Quem criou o grupo (ou foi promovido) | Gerencia tudo do próprio grupo |\n| **Diretoria** | Dirigentes do grupo | Consulta tudo do grupo, sem alterar nada |\n| **Atleta** | Jogador do grupo | Vê só os próprios dados, jogos e mensalidades |\n\n## Visão do produto\n- **Site de divulgação** (`/site`): tema esportivo escuro (estádio à noite, verde `#39FF14`, fontes Sora e Inter). Seções: início, funcionalidades, jogos e escalação, financeiro, área do atleta, experiência mobile, planos (lidos do banco) e conversão final. Todos os botões levam aos fluxos reais (`/novo-grupo`, `/demo`, `/login`). Tem SEO (título, descrição, Open Graph, dados estruturados JSON-LD, `robots.txt` e `sitemap.xml`), imagem `/site/estadio.webp` no topo e rodapé com versão, **Política de privacidade** (`/privacidade`) e **Termos de uso** (`/termos`). As telas exibidas são ilustrativas, com dados fictícios.\n- **Demonstração** (`/demo`): versão navegável com dados fictícios, sem cadastro (mantém o tema claro).\n- **Teste gratuito**: todo grupo novo nasce em teste, com os dias definidos no plano de teste (hoje 10), sem cartão.\n- **Assinatura**: ao fim do teste o grupo precisa assinar (Pix, boleto ou cartão pelo Asaas) para continuar.\n\n## Endereços\n- Produção: `geab.vendadigital.com` e `futebol.vendadigital.com` (mesma instalação).\n- Cada grupo pode ter endereço próprio no formato `grupo.dominio-base` quando `NEXT_PUBLIC_BASE_DOMAIN` está configurada; sem ela, o grupo é identificado pelo parâmetro `?grupo=` no cadastro de atleta.\n\n## Tecnologias\nNext.js (App Router) e React no servidor e no navegador, Tailwind CSS para o visual, Supabase (PostgreSQL, Autenticação e regras de acesso por linha), hospedagem em VPS com Coolify (Docker). Detalhes no capítulo de arquitetura."
   },
   {
    "id": "arquitetura",
@@ -976,6 +976,11 @@
    "description": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)"
   },
   {
+   "path": "/privacidade",
+   "access": "Administrador e Diretoria",
+   "description": "Política de privacidade (pública)"
+  },
+  {
    "path": "/recuperar",
    "access": "Público",
    "description": "Pedido de link para recuperar a senha"
@@ -988,7 +993,7 @@
   {
    "path": "/site",
    "access": "Público",
-   "description": "Site de divulgação (planos lidos do banco)"
+   "description": "Site de divulgação em tema esportivo escuro (planos lidos do banco)"
   },
   {
    "path": "/super",
@@ -1014,6 +1019,11 @@
    "path": "/super/documentacao",
    "access": "Dono da plataforma",
    "description": "Esta documentação (somente dono da plataforma)"
+  },
+  {
+   "path": "/termos",
+   "access": "Administrador e Diretoria",
+   "description": "Termos de uso (públicos)"
   },
   {
    "path": "/usuarios",
@@ -1333,6 +1343,36 @@
  ],
  "changelog": [
   {
+   "version": "1.17.0",
+   "date": "2026-11-15",
+   "title": "Novo site de divulgação, em tema esportivo",
+   "novidades": [
+    "Site de divulgação totalmente redesenhado com a identidade do futebol: estádio iluminado à noite no topo, fundo escuro, verde vibrante, títulos em Sora e textos em Inter.",
+    "Novas seções: funcionalidades em seis cards, escalação com campo ilustrado, financeiro, área do atleta, três celulares e planos com o plano popular em destaque (preços e limites continuam vindo do painel de planos).",
+    "Cabeçalho fixo com botão Testar grátis e menu hambúrguer animado no celular; rodapé com links, versão e direitos do ano atual.",
+    "Páginas de Política de privacidade e Termos de uso.",
+    "SEO: título e descrição, Open Graph, dados estruturados, robots.txt e sitemap.xml."
+   ],
+   "melhorias": [
+    "Animações suaves de entrada que respeitam a preferência por movimento reduzido; imagens otimizadas e carregadas sob demanda.",
+    "Removida do site a frase de confirmação de presença, que o sistema ainda não oferece."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.16.1",
+   "date": "2026-11-14",
+   "title": "Comunicados: detalhe do histórico e remetente do e-mail",
+   "novidades": [],
+   "melhorias": [
+    "No detalhe de um comunicado enviado, a mensagem de erro de cada destinatário aparece inteira, com quebra de linha, em vez de ser cortada."
+   ],
+   "correcoes": [
+    "O detalhe do comunicado abria cortado e com rolagem horizontal quando havia e-mails com erro longo. Agora cabe na tela e ocupa a largura prevista.",
+    "O e-mail de comunicado (e o teste ao dono) falhava com \"The email address needs to follow...\" quando o remetente configurado já vinha no formato Nome <endereço>. Agora o remetente é aceito nos dois formatos."
+   ]
+  },
+  {
    "version": "1.16.0",
    "date": "2026-11-15",
    "title": "Imagem nos comunicados",
@@ -1506,36 +1546,13 @@
     "O nome do cliente na lista de clientes agora abre a página de detalhes."
    ],
    "correcoes": []
-  },
-  {
-   "version": "1.7.0",
-   "date": "2026-11-13",
-   "title": "Painel do SaaS modernizado",
-   "novidades": [
-    "Dashboard do dono da plataforma com cards de clientes ativos, suspensos, em teste, assinaturas vencidas, MRR, novos clientes e cancelamentos do mês.",
-    "Gráficos de crescimento de clientes e de evolução do faturamento recorrente (histórico do MRR passa a ser registrado mensalmente).",
-    "Gerenciar clientes: tabela com responsável, contato com link de WhatsApp, vencimento e último acesso; busca, filtros por situação e plano, ordenação, paginação e exportação em CSV.",
-    "Cadastro do responsável de cada cliente e identificação de clientes inativos há 30 dias."
-   ],
-   "melhorias": [],
-   "correcoes": []
-  },
-  {
-   "version": "1.6.1",
-   "date": "2026-11-12",
-   "title": "Área do atleta no site de vendas",
-   "novidades": [
-    "Site comercial com a seção Uma central para cada atleta, com as telas Visão geral, Jogos, Financeiro e Perfil da nova Área do Atleta (dados fictícios)."
-   ],
-   "melhorias": [],
-   "correcoes": []
   }
  ],
  "stats": {
   "migrations": 34,
   "tables": 29,
   "functions": 105,
-  "pages": 30,
+  "pages": 32,
   "apis": 16
  }
 }

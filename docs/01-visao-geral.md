@@ -1,4 +1,4 @@
-<!-- revisado: 1.13.0 -->
+<!-- revisado: 1.17.0 -->
 # Visão geral
 
 ## O que é o sistema
@@ -13,8 +13,8 @@ Plataforma SaaS (software por assinatura) para **gestão de grupos de futebol am
 | **Atleta** | Jogador do grupo | Vê só os próprios dados, jogos e mensalidades |
 
 ## Visão do produto
-- **Site de divulgação** (`/site`): apresenta o produto, os planos (vindos do banco) e leva ao cadastro de cliente.
-- **Demonstração** (`/demo`): versão navegável com dados fictícios, sem cadastro.
+- **Site de divulgação** (`/site`): tema esportivo escuro (estádio à noite, verde `#39FF14`, fontes Sora e Inter). Seções: início, funcionalidades, jogos e escalação, financeiro, área do atleta, experiência mobile, planos (lidos do banco) e conversão final. Todos os botões levam aos fluxos reais (`/novo-grupo`, `/demo`, `/login`). Tem SEO (título, descrição, Open Graph, dados estruturados JSON-LD, `robots.txt` e `sitemap.xml`), imagem `/site/estadio.webp` no topo e rodapé com versão, **Política de privacidade** (`/privacidade`) e **Termos de uso** (`/termos`). As telas exibidas são ilustrativas, com dados fictícios.
+- **Demonstração** (`/demo`): versão navegável com dados fictícios, sem cadastro (mantém o tema claro).
 - **Teste gratuito**: todo grupo novo nasce em teste, com os dias definidos no plano de teste (hoje 10), sem cartão.
 - **Assinatura**: ao fim do teste o grupo precisa assinar (Pix, boleto ou cartão pelo Asaas) para continuar.
 

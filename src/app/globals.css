@@ -150,8 +150,14 @@
 /* Site comercial */
 @keyframes site-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 .site-float { animation: site-float 6s ease-in-out infinite }
+@keyframes site-beam { 0% { opacity: .30; transform: rotate(-5deg) } 100% { opacity: .65; transform: rotate(5deg) } }
+.site-beam { transform-origin: top center; animation: site-beam 8s ease-in-out infinite alternate }
+@keyframes site-rise { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: none } }
+.site-rise { animation: site-rise .8s ease-out both }
+@keyframes site-pulse { 0%,100% { opacity: .55 } 50% { opacity: 1 } }
+.site-pulse { animation: site-pulse 3.2s ease-in-out infinite }
 html { scroll-behavior: smooth }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto }
-  .site-float { animation: none }
+  .site-float, .site-beam, .site-rise, .site-pulse { animation: none }
 }

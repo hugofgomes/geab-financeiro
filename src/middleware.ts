@@ -31,7 +31,7 @@ export async function middleware(req: NextRequest) {
   // Recuperação de senha: pedir o link (sem login) e definir a nova senha (com a sessão criada pelo link).
   if (path === "/recuperar" || path === "/redefinir-senha") return res
   // Site comercial: público. A raiz mostra o site para quem não está logado (quem está logado vê o painel).
-  if (path === "/site" || path === "/demo") return res
+  if (path === "/site" || path === "/demo" || path === "/privacidade" || path === "/termos") return res
   if (!user && path === "/") { const u = req.nextUrl.clone(); u.pathname = "/site"; return NextResponse.rewrite(u) }
   if (!user) return path === "/login" || path === "/cadastro" || path === "/novo-grupo" ? res : go("/login")
 
@@ -63,4 +63,4 @@ export async function middleware(req: NextRequest) {
   return res
 }
 
-export const config = { matcher: ["/((?!api/versao|api/webhooks|api/cron|offline|manifest.webmanifest|sw.js|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico)$).*)"] }
+export const config = { matcher: ["/((?!api/versao|api/webhooks|api/cron|offline|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico)$).*)"] }

@@ -23,14 +23,16 @@
     "/novo-grupo": "Cadastro de cliente do SaaS: cria o grupo em teste gratuito",
     "/recuperar": "Pedido de link para recuperar a senha",
     "/redefinir-senha": "Definição da nova senha a partir do link do e-mail",
-    "/site": "Site de divulgação (planos lidos do banco)",
+    "/site": "Site de divulgação em tema esportivo escuro (planos lidos do banco)",
     "/super": "Painel do SaaS: indicadores, clientes, criação de grupos e planos",
     "/super/acessos": "Log de acessos diários por pessoa e grupo",
     "/super/clientes/[id]": "Página do cliente: dados, usuários, assinatura, configurações, atividades, modo espião, suspensão e exclusão",
     "/super/documentacao": "Esta documentação (somente dono da plataforma)",
     "/usuarios": "Usuários e privilégios do grupo",
     "/offline": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)",
-    "/super/comunicados": "Comunicados em massa aos clientes (e-mail e aviso no painel), com público, teste, histórico e reenvio de falhas"
+    "/super/comunicados": "Comunicados em massa aos clientes (e-mail e aviso no painel), com público, teste, histórico e reenvio de falhas",
+    "/privacidade": "Política de privacidade (pública)",
+    "/termos": "Termos de uso (públicos)"
   },
   "apis": {
     "/api/assinatura": "Cria a assinatura no Asaas e devolve o link de pagamento",

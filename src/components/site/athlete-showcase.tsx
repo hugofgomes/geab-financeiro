@@ -13,7 +13,7 @@ const TABS = [
 ] as const
 
 /** Telas reais da área do atleta (dados fictícios), com abas para alternar entre elas. */
-export function AthleteShowcase() {
+export function AthleteShowcase({ dark }: { dark?: boolean }) {
   const [i, setI] = React.useState(0)
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
@@ -27,8 +27,10 @@ export function AthleteShowcase() {
       <div role="tablist" aria-label="Telas da área do atleta" onKeyDown={onKey} className="mb-5 flex flex-wrap justify-center gap-2 sm:justify-start">
         {TABS.map((t, k) => (
           <button key={t.id} id={`atl-tab-${t.id}`} role="tab" type="button" aria-selected={i === k} aria-controls="atl-panel" tabIndex={i === k ? 0 : -1} onClick={() => setI(k)}
-            className={cn("rounded-full px-4 py-2 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[#0057B8]/50",
-              i === k ? "bg-[#0057B8] text-white shadow-[0_8px_24px_-10px_rgba(0,87,184,.7)]" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-[#17365D]")}>
+            className={cn("rounded-full px-4 py-2 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[#39FF14]/70",
+              dark
+              ? (i === k ? "bg-[#39FF14] font-bold text-[#04130B] shadow-[0_8px_24px_-10px_rgba(57,255,20,.6)]" : "bg-white/5 text-[#AAB4AE] ring-1 ring-white/15 hover:text-white")
+              : (i === k ? "bg-[#0057B8] text-white shadow-[0_8px_24px_-10px_rgba(0,87,184,.7)]" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-[#17365D]"))}>
             {t.label}
           </button>
         ))}
