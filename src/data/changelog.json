@@ -2,6 +2,20 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.14.0",
+      "date": "2026-11-14",
+      "title": "Aplicativo instalável para celular",
+      "novidades": [
+        "Sistema instalável no celular como aplicativo (PWA) para Android e iPhone: tela cheia, ícone do GEAB e atalhos de Mensalidades, Jogos e Atletas.",
+        "Faixa Instale o app no celular (botão Instalar no Android; instrução Adicionar à Tela de Início no iPhone), que some depois de instalar ou dispensar.",
+        "Página de Sem conexão quando o aparelho está sem internet; o aplicativo nunca guarda páginas, respostas de API ou dados de quem está logado."
+      ],
+      "melhorias": [
+        "Cabeçalho respeita a área segura do iPhone com entalhe."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.13.0",
       "date": "2026-11-14",
       "title": "Documentação do sistema",

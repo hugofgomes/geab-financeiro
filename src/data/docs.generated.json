@@ -1,5 +1,5 @@
 {
- "version": "1.13.0",
+ "version": "1.14.0",
  "versionDate": "2026-11-14",
  "stack": {
   "next": "15.5.29",
@@ -16,8 +16,8 @@
   {
    "id": "arquitetura",
    "title": "Arquitetura",
-   "revisado": "1.13.0",
-   "markdown": "# Arquitetura\n\n## Camadas\n1. **Navegador**: páginas React. Conversa com o Supabase diretamente (com a chave pública *anon* e a sessão da pessoa) e com as rotas `/api/*` do próprio sistema.\n2. **Aplicativo Next.js** (`src/app`): páginas por perfil, rotas de API, *middleware* de proteção e rotinas do servidor.\n3. **Supabase**: banco PostgreSQL com funções (RPC), gatilhos e **RLS (regras de acesso por linha)**; Autenticação (e-mail e senha, recuperação, convite).\n4. **Serviços externos**: Asaas (cobrança), Resend/SMTP (e-mails), BTG e OpenPix (Pix automático), WhatsApp Cloud API (mensagens).\n\n## Princípio central: o banco é a barreira de verdade\nAs telas escondem o que a pessoa não pode usar, mas **quem decide o acesso é o banco** (RLS, funções `SECURITY DEFINER` e gatilhos). Mesmo que alguém altere o navegador, as regras do banco continuam valendo. Por isso a lógica sensível (limites de plano, bloqueio de grupo, somente leitura do modo espião, exclusão) está em SQL.\n\n## Estrutura do código\n| Pasta | Conteúdo |\n|---|---|\n| `src/app/(admin)` | Painel do administrador/diretoria e do dono da plataforma (`/super`) |\n| `src/app/atleta` | Área do atleta |\n| `src/app/(site)` | Site de divulgação e demonstração |\n| `src/app/api` | Rotas de servidor (cobrança, webhooks, e-mail, WhatsApp, Pix, rotina diária, documentação) |\n| `src/components` | Componentes (menu, rodapé, faixas de aviso, mockups do site etc.) |\n| `src/lib` | Regras compartilhadas (perfis, formatação, Supabase, Pix, tenant) |\n| `src/data/changelog.json` | Histórico de versões (fonte única) |\n| `supabase/migrations` | Evolução do banco, numerada e em ordem |\n| `supabase/tests` | Testes do banco (rodam em um PostgreSQL embutido) |\n| `scripts` | Ferramentas de operação (migrations, backup, configuração do Coolify/Asaas) |\n| `tools` | Verificações de build (histórico de versões, geração desta documentação) |\n| `docs` | Capítulos escritos à mão desta documentação |\n\n## Proteção de rotas (middleware)\nO *middleware* (`src/middleware.ts`) roda antes de cada página: exige login, encaminha cada perfil para a sua área (administrador/diretoria para o painel, atleta para `/atleta`) e **bloqueia grupos sem acesso** (teste vencido, suspenso, cancelado ou excluído), levando-os à tela de assinatura. Ficam fora dele apenas `/api/versao`, `/api/webhooks/*` e `/api/cron/*` (que têm autenticação própria por segredo) e arquivos estáticos.\n\n## Versão e atualização no navegador\nA versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões."
+   "revisado": "1.14.0",
+   "markdown": "# Arquitetura\n\n## Camadas\n1. **Navegador**: páginas React. Conversa com o Supabase diretamente (com a chave pública *anon* e a sessão da pessoa) e com as rotas `/api/*` do próprio sistema.\n2. **Aplicativo Next.js** (`src/app`): páginas por perfil, rotas de API, *middleware* de proteção e rotinas do servidor.\n3. **Supabase**: banco PostgreSQL com funções (RPC), gatilhos e **RLS (regras de acesso por linha)**; Autenticação (e-mail e senha, recuperação, convite).\n4. **Serviços externos**: Asaas (cobrança), Resend/SMTP (e-mails), BTG e OpenPix (Pix automático), WhatsApp Cloud API (mensagens).\n\n## Princípio central: o banco é a barreira de verdade\nAs telas escondem o que a pessoa não pode usar, mas **quem decide o acesso é o banco** (RLS, funções `SECURITY DEFINER` e gatilhos). Mesmo que alguém altere o navegador, as regras do banco continuam valendo. Por isso a lógica sensível (limites de plano, bloqueio de grupo, somente leitura do modo espião, exclusão) está em SQL.\n\n## Estrutura do código\n| Pasta | Conteúdo |\n|---|---|\n| `src/app/(admin)` | Painel do administrador/diretoria e do dono da plataforma (`/super`) |\n| `src/app/atleta` | Área do atleta |\n| `src/app/(site)` | Site de divulgação e demonstração |\n| `src/app/api` | Rotas de servidor (cobrança, webhooks, e-mail, WhatsApp, Pix, rotina diária, documentação) |\n| `src/components` | Componentes (menu, rodapé, faixas de aviso, mockups do site etc.) |\n| `src/lib` | Regras compartilhadas (perfis, formatação, Supabase, Pix, tenant) |\n| `src/data/changelog.json` | Histórico de versões (fonte única) |\n| `supabase/migrations` | Evolução do banco, numerada e em ordem |\n| `supabase/tests` | Testes do banco (rodam em um PostgreSQL embutido) |\n| `scripts` | Ferramentas de operação (migrations, backup, configuração do Coolify/Asaas) |\n| `tools` | Verificações de build (histórico de versões, geração desta documentação) |\n| `docs` | Capítulos escritos à mão desta documentação |\n\n## Proteção de rotas (middleware)\nO *middleware* (`src/middleware.ts`) roda antes de cada página: exige login, encaminha cada perfil para a sua área (administrador/diretoria para o painel, atleta para `/atleta`) e **bloqueia grupos sem acesso** (teste vencido, suspenso, cancelado ou excluído), levando-os à tela de assinatura. Ficam fora dele apenas `/api/versao`, `/api/webhooks/*` e `/api/cron/*` (que têm autenticação própria por segredo) e arquivos estáticos.\n\n## App instalável (PWA)\nO sistema pode ser instalado no celular como aplicativo (manifesto, ícones e *service worker* que não guarda dados de usuário). Detalhes no capítulo \"Aplicativo para celular\".\n\n## Versão e atualização no navegador\nA versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões."
   },
   {
    "id": "perfis-e-permissoes",
@@ -78,6 +78,12 @@
    "title": "Como esta documentação se mantém atualizada",
    "revisado": "1.13.0",
    "markdown": "# Como esta documentação se mantém atualizada\n\n## O que atualiza sozinho\nA cada build (`npm run build`, que é o que o Coolify executa em cada deploy) o script `tools/build-docs.mjs` lê o código e regenera as seções automáticas:\n- versão atual, data e histórico das últimas versões;\n- lista de **migrations** (com o resumo do cabeçalho de cada uma);\n- **tabelas** e **funções do banco** (com a migration de origem);\n- **páginas** e **rotas de API** (com o nível de acesso das páginas e os métodos das APIs);\n- **variáveis de ambiente** usadas pelo aplicativo (somente os nomes).\n\nOu seja: criou uma página, rota, tabela, função ou migration, ela aparece aqui na próxima publicação, sem ninguém editar nada.\n\n## O que precisa de revisão humana\n- Os **capítulos** em `docs/NN-nome.md` explicam o \"porquê\" e o \"como\". Cada um tem a marca ``; quando a versão do sistema avança além disso, a tela mostra um aviso de que o capítulo pode estar desatualizado, até alguém revisar e atualizar a marca.\n- As **descrições** de páginas, APIs e variáveis ficam em `docs/descricoes.json`. Itens novos sem descrição aparecem marcados com \"sem descrição\" e saem como aviso no build.\n\n## Regra de ouro para quem altera o sistema\nToda entrega que mude comportamento: atualizar o capítulo correspondente, a marca `revisado` e `docs/descricoes.json` (se houver item novo), junto com o histórico de versões.\n\n## Quem vê\nSomente o dono da plataforma. A documentação não é servida como arquivo público: a rota `/api/docs` valida a sessão e confirma no banco que a conta é dona da plataforma antes de devolver qualquer conteúdo."
+  },
+  {
+   "id": "app-mobile",
+   "title": "Aplicativo para celular (iOS e Android)",
+   "revisado": "1.14.0",
+   "markdown": "# Aplicativo para celular (iOS e Android)\n\n## Situação atual: app instalável (PWA)\nO sistema pode ser instalado no celular como aplicativo, **sem passar pelas lojas**. Público-alvo: o **administrador** (e a Diretoria).\n\n| Plataforma | Como instalar |\n|---|---|\n| **Android (Chrome)** | A faixa \"Instale o app no celular\" tem o botão **Instalar**; ou menu do Chrome → *Instalar app* |\n| **iPhone / iPad (Safari)** | **Compartilhar → Adicionar à Tela de Início** (a faixa mostra a instrução) |\n\nO app abre em tela cheia, com o ícone do GEAB, e tem atalhos por pressão longa no ícone: **Mensalidades**, **Jogos** e **Atletas**. A faixa de instalação aparece só em celular, some depois de instalar ou dispensar, e não aparece dentro do app já instalado.\n\n## Como funciona (arquivos)\n- `src/app/manifest.ts`: manifesto (nome, cores, ícones, atalhos, modo `standalone`), servido em `/manifest.webmanifest`.\n- `public/pwa/`: ícones 192, 512 e *maskable* (com margem de segurança para Android).\n- `public/sw.js`: *service worker*. **Nunca guarda páginas, respostas de API nem dados do Supabase** (dados de quem está logado não podem ficar no aparelho nem aparecer para outra pessoa). Guarda apenas arquivos estáticos públicos e a página `/offline`.\n- `src/app/offline/page.tsx`: mostrada quando não há conexão.\n- `src/components/pwa.tsx`: registro do service worker (só em produção) e a faixa de instalação.\n- O *middleware* deixa `/offline`, `/manifest.webmanifest` e `/sw.js` públicos.\n- Em iPhone com entalhe, o cabeçalho respeita a área segura (`safe-area-inset-top`).\n\n## Atualizações\nO app é o próprio site: cada deploy atualiza o aplicativo, sem baixar nada. O aviso de nova versão (`/api/versao`) continua valendo.\n\n## Limites do PWA\n- Não aparece na App Store nem na Play Store.\n- No iPhone, notificações push só funcionam com o app instalado e iOS 16.4 ou mais novo (ainda **não implementadas**).\n- O app exige internet: offline só mostra a página de \"Sem conexão\".\n\n## Próxima etapa (opcional): publicar nas lojas\nEmpacotar o mesmo sistema com **Capacitor** (casca nativa que carrega o site):\n1. Contas de desenvolvedor: Apple (US$ 99/ano) e Google Play (US$ 25, uma vez). O app iOS é compilado em um Mac com Xcode.\n2. A Apple recusa apps que sejam só o site numa casca; incluir recursos nativos reais (notificações push de jogo e mensalidade, biometria).\n3. Regra da Apple para cobrança: o app **não pode levar a um pagamento externo** para contratar o serviço. No app, ocultar a tela de assinatura e manter a contratação só pelo site (Asaas).\n4. Prazo estimado: 1 a 3 semanas, incluindo a revisão das lojas.\nNão recomendado: reescrever em React Native ou Flutter (refaz todas as telas e duplica a manutenção)."
   }
  ],
  "migrations": [
@@ -871,6 +877,11 @@
    "description": "Cadastro de cliente do SaaS: cria o grupo em teste gratuito"
   },
   {
+   "path": "/offline",
+   "access": "Administrador e Diretoria",
+   "description": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)"
+  },
+  {
    "path": "/recuperar",
    "access": "Público",
    "description": "Pedido de link para recuperar a senha"
@@ -1209,6 +1220,20 @@
  ],
  "changelog": [
   {
+   "version": "1.14.0",
+   "date": "2026-11-14",
+   "title": "Aplicativo instalável para celular",
+   "novidades": [
+    "Sistema instalável no celular como aplicativo (PWA) para Android e iPhone: tela cheia, ícone do GEAB e atalhos de Mensalidades, Jogos e Atletas.",
+    "Faixa Instale o app no celular (botão Instalar no Android; instrução Adicionar à Tela de Início no iPhone), que some depois de instalar ou dispensar.",
+    "Página de Sem conexão quando o aparelho está sem internet; o aplicativo nunca guarda páginas, respostas de API ou dados de quem está logado."
+   ],
+   "melhorias": [
+    "Cabeçalho respeita a área segura do iPhone com entalhe."
+   ],
+   "correcoes": []
+  },
+  {
    "version": "1.13.0",
    "date": "2026-11-14",
    "title": "Documentação do sistema",
@@ -1389,23 +1414,13 @@
    ],
    "melhorias": [],
    "correcoes": []
-  },
-  {
-   "version": "1.5.4",
-   "date": "2026-11-11",
-   "title": "Nome da equipe Branco",
-   "novidades": [],
-   "melhorias": [],
-   "correcoes": [
-    "A segunda equipe passa a se chamar Equipe Branco (antes Equipe Branca), no padrão de novos jogos e nos jogos já cadastrados."
-   ]
   }
  ],
  "stats": {
   "migrations": 32,
   "tables": 25,
   "functions": 91,
-  "pages": 28,
+  "pages": 29,
   "apis": 14
  }
 }

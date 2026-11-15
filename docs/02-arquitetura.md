@@ -1,4 +1,4 @@
-<!-- revisado: 1.13.0 -->
+<!-- revisado: 1.14.0 -->
 # Arquitetura
 
 ## Camadas
@@ -28,6 +28,9 @@ As telas escondem o que a pessoa não pode usar, mas **quem decide o acesso é o
 
 ## Proteção de rotas (middleware)
 O *middleware* (`src/middleware.ts`) roda antes de cada página: exige login, encaminha cada perfil para a sua área (administrador/diretoria para o painel, atleta para `/atleta`) e **bloqueia grupos sem acesso** (teste vencido, suspenso, cancelado ou excluído), levando-os à tela de assinatura. Ficam fora dele apenas `/api/versao`, `/api/webhooks/*` e `/api/cron/*` (que têm autenticação própria por segredo) e arquivos estáticos.
+
+## App instalável (PWA)
+O sistema pode ser instalado no celular como aplicativo (manifesto, ícones e *service worker* que não guarda dados de usuário). Detalhes no capítulo "Aplicativo para celular".
 
 ## Versão e atualização no navegador
 A versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões.

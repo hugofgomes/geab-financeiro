@@ -28,7 +28,8 @@
     "/super/acessos": "Log de acessos diários por pessoa e grupo",
     "/super/clientes/[id]": "Página do cliente: dados, usuários, assinatura, configurações, atividades, modo espião, suspensão e exclusão",
     "/super/documentacao": "Esta documentação (somente dono da plataforma)",
-    "/usuarios": "Usuários e privilégios do grupo"
+    "/usuarios": "Usuários e privilégios do grupo",
+    "/offline": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)"
   },
   "apis": {
     "/api/assinatura": "Cria a assinatura no Asaas e devolve o link de pagamento",

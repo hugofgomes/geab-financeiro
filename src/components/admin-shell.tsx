@@ -3,6 +3,7 @@
 import { Menu } from "@base-ui/react/menu"
 import { AppFooter } from "@/components/app-footer"
 import { BirthdayCard } from "@/components/birthday-card"
+import { InstallBanner } from "@/components/pwa"
 import { SpyBanner } from "@/components/spy-banner"
 import { SidePanel } from "@/components/side-panel"
 import { TrialBanner } from "@/components/trial-banner"
@@ -231,7 +232,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className={cn("flex min-h-dvh flex-1 flex-col transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-[72px]" : "lg:pl-64")}>
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-white px-4 shadow-sm sm:px-6">
+        <header className="sticky top-0 z-20 flex h-[calc(4rem+env(safe-area-inset-top))] items-center gap-3 border-b bg-white px-4 pt-[env(safe-area-inset-top)] shadow-sm sm:px-6">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -257,6 +258,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 xl:flex-row">
           <main className="min-w-0 flex-1 space-y-6" data-readonly={readOnly ? "" : undefined}>
             <SpyBanner />
+            <InstallBanner />
             {role === "admin" && <TrialBanner />}
             {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
             {children}

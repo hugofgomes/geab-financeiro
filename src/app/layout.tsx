@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { AutoUpdate } from "@/components/auto-update"
+import { PwaRegister } from "@/components/pwa"
 import "./globals.css"
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" })
@@ -9,9 +10,12 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "sw
 export const metadata: Metadata = {
   title: "GEAB Futebol · Financeiro",
   description: "Controle de mensalidades e caixa do GEAB Futebol",
+  applicationName: "GEAB Futebol",
+  appleWebApp: { capable: true, title: "GEAB", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
 }
 
-export const viewport: Viewport = { themeColor: "#1E3A5F" }
+export const viewport: Viewport = { themeColor: "#1E3A5F", viewportFit: "cover" }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -19,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="antialiased">
         {children}
         <AutoUpdate />
+        <PwaRegister />
         <Toaster richColors position="top-center" />
       </body>
     </html>
