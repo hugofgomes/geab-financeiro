@@ -50,7 +50,7 @@ const QUADRA = [
   { href: "/quadra/clientes", label: "Clientes", icon: Contact, ready: true },
   { href: "/quadra/funcionarios", label: "Funcionários", icon: Users, ready: true },
   { href: "/quadra/financeiro", label: "Financeiro", icon: Wallet, ready: true },
-  { href: "/quadra/relatorios", label: "Relatórios", icon: ChartColumn },
+  { href: "/quadra/relatorios", label: "Relatórios", icon: ChartColumn, ready: true },
   { href: "/quadra/configuracoes", label: "Configurações", icon: Settings2, ready: true },
 ]
 

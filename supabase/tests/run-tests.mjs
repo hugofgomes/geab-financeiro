@@ -1112,6 +1112,59 @@ section("Quadra Esportiva: financeiro (0038)")
   ok("duas baixas simultâneas nunca passam do saldo", /excede o saldo/.test(msg ?? "") && (await one(`select paid_cents from public.court_receivables where id=$1`, [rc.id])) === 7000, String(msg))
 }
 
+section("Quadra Esportiva: dashboard e relatórios (0039)")
+{
+  const D = { o1: uid(1601), o2: uid(1602), a1: uid(1611), r1: uid(1612), f1: uid(1613), g1: uid(1614), a2: uid(1615), v1: uid(1621), v2: uid(1622), c1: uid(1631), c2: uid(1632), c3: uid(1633) }
+  await q(`insert into auth.users (id, email) values ($1,'d-a1@x'),($2,'d-r1@x'),($3,'d-f1@x'),($4,'d-g1@x'),($5,'d-a2@x')`, [D.a1, D.r1, D.f1, D.g1, D.a2])
+  const mk = (o, slug) => q(`insert into public.organizations (id, slug, name, status, kind, plan_id) values ($1,$2,$2,'ativa','quadra',(select id from public.plans where code='quadra_t'))`, [o, slug])
+  await mk(D.o1, "arena-d1"); await mk(D.o2, "arena-d2")
+  const pf = (o, id, role) => q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,$3,$4)`, [o, id, "Pessoa " + id.slice(-3), role])
+  await pf(D.o1, D.a1, "admin"); await pf(D.o1, D.r1, "diretoria"); await pf(D.o1, D.f1, "diretoria"); await pf(D.o1, D.g1, "diretoria"); await pf(D.o2, D.a2, "admin")
+  await q(`insert into public.court_staff (tenant_id, profile_id, role) values ($1,$2,'recepcionista'),($1,$3,'financeiro'),($1,$4,'gerente')`, [D.o1, D.r1, D.f1, D.g1])
+  await q(`insert into public.court_venues (id, tenant_id, trade_name) values ($1,$2,'Arena D1'),($3,$4,'Arena D2')`, [D.v1, D.o1, D.v2, D.o2])
+  await q(`insert into public.court_courts (id, tenant_id, venue_id, name, sport, price_cents) values ($1,$2,$3,'Quadra D1','futsal',10000),($4,$2,$3,'Quadra D1b','futsal',10000),($5,$6,$7,'Quadra D2','futsal',9000)`, [D.c1, D.o1, D.v1, D.c2, D.c3, D.o2, D.v2])
+  await q(`insert into public.court_hours (tenant_id, weekday, opens_min, closes_min) select $1, d, 480, 1380 from generate_series(0,6) d`, [D.o1])
+  const T = (dia, h) => `2030-${dia}T${String(h).padStart(2, "0")}:00:00-03:00`   // 2030-06-15 sábado
+  const book = (s, e, name, ph) => as(D.a1, async () => (await db.query(`select public.court_booking_create($1,'avulsa',$4,$5,null,$2,$3)`, [D.c1, s, e, name, ph])).rows[0].court_booking_create, true)
+  await as(D.a1, async () => { await db.query(`insert into public.court_clients (name, phone, client_type, birth_date, birthday_consent) values ('Ana Mensal','(48) 91111-0001','mensalista','1990-03-10',true), ('Bruno Sem Autorização','(48) 91111-0002','avulso','1990-03-11',false)`) }, true)
+  const b1 = await book(T("06-15", 19), T("06-15", 21), "Ana Mensal", "(48) 91111-0001"), b2 = await book(T("06-15", 21), T("06-15", 22), "Bruno Sem Autorização", "(48) 91111-0002")
+  await as(D.a1, async () => { await db.query(`select public.court_booking_cancel($1,'x')`, [b2.id]); await db.query(`select public.court_block_create(array[$1::uuid],'manutencao',$2,$3)`, [D.c1, T("06-15", 10), T("06-15", 12)]) }, true)
+  await as(D.g1, async () => {
+    const r = (await db.query(`select public.court_report_occupancy('2030-06-15','2030-06-15')`)).rows[0].court_report_occupancy
+    const c = r.by_court.find((x) => x.court === "Quadra D1")
+    ok("ocupação: abertas 900 min, bloqueio de 120 tira da disponibilidade, 120 ocupados (cancelada fora)", c.open_min === 780 && c.booked_min === 120 && c.blocked_min === 120, JSON.stringify(c))
+    ok("ocupação por dia da semana (sábado) e faixa de horário", r.by_weekday.length === 1 && r.by_weekday[0].weekday === 6 && r.by_hour.some((h) => h.hour === 19 && h.n === 1))
+    ok("ocupação por categoria e modalidade", r.by_kind[0].kind === "avulsa" && r.by_kind[0].n === 1 && r.by_sport[0].n === 1)
+    const cl = (await db.query(`select public.court_report_clients('2030-06-01','2030-06-30')`)).rows[0].court_report_clients
+    ok("clientes: ativos, mensalistas e frequência no período", cl.registered_active === 2 && cl.monthly_clients === 1 && cl.active_in_period === 1 && cl.top[0].client === "Ana Mensal" && cl.top[0].n === 1, JSON.stringify(cl))
+    ok("período acima de 13 meses é recusado", /Período/.test(await err(`select public.court_report_clients('2029-01-01','2030-12-31')`) ?? ""))
+    const d = (await db.query(`select public.court_dashboard('2030-06-01','2030-06-30')`)).rows[0].court_dashboard
+    ok("dashboard: quadras, clientes ativos e mensalistas", d.courts_total === 2 && d.courts_active === 2 && d.clients_active === 2 && d.monthly_clients_active === 1)
+    ok("dashboard: taxa de ocupação do período vem de minutos reais", d.occupancy.booked_min === 120 && d.occupancy.open_min === 900 * 30 * 2 - 120, JSON.stringify(d.occupancy))
+    ok("dashboard: realizadas x canceladas", d.done_vs_cancelled.done === 1 && d.done_vs_cancelled.cancelled === 1)
+    ok("aniversário só aparece com autorização do cliente", Array.isArray(d.birthdays) && !d.birthdays.some((b) => b.name.startsWith("Bruno")))
+  })
+  await as(D.r1, async () => {
+    const d = (await db.query(`select public.court_dashboard('2030-06-01','2030-06-30')`)).rows[0].court_dashboard
+    ok("recepcionista vê o operacional mas não os valores financeiros", d.revenue_month === null && d.to_receive === null && d.overdue === null && d.waitlist !== null)
+    ok("recepcionista não acessa relatórios", /permissão/.test(await err(`select public.court_report_occupancy('2030-06-01','2030-06-30')`) ?? "") && /permissão/.test(await err(`select public.court_report_finance('2030-06-01','2030-06-30')`) ?? ""))
+  })
+  await as(D.f1, async () => {
+    const d = (await db.query(`select public.court_dashboard('2030-06-01','2030-06-30')`)).rows[0].court_dashboard
+    ok("financeiro vê valores, mas não a lista de espera nem aniversários", d.revenue_month !== null && d.waitlist === null && d.birthdays === null)
+    const f = (await db.query(`select public.court_report_finance('2030-06-01','2030-06-30')`)).rows[0].court_report_finance
+    ok("relatório financeiro tem comparativo, pendente e inadimplência", "received_prev" in f && "pending" in f && Array.isArray(f.overdue_clients))
+    ok("financeiro não acessa relatórios de ocupação e clientes", /permissão/.test(await err(`select public.court_report_occupancy('2030-06-01','2030-06-30')`) ?? "") && /permissão/.test(await err(`select public.court_report_clients('2030-06-01','2030-06-30')`) ?? ""))
+  })
+  await as(D.a2, async () => {
+    const d = (await db.query(`select public.court_dashboard('2030-06-01','2030-06-30')`)).rows[0].court_dashboard
+    ok("outro estabelecimento enxerga só os próprios números", d.courts_total === 1 && d.clients_active === 0 && d.done_vs_cancelled.done === 0)
+    const r = (await db.query(`select public.court_report_occupancy('2030-06-15','2030-06-15')`)).rows[0].court_report_occupancy
+    ok("relatório do outro estabelecimento não inclui quadras alheias", r.by_court.length === 1 && r.by_court[0].court === "Quadra D2")
+  })
+  ok("funções de apoio não são executáveis pelo usuário", await (async () => { let m; await as(D.a1, async () => { m = await err(`select * from public.court_occupancy_days('${D.o1}','2030-06-15','2030-06-15')`) }); return /permission denied/.test(m ?? "") })())
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

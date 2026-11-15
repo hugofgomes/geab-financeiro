@@ -2,6 +2,23 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.22.0",
+      "date": "2026-11-15",
+      "title": "Quadra Esportiva, Fase 5: dashboard e relatórios",
+      "novidades": [
+        "Dashboard completo com dados reais e filtro de período: quadras, reservas do dia, da semana e do mês, horários livres hoje, taxa de ocupação, faturamento, a receber, em atraso, clientes ativos, mensalistas e lista de espera.",
+        "Gráficos: ocupação por dia, horários de maior movimento, reservas e receita dos últimos 6 meses, reservas por categoria e realizadas × canceladas.",
+        "Listas: próximas reservas, pendentes de confirmação, horários vagos para divulgar e aniversariantes (só com autorização do cliente).",
+        "Relatórios de Ocupação (por quadra, dia da semana, faixa de horário, modalidade e categoria), Financeiro (receita por mês, quadra e forma de pagamento, comparativo com o período anterior, pendente e inadimplência) e Clientes (novos, ativos, mensalistas, recorrentes e ranking), com períodos de 3 meses a 1 ano.",
+        "Exportação dos relatórios para Excel (CSV) e PDF (impressão do navegador)."
+      ],
+      "melhorias": [
+        "Valores financeiros do painel só aparecem para administrador, gerente e financeiro; lista de espera e aniversários, só para quem opera a recepção.",
+        "Item Relatórios ativado no menu."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.21.0",
       "date": "2026-11-15",
       "title": "Quadra Esportiva, Fase 4: financeiro",

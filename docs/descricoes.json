@@ -33,7 +33,7 @@
     "/super/comunicados": "Comunicados em massa aos clientes (e-mail e aviso no painel), com público, teste, histórico e reenvio de falhas",
     "/privacidade": "Política de privacidade (pública)",
     "/termos": "Termos de uso (públicos)",
-    "/quadra": "Quadra Esportiva: dashboard do centro esportivo (cadastro, quadras e primeiros passos)",
+    "/quadra": "Quadra Esportiva: dashboard com indicadores e gráficos de reservas, ocupação, faturamento e clientes",
     "/quadra/centro": "Quadra Esportiva: perfil, endereço e quadras do centro esportivo",
     "/quadra/agenda": "Quadra Esportiva: agenda diária, semanal e mensal com reservas, bloqueios e recorrência",
     "/quadra/reservas": "Quadra Esportiva: lista de reservas e bloqueios com filtros, status e histórico",
@@ -41,6 +41,7 @@
     "/quadra/clientes": "Quadra Esportiva: cadastro de clientes, histórico de reservas e exportação",
     "/quadra/funcionarios": "Quadra Esportiva: convite, perfis e bloqueio de funcionários do centro",
     "/quadra/financeiro": "Quadra Esportiva: contas a receber, pagamentos, mensalidades e indicadores financeiros",
+    "/quadra/relatorios": "Quadra Esportiva: relatórios de ocupação, financeiro e clientes com exportação em Excel e PDF",
     "/quadra/espera": "Quadra Esportiva: lista de espera e horários livres compatíveis"
   },
   "apis": {

@@ -1,4 +1,4 @@
-<!-- revisado: 1.21.0 -->
+<!-- revisado: 1.22.0 -->
 # Módulo Quadra Esportiva
 
 Módulo para a gestão profissional de quadras, arenas e centros esportivos. Está sendo implantado **neste sistema** para depois ser **migrado para o Partidou** (`partidou.com.br`). Por isso foi construído de forma **portátil** (ver "Contrato de portabilidade").
@@ -10,7 +10,7 @@ Módulo para a gestão profissional de quadras, arenas e centros esportivos. Est
 | 2 | Agenda (dia, semana, mês), reservas avulsas, bloqueios, recorrência e conflitos | **Entregue (v1.19.0)** |
 | 3 | Clientes, funcionários e permissões, lista de espera, histórico | **Entregue (v1.20.0)** |
 | 4 | Financeiro: contas a receber, baixas, mensalistas | **Entregue (v1.21.0)** |
-| 5 | Dashboard completo e relatórios (PDF e Excel) | Pendente |
+| 5 | Dashboard completo e relatórios (PDF e Excel) | **Entregue (v1.22.0)** |
 | 6 | Página pública, busca de disponibilidade, solicitação de reserva e camada de partidas/vagas | Pendente |
 
 No menu, os itens das fases pendentes aparecem desativados (ícone de relógio).
@@ -57,6 +57,16 @@ Tabelas: `court_bookings` (reservas e bloqueios), `court_series`, `court_hours`,
 - **Mensalistas:** “Gerar mensalidade” soma as reservas ativas da recorrência no mês.
 - **Indicadores:** a receber, em atraso, recebido no período (pelos pagamentos), receita por quadra, modalidade e categoria (só cobranças ligadas a reservas) e inadimplência por cliente. Exportação CSV para Excel.
 - **Não existe ainda:** Pix e gateways (só os campos `gateway` e `external_ref`, com unicidade, para a integração futura), estorno de pagamento, geração automática de mensalidades e PDF (Fase 5).
+
+## Dashboard e relatórios (Fase 5)
+**Telas:** `/quadra` (dashboard) e `/quadra/relatorios`. **Banco:** `0039_quadra_fase5.sql`, só funções de leitura (`court_dashboard`, `court_report_occupancy`, `court_report_finance`, `court_report_clients` e a interna `court_occupancy_days`). Todo cálculo é feito no servidor, no estabelecimento e no fuso do centro, e respeita o perfil.
+- **Taxa de ocupação** = minutos reservados ÷ minutos de funcionamento (janelas de Configurações, próprias da quadra quando existirem). **Bloqueios** (manutenção, torneio) saem da disponibilidade; reservas canceladas não contam; “não compareceu” conta como ocupado. Sem horários configurados a ocupação fica zerada e o painel avisa.
+- **Dashboard:** reservas de hoje, da semana (domingo a sábado) e do mês, horas livres hoje (por quadra), ocupação e gráficos do período escolhido, comparativo dos últimos 6 meses, próximas e pendentes, aniversariantes do mês **só com autorização** (`birthday_consent`).
+- **Perfis:** o painel é visível a todos os perfis do módulo; valores financeiros só para administrador, gerente e financeiro; lista de espera e aniversários só para administrador, gerente e recepcionista. **Relatórios:** ocupação e clientes (administrador e gerente); financeiro (administrador, gerente e financeiro).
+- **Períodos:** livres, de 1 dia a 13 meses (atalhos de 3 meses, 6 meses e 1 ano). O comparativo financeiro usa o período imediatamente anterior de mesma duração.
+- **Clientes ativos no relatório** = clientes com reserva confirmada ou concluída no período; reservas sem cliente cadastrado (sem telefone ou telefone não cadastrado) não entram na frequência e são contadas à parte. **Recorrentes** = 4 ou mais reservas no período.
+- **Exportação:** “Excel” gera CSV com “;” e acentos (o Excel abre direto, não é .xlsx); “PDF” abre uma página limpa do relatório e a janela de impressão do navegador (escolher “Salvar como PDF”; é preciso liberar pop-ups).
+- **Não existe:** avisos administrativos cadastráveis (o painel mostra avisos automáticos: horários não configurados e reservas pendentes) e agendamento de relatórios por e-mail.
 
 ## Perfis do módulo
 | Perfil | Como é definido | Pode (Fase 1) |
