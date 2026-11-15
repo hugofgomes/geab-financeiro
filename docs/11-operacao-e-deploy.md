@@ -36,6 +36,14 @@ Tarefa agendada no Coolify (`avisos-de-vencimento`, `0 12 * * *` = 9h de Brasíl
 - **Não revogar** a chave do Asaas, a da Resend nem a `SUPABASE_SERVICE_ROLE_KEY`: a produção depende delas. Para trocá-las, crie a nova, atualize Coolify e Supabase, faça o deploy e só então apague a antiga.
 - Guardar uma cópia segura dos backups e apagar os desnecessários.
 
+## Domínio app.partidou.com.br (mesma instalação)
+O aplicativo é o mesmo (um só Supabase e um só contêiner); o domínio é apenas mais um endereço. Passos (feitos fora do código, uma vez):
+1. **DNS** (onde `partidou.com.br` está registrado): registro `A` de `app` apontando para o IP da VPS do Coolify (o mesmo dos domínios `vendadigital.com`).
+2. **Coolify** → aplicação → Configuration → Domains: acrescentar `https://app.partidou.com.br` à lista (separada por vírgula, mantendo os atuais) e fazer o deploy; o certificado HTTPS é emitido automaticamente.
+3. **Supabase** → Authentication → URL Configuration: incluir `https://app.partidou.com.br/**` em *Redirect URLs* (necessário para convite de funcionários, recuperação de senha e login). Se o *Site URL* for trocado para o Partidou, ajustar também `SITE_URL` no Coolify.
+4. **Aplicativo:** nada a alterar no código; links de retorno usam o endereço público da requisição (`publicOrigin`). Se a página inicial do Partidou for outra, `app.` fica reservado ao sistema.
+Observação: a página pública das quadras (`/quadras/<nome>`) é da Fase 6 e ainda não existe.
+
 ## Problemas conhecidos e dicas
 - Deploy com a VPS sem memória: se o build travar, repetir o deploy ou aumentar a memória/swap.
 - Imagens do site em `public/site` precisam das extensões liberadas no `matcher` do middleware (já inclui svg, png, jpg, jpeg, webp, gif, ico).

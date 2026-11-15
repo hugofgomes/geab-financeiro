@@ -955,6 +955,72 @@ section("Quadra Esportiva: agenda e reservas (0036)")
   await as(R.rr, async () => { ok("prévia de preço usa as regras", (await one(`select public.court_price_preview('${R.c1}','avulsa','${T("06-22", 19)}','${T("06-22", 21)}')`)) === 36000) })
 }
 
+section("Quadra Esportiva: clientes, lista de espera e equipe (0037)")
+{
+  const S = { o1: uid(1401), o2: uid(1402), a1: uid(1411), g1: uid(1412), r1: uid(1413), f1: uid(1414), a2: uid(1415), v1: uid(1421), v2: uid(1422), c1: uid(1431), c2: uid(1432) }
+  await q(`insert into auth.users (id, email) values ($1,'s-a1@x'),($2,'s-g1@x'),($3,'s-r1@x'),($4,'s-f1@x'),($5,'s-a2@x')`, [S.a1, S.g1, S.r1, S.f1, S.a2])
+  const mk = (o, slug) => q(`insert into public.organizations (id, slug, name, status, kind, plan_id) values ($1,$2,$2,'ativa','quadra',(select id from public.plans where code='quadra_t'))`, [o, slug])
+  await mk(S.o1, "arena-s1"); await mk(S.o2, "arena-s2")
+  const pf = (o, id, role) => q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,$3,$4)`, [o, id, "Pessoa " + id.slice(-3), role])
+  await pf(S.o1, S.a1, "admin"); await pf(S.o1, S.g1, "diretoria"); await pf(S.o1, S.r1, "diretoria"); await pf(S.o1, S.f1, "diretoria"); await pf(S.o2, S.a2, "admin")
+  await q(`insert into public.court_staff (tenant_id, profile_id, role) values ($1,$2,'gerente'),($1,$3,'recepcionista'),($1,$4,'financeiro')`, [S.o1, S.g1, S.r1, S.f1])
+  await q(`insert into public.court_venues (id, tenant_id, trade_name) values ($1,$2,'Arena S1'),($3,$4,'Arena S2')`, [S.v1, S.o1, S.v2, S.o2])
+  await q(`insert into public.court_courts (id, tenant_id, venue_id, name, sport, price_cents) values ($1,$2,$3,'Quadra S1','futsal',10000),($4,$5,$6,'Quadra S2','futsal',9000)`, [S.c1, S.o1, S.v1, S.c2, S.o2, S.v2])
+  await q(`insert into public.court_hours (tenant_id, weekday, opens_min, closes_min) select $1, d, 480, 1380 from generate_series(0,6) d`, [S.o1])
+  const T = (dia, h) => `2030-${dia}T${String(h).padStart(2, "0")}:00:00-03:00`   // 2030-06-15 é sábado
+
+  // clientes
+  await as(S.r1, async () => {
+    await db.query(`insert into public.court_clients (name, phone, email) values ('  João   da Silva ', '(48) 99999-1111', 'JOAO@X.COM')`)
+    const c = (await q(`select * from public.court_clients`))[0]
+    ok("cliente: nome, telefone (com DDI) e e-mail normalizados; estabelecimento vem da sessão", c.name === "João da Silva" && c.phone === "5548999991111" && c.email === "joao@x.com" && c.tenant_id === S.o1)
+    ok("telefone duplicado no mesmo estabelecimento é recusado", /court_clients_phone_uniq|duplicate/.test(await err(`insert into public.court_clients (name, phone) values ('Outro Joao','48999991111')`) ?? ""))
+    ok("tipo e status inválidos são recusados", (await err(`insert into public.court_clients (name, client_type) values ('Fulano X','vip')`)) !== null && (await err(`insert into public.court_clients (name, status) values ('Fulano X','x')`)) !== null)
+    ok("nascimento no futuro é recusado", (await err(`insert into public.court_clients (name, birth_date) values ('Fulano X', current_date + 1)`)) !== null)
+    ok("recepcionista não exclui cliente", (await q(`delete from public.court_clients returning 1`)).length === 0)
+  }, true)
+  await as(S.f1, async () => {
+    ok("financeiro lê clientes mas não cadastra", (await one(`select count(*)::int from public.court_clients`)) === 1 && /row-level security|violates/i.test(await err(`insert into public.court_clients (name) values ('Fulano Y')`) ?? ""))
+  })
+  await as(S.a2, async () => {
+    ok("outro estabelecimento não vê clientes", (await one(`select count(*)::int from public.court_clients`)) === 0)
+    ok("outro estabelecimento não cria cliente em nome do primeiro", /fora da organização/.test(await err(`insert into public.court_clients (tenant_id, name) values ('${S.o1}','Invasor X')`) ?? ""))
+    await db.query(`insert into public.court_clients (name, phone) values ('Cliente Dois', '48999991111')`)
+    ok("mesmo telefone pode existir em estabelecimentos diferentes", (await one(`select count(*)::int from public.court_clients`)) === 1)
+  }, true)
+  // reserva liga ao cliente pelo telefone
+  const bk = await as(S.r1, async () => (await db.query(`select public.court_booking_create($1,'avulsa','João da Silva','(48) 99999-1111',null,$2,$3)`, [S.c1, T("06-15", 20), T("06-15", 21)])).rows[0].court_booking_create, true)
+  ok("reserva se liga ao cliente do mesmo estabelecimento pelo telefone", (await one(`select c.name from public.court_bookings b join public.court_clients c on c.id=b.client_id where b.id=$1`, [bk.id])) === "João da Silva")
+  ok("reserva do outro estabelecimento nunca liga ao cliente alheio", (await one(`select count(*)::int from public.court_bookings where client_id is not null and tenant_id <> (select tenant_id from public.court_clients where id = client_id)`)) === 0)
+  await as(S.g1, async () => { ok("cliente com reservas não pode ser excluído (histórico preservado)", /foreign key|violates/i.test(await err(`delete from public.court_clients where name='João da Silva'`) ?? "")) })
+
+  // lista de espera
+  await as(S.r1, async () => {
+    await db.query(`insert into public.court_waitlist (name, phone, sport, weekday, start_min, contact_consent) values ('Maria Souza','(48) 98888-2222','futsal',6,1200,true), ('Pedro Lima','(48) 97777-3333','futsal',6,1260,true)`)
+    ok("lista de espera exige telefone ou e-mail", /telefone ou e-mail|check/i.test(await err(`insert into public.court_waitlist (name) values ('Sem Contato')`) ?? ""))
+    const m = await q(`select w.name, m.court_name, m.starts_at from public.court_waitlist_matches(3650) m join public.court_waitlist w on w.id = m.waitlist_id order by w.name, m.starts_at`)
+    ok("horário ocupado às 20h não é oferecido; às 21h livre é oferecido", !m.some((x) => x.name === "Maria Souza" && new Date(x.starts_at).toISOString() === "2030-06-15T23:00:00.000Z") && m.some((x) => x.name === "Pedro Lima"))
+    ok("lista de espera não cria reserva", (await one(`select count(*)::int from public.court_bookings where client_name in ('Maria Souza','Pedro Lima')`)) === 0)
+    await db.query(`select public.court_waitlist_mark((select id from public.court_waitlist where name='Maria Souza'), 'avisado')`)
+    ok("marcar como avisado registra data", (await one(`select notified_at is not null from public.court_waitlist where name='Maria Souza'`)) === true)
+    ok("situação inválida é recusada", /inválida/.test(await err(`select public.court_waitlist_mark((select id from public.court_waitlist limit 1), 'xx')`) ?? ""))
+  })
+  await as(S.f1, async () => { ok("financeiro não acessa a lista de espera", (await one(`select count(*)::int from public.court_waitlist`)) === 0 && /permissão/.test(await err(`select * from public.court_waitlist_matches()`) ?? "")) })
+  await as(S.a2, async () => { ok("outro estabelecimento não vê nem altera a lista de espera", (await one(`select count(*)::int from public.court_waitlist`)) === 0 && /não encontrada/.test(await err(`select public.court_waitlist_mark('${(await one(`select id from public.court_waitlist limit 1`)) ?? S.o1}','avisado')`) ?? "não encontrada")) })
+
+  // funcionários
+  await as(S.a1, async () => {
+    const l = await q(`select * from public.court_staff_list()`)
+    ok("administrador lista a equipe do próprio estabelecimento", l.length === 3 && l.every((r) => r.email))
+    await db.query(`select public.court_staff_update($1,'recepcionista','Noite',false)`, [S.g1])
+    ok("bloquear funcionário desativa equipe e perfil", (await one(`select active from public.court_staff where profile_id=$1`, [S.g1])) === false && (await one(`select active from public.profiles where id=$1`, [S.g1])) === false)
+    ok("perfil de administrador não pode ser atribuído à equipe", /inválido/.test(await err(`select public.court_staff_update('${S.r1}','admin',null,true)`) ?? ""))
+  }, true)
+  await as(S.g1, async () => { ok("funcionário bloqueado perde o acesso ao módulo", (await one(`select public.court_role()`)) === null) })
+  await as(S.r1, async () => { ok("recepcionista não lista nem altera a equipe", /permissão/.test(await err(`select * from public.court_staff_list()`) ?? "") && /permissão/.test(await err(`select public.court_staff_update('${S.f1}','gerente',null,true)`) ?? "")) })
+  await as(S.a2, async () => { ok("outro administrador não altera funcionário alheio", /não encontrado/.test(await err(`select public.court_staff_update('${S.r1}','gerente',null,true)`) ?? "") && (await one(`select count(*)::int from public.court_staff_list()`)) === 0) })
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

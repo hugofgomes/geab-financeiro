@@ -2,6 +2,22 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.20.0",
+      "date": "2026-11-15",
+      "title": "Quadra Esportiva, Fase 3: clientes, funcionários e lista de espera",
+      "novidades": [
+        "Clientes: cadastro do estabelecimento com tipo (avulso, mensalista, professor, organizador, outros), busca, filtros, desativar/excluir (só sem reservas), histórico de reservas e pagamentos e exportação para Excel (CSV).",
+        "Reservas passam a se ligar ao cliente pelo telefone, sempre dentro do mesmo estabelecimento.",
+        "Funcionários: convite por e-mail (a própria pessoa cria a senha), perfis Gerente, Recepcionista e Financeiro, cargo, bloqueio e reativação de acesso e reenvio do convite.",
+        "Lista de espera: cadastro, edição, exclusão, filtros, horários mais procurados e destaque dos horários livres que combinam, com aviso manual por WhatsApp apenas para quem autorizou o contato (nada é enviado automaticamente).",
+        "Autorização LGPD no cadastro: aniversário só é usado com consentimento; aviso da lista de espera só com consentimento."
+      ],
+      "melhorias": [
+        "Itens Clientes, Funcionários e Lista de Espera ativados no menu Quadra Esportiva."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.19.0",
       "date": "2026-11-15",
       "title": "Quadra Esportiva, Fase 2: agenda e reservas",

@@ -19,7 +19,7 @@ Plataforma SaaS (software por assinatura) para **gestão de grupos de futebol am
 - **Assinatura**: ao fim do teste o grupo precisa assinar (Pix, boleto ou cartão pelo Asaas) para continuar.
 
 ## Endereços
-- Produção: `geab.vendadigital.com` e `futebol.vendadigital.com` (mesma instalação).
+- Produção: `geab.vendadigital.com` e `futebol.vendadigital.com` (mesma instalação). **`app.partidou.com.br`** é o endereço do Partidou/Quadra Esportiva, na mesma instalação (ver "Operação, deploy e manutenção": como ativar o domínio).
 - Cada grupo pode ter endereço próprio no formato `grupo.dominio-base` quando `NEXT_PUBLIC_BASE_DOMAIN` está configurada; sem ela, o grupo é identificado pelo parâmetro `?grupo=` no cadastro de atleta.
 
 ## Tecnologias

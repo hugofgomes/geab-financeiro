@@ -23,7 +23,7 @@ import { createPortal } from "react-dom"
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/atletas", label: "Atletas", icon: Users },
+  { href: "/atletas", label: "Atletas", icon: Users, ready: true },
   { href: "/mensalidades", label: "Mensalidades", icon: CalendarCheck },
   { href: "/caixa", label: "Caixa", icon: Wallet },
   { href: "/extrato", label: "Extrato", icon: ReceiptText },
@@ -46,9 +46,9 @@ const QUADRA = [
   { href: "/quadra/agenda", label: "Agenda de Quadras", icon: CalendarRange, ready: true },
   { href: "/quadra/centro", label: "Centro Esportivo", icon: MapPin, ready: true },
   { href: "/quadra/reservas", label: "Reservas", icon: ClipboardList, ready: true },
-  { href: "/quadra/espera", label: "Lista de Espera", icon: Hourglass },
-  { href: "/quadra/clientes", label: "Clientes", icon: Contact },
-  { href: "/quadra/funcionarios", label: "Funcionários", icon: Users },
+  { href: "/quadra/espera", label: "Lista de Espera", icon: Hourglass, ready: true },
+  { href: "/quadra/clientes", label: "Clientes", icon: Contact, ready: true },
+  { href: "/quadra/funcionarios", label: "Funcionários", icon: Users, ready: true },
   { href: "/quadra/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/quadra/relatorios", label: "Relatórios", icon: ChartColumn },
   { href: "/quadra/configuracoes", label: "Configurações", icon: Settings2, ready: true },

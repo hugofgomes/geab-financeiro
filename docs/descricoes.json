@@ -37,10 +37,14 @@
     "/quadra/centro": "Quadra Esportiva: perfil, endereço e quadras do centro esportivo",
     "/quadra/agenda": "Quadra Esportiva: agenda diária, semanal e mensal com reservas, bloqueios e recorrência",
     "/quadra/reservas": "Quadra Esportiva: lista de reservas e bloqueios com filtros, status e histórico",
-    "/quadra/configuracoes": "Quadra Esportiva: horários de funcionamento, regras de preço e regras de reserva"
+    "/quadra/configuracoes": "Quadra Esportiva: horários de funcionamento, regras de preço e regras de reserva",
+    "/quadra/clientes": "Quadra Esportiva: cadastro de clientes, histórico de reservas e exportação",
+    "/quadra/funcionarios": "Quadra Esportiva: convite, perfis e bloqueio de funcionários do centro",
+    "/quadra/espera": "Quadra Esportiva: lista de espera e horários livres compatíveis"
   },
   "apis": {
     "/api/assinatura": "Cria a assinatura no Asaas e devolve o link de pagamento",
+    "/api/quadra/funcionarios": "Quadra Esportiva: convida (POST) e reenvia acesso (PUT) de funcionários do centro; só o administrador",
     "/api/atletas/acesso": "Cria o login de um atleta com senha provisória (administrador)",
     "/api/btg/callback": "Retorno da autorização do BTG",
     "/api/btg/conectar": "Inicia a conexão com o BTG",

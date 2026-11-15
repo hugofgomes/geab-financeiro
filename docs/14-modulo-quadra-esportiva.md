@@ -1,4 +1,4 @@
-<!-- revisado: 1.19.0 -->
+<!-- revisado: 1.20.0 -->
 # Módulo Quadra Esportiva
 
 Módulo para a gestão profissional de quadras, arenas e centros esportivos. Está sendo implantado **neste sistema** para depois ser **migrado para o Partidou** (`partidou.com.br`). Por isso foi construído de forma **portátil** (ver "Contrato de portabilidade").
@@ -8,7 +8,7 @@ Módulo para a gestão profissional de quadras, arenas e centros esportivos. Est
 |---|---|---|
 | 1 | Estrutura: módulo no plano, menu, centro esportivo e quadras | **Entregue (v1.18.0)** |
 | 2 | Agenda (dia, semana, mês), reservas avulsas, bloqueios, recorrência e conflitos | **Entregue (v1.19.0)** |
-| 3 | Clientes, funcionários e permissões, lista de espera, histórico | Pendente |
+| 3 | Clientes, funcionários e permissões, lista de espera, histórico | **Entregue (v1.20.0)** |
 | 4 | Financeiro: contas a receber, baixas, mensalistas | Pendente |
 | 5 | Dashboard completo e relatórios (PDF e Excel) | Pendente |
 | 6 | Página pública, busca de disponibilidade, solicitação de reserva e camada de partidas/vagas | Pendente |
@@ -38,6 +38,14 @@ No menu, os itens das fases pendentes aparecem desativados (ícone de relógio).
 
 Tabelas: `court_bookings` (reservas e bloqueios), `court_series`, `court_hours`, `court_price_rules` e `court_counters`. Nesta fase o cliente da reserva é guardado como nome e telefone digitados; o cadastro de clientes (Fase 3) vai vincular as reservas.
 
+## Clientes, funcionários e lista de espera (Fase 3)
+**Telas:** `/quadra/clientes`, `/quadra/funcionarios` e `/quadra/espera`. **Banco:** `0037_quadra_fase3.sql` (tabelas `court_clients` e `court_waitlist`, coluna `client_id` em reservas e séries, funções `court_staff_list`, `court_staff_update`, `court_waitlist_matches` e `court_waitlist_mark`).
+- **Clientes:** nome, telefone e WhatsApp (normalizados com DDI), e-mail, nascimento, modalidade favorita, tipo (avulso, mensalista, professor, organizador, outros), observações e situação. Telefone é único por estabelecimento (o mesmo número pode existir em outro estabelecimento sem conflito). Perfis administrador, gerente e recepcionista cadastram e editam; o financeiro só consulta; excluir é só do administrador e do gerente e **só sem reservas** (o banco recusa por chave estrangeira; nesse caso, desative). Exportação em CSV com ";" e acentos, que o Excel abre direto.
+- **Ligação com reservas:** ao criar uma reserva ou série, o banco liga `client_id` ao cliente do **mesmo estabelecimento** com o mesmo telefone. Reservas anteriores ao cadastro ou sem telefone não são ligadas. O histórico do cliente mostra reservas, valores e situação do pagamento; baixas financeiras detalhadas chegam na Fase 4.
+- **LGPD:** a data de nascimento só é usada em avisos com a marca "o cliente autorizou" (`birthday_consent`); na lista de espera, o botão de WhatsApp só aparece quando há autorização de contato.
+- **Funcionários:** só o administrador. O convite (`POST /api/quadra/funcionarios`) usa a chave de serviço **no servidor**, valida o perfil do administrador pela sessão, toma o estabelecimento da sessão (nunca do navegador) e envia o e-mail de convite do Supabase: a própria pessoa cria a senha em `/redefinir-senha` (nenhuma senha passa pelo sistema). O funcionário recebe o nível de sistema "diretoria" (somente leitura fora do módulo) e o perfil real fica em `court_staff` (gerente, recepcionista ou financeiro). **Bloquear** desativa o perfil e a equipe na hora (`court_role()` passa a nulo); reativar restaura; o histórico é mantido. Alterações ficam na auditoria (`audit_log`).
+- **Lista de espera:** nome, telefone ou e-mail, modalidade, quadra, dia da semana, horário, tipo, observações e situação (aguardando, avisado, atendido, cancelado). `court_waitlist_matches` aponta, para quem aguarda, os horários **livres nos próximos 14 dias** que respeitam funcionamento, grade e duração mínima; **não reserva nada** (regra 9). O aviso é um link do WhatsApp aberto pela equipe e registrado como "avisado"; **não há envio automático** nem integração de WhatsApp Business. O perfil financeiro não acessa a lista.
+
 ## Perfis do módulo
 | Perfil | Como é definido | Pode (Fase 1) |
 |---|---|---|
@@ -46,7 +54,7 @@ Tabelas: `court_bookings` (reservas e bloqueios), `court_series`, `court_hours`,
 | **Recepcionista** | `court_staff` | Consultar |
 | **Financeiro** | `court_staff` | Consultar |
 
-A função `court_role()` resolve o perfil e devolve nulo (sem acesso) quando o módulo não está no plano. Em modo espião o dono enxerga como administrador, somente leitura. As telas de equipe (convite, bloqueio, revogação) chegam na Fase 3.
+A função `court_role()` resolve o perfil e devolve nulo (sem acesso) quando o módulo não está no plano. Em modo espião o dono enxerga como administrador, somente leitura. As telas de equipe (convite, bloqueio e revogação) estão na Fase 3.
 
 ## Banco de dados (Fase 1)
 - `court_venues`: o centro (um por organização): nome fantasia, razão social, CPF/CNPJ **validado no banco**, descrição, logotipo, telefone, WhatsApp, e-mail, site, redes, endereço, localização (latitude e longitude) e fuso horário (padrão `America/Sao_Paulo`).
