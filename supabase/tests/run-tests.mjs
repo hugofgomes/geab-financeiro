@@ -1165,6 +1165,110 @@ section("Quadra Esportiva: dashboard e relatórios (0039)")
   ok("funções de apoio não são executáveis pelo usuário", await (async () => { let m; await as(D.a1, async () => { m = await err(`select * from public.court_occupancy_days('${D.o1}','2030-06-15','2030-06-15')`) }); return /permission denied/.test(m ?? "") })())
 }
 
+section("Quadra Esportiva: página pública, reservas online e partidas (0040)")
+{
+  const P = { o1: uid(1701), o2: uid(1702), a1: uid(1711), a2: uid(1712), v1: uid(1721), v2: uid(1722), c1: uid(1731), c2: uid(1732), c3: uid(1733) }
+  await q(`insert into auth.users (id, email) values ($1,'p-a1@x'),($2,'p-a2@x')`, [P.a1, P.a2])
+  const mk = (o, slug) => q(`insert into public.organizations (id, slug, name, status, kind, plan_id) values ($1,$2,$2,'ativa','quadra',(select id from public.plans where code='quadra_t'))`, [o, slug])
+  await mk(P.o1, "arena-publica"); await mk(P.o2, "arena-outra")
+  await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Admin P1','admin'),($3,$4,'Admin P2','admin')`, [P.o1, P.a1, P.o2, P.a2])
+  await q(`insert into public.court_venues (id, tenant_id, trade_name, city, state, document, legal_name, doc_type, max_advance_days) values ($1,$2,'Arena Pública','Joinville','SC','11222333000181','Razão Secreta LTDA','cnpj',90),($3,$4,'Arena Outra','Curitiba','PR',null,null,null,90)`, [P.v1, P.o1, P.v2, P.o2])
+  await q(`insert into public.court_courts (id, tenant_id, venue_id, name, sport, price_cents) values ($1,$2,$3,'Quadra P1','futsal',10000),($4,$2,$3,'Quadra P1b','futebol_society',12000),($5,$6,$7,'Quadra Outra','futsal',9000)`, [P.c1, P.o1, P.v1, P.c2, P.c3, P.o2, P.v2])
+  await q(`insert into public.court_hours (tenant_id, weekday, opens_min, closes_min) select $1, d, 480, 1380 from generate_series(0,6) d`, [P.o1])
+  await q(`insert into public.court_hours (tenant_id, weekday, opens_min, closes_min) select $1, d, 480, 1380 from generate_series(0,6) d`, [P.o2])
+  const day = (n) => new Date(Date.now() + n * 86400e3).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })
+  const D1 = day(10), D2 = day(11), D3 = day(12), D4 = day(13)
+  const T = (d, h) => `${d}T${String(h).padStart(2, "0")}:00:00-03:00`
+  let done
+  async function anon(fn, commit = false) {
+    await db.query("begin"); done = false
+    try { await db.query("set local role anon"); const r = await fn(); if (commit) { await db.query("commit"); done = true } return r } finally { if (!done) await db.query("rollback") }
+  }
+  const aerr = async (sql) => anon(async () => err(sql))
+  const rpc = async (sql, p = []) => anon(async () => (await db.query(sql, p)).rows[0] && Object.values((await db.query(sql, p)).rows[0])[0])
+
+  ok("centro nasce NÃO público: vitrine, disponibilidade e solicitação indisponíveis", (await anon(async () => (await db.query(`select public.court_public_venue('arena-publica') v`)).rows[0].v)) === null
+    && /não encontrado/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D1, 20)}','${T(D1, 21)}','João Teste','48999990001')`) ?? ""))
+  await as(P.a1, async () => { await db.query(`update public.court_venues set public_enabled = true`) }, true)
+  const venue = await anon(async () => (await db.query(`select public.court_public_venue('ARENA-publica') v`)).rows[0].v)
+  ok("vitrine pública (slug sem diferenciar maiúsculas) traz quadras, horários e endereço", venue?.venue.name === "Arena Pública" && venue.courts.length === 2 && venue.hours.length === 7 && venue.venue.city === "Joinville")
+  ok("vitrine NÃO expõe CNPJ, razão social nem identificadores internos", !JSON.stringify(venue).includes("11222333000181") && !JSON.stringify(venue).includes("Razão Secreta") && !("document" in venue.venue) && !("tenant_id" in venue))
+  { const msgs = []; for (const t of ["court_bookings", "court_clients", "court_courts", "court_venues", "court_matches", "court_match_players", "court_receivables"]) msgs.push(await aerr(`select * from public.${t}`)); ok("visitante não lê nenhuma tabela do módulo", msgs.every((m) => /permission denied/.test(m ?? "")), msgs.join(" | ")) }
+  ok("visitante não executa as funções internas nem as do painel", /permission denied/.test(await aerr(`select * from public.court_free_slots('${P.o1}','${D1}')`) ?? "") && /permission denied/.test(await aerr(`select public.court_booking_create('${P.c1}','avulsa','X Y',null,null,'${T(D1, 20)}','${T(D1, 21)}')`) ?? ""))
+  const av0 = await anon(async () => (await db.query(`select public.court_public_availability('arena-publica','${D1}') v`)).rows[0].v)
+  ok("disponibilidade: grade de 1h das 8h às 22h em cada quadra, com preço", av0.filter((s) => s.court_id === P.c1).length === 15 && av0.find((s) => s.court_id === P.c2 && s.start_min === 1200).price_cents === 12000)
+  ok("dia fora do limite de antecedência não tem horários", (await anon(async () => (await db.query(`select public.court_public_availability('arena-publica','${day(200)}') v`)).rows[0].v)).length === 0)
+
+  // solicitação online
+  const r1 = await anon(async () => (await db.query(`select public.court_public_request('arena-publica',$1,$2,$3,'  João   Teste ','(48) 99999-0001','futsal','trazer colete') r`, [P.c1, T(D1, 20), T(D1, 21)])).rows[0].r, true)
+  ok("solicitação online nasce PENDENTE, com código, preço do servidor e origem pública", r1.status === "pendente" && /^R-\d{6}$/.test(r1.code) && r1.price_cents === 10000
+    && (await one(`select source from public.court_bookings where code=$1 and tenant_id=$2`, [r1.code, P.o1])) === "publica" && (await one(`select client_name from public.court_bookings where code=$1 and tenant_id=$2`, [r1.code, P.o1])) === "João Teste")
+  const av1 = await anon(async () => (await db.query(`select public.court_public_availability('arena-publica','${D1}') v`)).rows[0].v)
+  ok("a solicitação pendente já tira o horário da disponibilidade (fonte única)", !av1.some((s) => s.court_id === P.c1 && s.start_min === 1200) && av1.some((s) => s.court_id === P.c2 && s.start_min === 1200))
+  ok("segunda pessoa no mesmo horário é recusada", /Horário indisponível/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D1, 20)}','${T(D1, 21)}','Maria Teste','48999990002')`) ?? ""))
+  await as(P.a1, async () => { ok("a equipe também não consegue reservar o mesmo horário no painel", /Horário indisponível/.test(await err(`select public.court_booking_create('${P.c1}','avulsa','Painel Teste',null,null,'${T(D1, 20)}','${T(D1, 21)}')`) ?? "")) })
+  ok("a solicitação aparece para a equipe como reserva pendente", await (async () => { let n; await as(P.a1, async () => { n = await one(`select count(*)::int from public.court_bookings where status='pendente' and source='publica'`) }); return n === 1 })())
+  ok("nome, telefone e duração são validados no servidor", /nome/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D2, 20)}','${T(D2, 21)}','A','48999990003')`) ?? "") && /elefone/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D2, 20)}','${T(D2, 21)}','Pessoa Teste','123')`) ?? "") && /4 horas/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D2, 9)}','${T(D2, 15)}','Pessoa Teste','48999990003')`) ?? ""))
+  ok("horário no passado, fora do funcionamento e fora da grade são recusados", /antecedência/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(day(-1), 20)}','${T(day(-1), 21)}','Pessoa Teste','48999990003')`) ?? "") && /funcionamento/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D2, 6)}','${T(D2, 7)}','Pessoa Teste','48999990003')`) ?? "") && /intervalos/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D2, 20).replace(":00:00-", ":30:00-")}','${T(D2, 21).replace(":00:00-", ":30:00-")}','Pessoa Teste','48999990003')`) ?? ""))
+  ok("não dá para reservar quadra de outro centro usando o endereço de um centro", /Quadra não encontrada/.test(await aerr(`select public.court_public_request('arena-publica','${P.c3}','${T(D2, 20)}','${T(D2, 21)}','Pessoa Teste','48999990003')`) ?? ""))
+  // freio por telefone
+  for (const h of [9, 10]) await anon(async () => { await db.query(`select public.court_public_request('arena-publica',$1,$2,$3,'João Teste','48999990001')`, [P.c1, T(D2, h), T(D2, h + 1)]) }, true)
+  ok("no máximo 3 solicitações pendentes por telefone", /aguardando confirmação/.test(await aerr(`select public.court_public_request('arena-publica','${P.c1}','${T(D2, 12)}','${T(D2, 13)}','João Teste','48999990001')`) ?? ""))
+  // desligar a página pública / suspender
+  await as(P.a1, async () => { await db.query(`update public.court_venues set public_enabled = false`) }, true)
+  ok("desligar a página pública fecha tudo", (await anon(async () => (await db.query(`select public.court_public_availability('arena-publica','${D1}') v`)).rows[0].v)) === null && /não encontrado/.test(await aerr(`select public.court_public_request('arena-publica','${P.c2}','${T(D3, 20)}','${T(D3, 21)}','Pessoa Teste','48999990009')`) ?? ""))
+  await as(P.a1, async () => { await db.query(`update public.court_venues set public_enabled = true`) }, true)
+  await q(`update public.organizations set status='suspensa' where id=$1`, [P.o1])
+  ok("centro suspenso some da vitrine", (await anon(async () => (await db.query(`select public.court_public_venue('arena-publica') v`)).rows[0].v)) === null)
+  await q(`update public.organizations set status='ativa' where id=$1`, [P.o1])
+  // confirmação automática
+  await as(P.a1, async () => { await db.query(`update public.court_venues set public_auto_confirm = true`) }, true)
+  const r2 = await anon(async () => (await db.query(`select public.court_public_request('arena-publica',$1,$2,$3,'Rita Auto','48999990020') r`, [P.c2, T(D3, 20), T(D3, 21)])).rows[0].r, true)
+  ok("com confirmação automática a reserva nasce confirmada", r2.status === "confirmada")
+  await as(P.a1, async () => { await db.query(`update public.court_venues set public_auto_confirm = false`) }, true)
+
+  // partidas
+  const r3 = await anon(async () => (await db.query(`select public.court_public_request('arena-publica',$1,$2,$3,'Carlos Organizador','48999990030','futsal',null,2,'Racha de quinta') r`, [P.c1, T(D4, 20), T(D4, 21)])).rows[0].r, true)
+  const tok = r3.manage_token
+  const mrow = (await q(`select * from public.court_matches where title='Racha de quinta'`))[0]
+  ok("partida criada com código secreto; só o hash fica guardado", tok.length === 64 && mrow.manage_hash !== tok && mrow.manage_hash.length === 64 && mrow.slots_total === 2)
+  ok("partida de reserva pendente não aparece na vitrine", (await anon(async () => (await db.query(`select public.court_public_matches('arena-publica') v`)).rows[0].v)).length === 0 && /não está mais aberta/.test(await aerr(`select public.court_public_match_join('${mrow.id}','Paulo Jogador','48999990040')`) ?? ""))
+  const bid = await one(`select id from public.court_bookings where code=$1 and tenant_id=$2`, [r3.code, P.o1])
+  await as(P.a1, async () => { await db.query(`select public.court_booking_update($1,'{"status":"confirmada"}')`, [bid]) }, true)
+  const pm = await anon(async () => (await db.query(`select public.court_public_matches('arena-publica') v`)).rows[0].v)
+  ok("confirmada, a partida aparece com vagas e SEM telefones", pm.length === 1 && pm[0].slots_total === 2 && pm[0].approved === 0 && !JSON.stringify(pm).includes("48999990030") && !JSON.stringify(pm).includes("5548"))
+  for (const [n, ph] of [["Paulo Jogador", "48999990040"], ["Ana Jogadora", "48999990041"], ["Davi Jogador", "48999990042"]]) await anon(async () => { await db.query(`select public.court_public_match_join($1,$2,$3)`, [mrow.id, n, ph]) }, true)
+  ok("pedido repetido do mesmo telefone é recusado", /já pediu vaga/.test(await aerr(`select public.court_public_match_join('${mrow.id}','Paulo Jogador','(48) 99999-0040')`) ?? ""))
+  ok("código errado não abre a gestão", (await anon(async () => (await db.query(`select public.court_match_manage_get('errado') v`)).rows[0].v)) === null)
+  const mg = await anon(async () => (await db.query(`select public.court_match_manage_get($1) v`, [tok])).rows[0].v)
+  ok("organizador vê pedidos com telefone", mg.players.length === 3 && mg.players.every((p) => p.status === "pendente" && p.phone.startsWith("55")) && mg.booking.court === "Quadra P1")
+  const [p1, p2, p3] = mg.players.map((p) => p.id)
+  await anon(async () => { await db.query(`select public.court_match_manage_decide($1,$2,'aprovado')`, [tok, p1]) }, true)
+  ok("aprovar um jogador mantém a partida aberta", (await one(`select status from public.court_matches where id=$1`, [mrow.id])) === "aberta")
+  await anon(async () => { await db.query(`select public.court_match_manage_decide($1,$2,'aprovado')`, [tok, p2]) }, true)
+  ok("ao preencher as vagas a partida é marcada como completa", (await one(`select status from public.court_matches where id=$1`, [mrow.id])) === "completa")
+  ok("não aprova além do limite de vagas", /vagas já foram preenchidas/.test(await aerr(`select public.court_match_manage_decide('${tok}','${p3}','aprovado')`) ?? ""))
+  ok("partida completa sai da vitrine e não recebe pedidos", (await anon(async () => (await db.query(`select public.court_public_matches('arena-publica') v`)).rows[0].v)).length === 0 && /não está mais aberta/.test(await aerr(`select public.court_public_match_join('${mrow.id}','Novo Jogador','48999990050')`) ?? ""))
+  await anon(async () => { await db.query(`select public.court_match_manage_decide($1,$2,'removido')`, [tok, p1]) }, true)
+  ok("remover um jogador reabre a vaga", (await one(`select status from public.court_matches where id=$1`, [mrow.id])) === "aberta")
+  ok("código de outra partida não decide jogador alheio", /Código inválido|Jogador não encontrado/.test(await aerr(`select public.court_match_manage_decide('${tok}','${P.c1}','aprovado')`) ?? ""))
+  await as(P.a2, async () => { ok("outro estabelecimento não lê partidas nem jogadores", (await one(`select count(*)::int from public.court_matches`)) === 0 && (await one(`select count(*)::int from public.court_match_players`)) === 0) })
+  await as(P.a1, async () => { ok("a equipe lê as partidas do próprio centro", (await one(`select count(*)::int from public.court_matches`)) === 1 && (await one(`select count(*)::int from public.court_match_players`)) === 3) })
+  await as(P.a1, async () => { await db.query(`select public.court_booking_cancel($1,'chuva')`, [bid]) }, true)
+  ok("cancelar a reserva cancela a partida", (await one(`select status from public.court_matches where id=$1`, [mrow.id])) === "cancelada" && /Partida cancelada/.test(await aerr(`select public.court_match_manage_decide('${tok}','${p3}','aprovado')`) ?? ""))
+  await anon(async () => { await db.query(`select public.court_match_manage_cancel($1)`, [tok]) }, true)
+  ok("o horário de reserva cancelada volta a ficar disponível ao público", (await anon(async () => (await db.query(`select public.court_public_availability('arena-publica','${D4}') v`)).rows[0].v)).some((s) => s.court_id === P.c1 && s.start_min === 1200))
+
+  // busca
+  const s1 = await anon(async () => (await db.query(`select public.court_public_search('futsal','joinv') v`)).rows[0].v)
+  ok("busca por modalidade e cidade", s1.length === 1 && s1[0].slug === "arena-publica" && s1[0].min_price_cents === 10000 && !JSON.stringify(s1).includes("Razão"))
+  await as(P.a2, async () => { await db.query(`update public.court_venues set public_enabled = true`) }, true)
+  ok("busca só lista centros que ligaram a página pública; filtro por estado", (await anon(async () => (await db.query(`select public.court_public_search(null,null,null) v`)).rows[0].v)).length === 2 && (await anon(async () => (await db.query(`select public.court_public_search(null,null,'PR') v`)).rows[0].v)).length === 1)
+  const s3 = await anon(async () => (await db.query(`select public.court_public_search('futebol_society',null,null,$1,1200,1260) v`, [D1])).rows[0].v)
+  ok("busca por dia e horário só traz centros com vaga livre", s3.length === 0 || s3.every((x) => x.free_slots > 0))
+  ok("busca com horário ocupado exclui o centro (modalidade só da quadra com reserva)", await (async () => { await as(P.a1, async () => { await db.query(`select public.court_booking_create($1,'avulsa','Bloqueio Teste',null,null,$2,$3)`, [P.c2, T(D1, 20), T(D1, 21)]) }, true); const r = await anon(async () => (await db.query(`select public.court_public_search('futebol_society',null,null,$1,1200,1260) v`, [D1])).rows[0].v); return r.length === 0 })())
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

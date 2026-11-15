@@ -42,6 +42,9 @@
     "/quadra/funcionarios": "Quadra Esportiva: convite, perfis e bloqueio de funcionários do centro",
     "/quadra/financeiro": "Quadra Esportiva: contas a receber, pagamentos, mensalidades e indicadores financeiros",
     "/quadra/relatorios": "Quadra Esportiva: relatórios de ocupação, financeiro e clientes com exportação em Excel e PDF",
+    "/quadras": "Busca pública de centros esportivos e quadras (sem login)",
+    "/quadras/[slug]": "Página pública do centro: quadras, preços, horários livres, solicitação de reserva e partidas com vagas",
+    "/partida/[token]": "Gestão da partida pelo organizador (código secreto no link, sem login)",
     "/quadra/espera": "Quadra Esportiva: lista de espera e horários livres compatíveis"
   },
   "apis": {

@@ -23,7 +23,7 @@ type Venue = {
   id: string; trade_name: string; legal_name: string | null; doc_type: "cpf" | "cnpj" | null; document: string | null; description: string | null; logo_url: string | null
   phone: string | null; whatsapp: string | null; email: string | null; website: string | null; instagram: string | null; facebook: string | null
   cep: string | null; street: string | null; number: string | null; complement: string | null; district: string | null; city: string | null; state: string | null
-  latitude: number | null; longitude: number | null; timezone: string
+  latitude: number | null; longitude: number | null; timezone: string; public_enabled?: boolean; public_auto_confirm?: boolean
 }
 type Court = { id: string; name: string; description: string | null; sport: string; floor_type: string | null; covered: boolean; lighting: boolean; capacity: number | null; photos: string[]; price_cents: number; active: boolean }
 
@@ -70,9 +70,11 @@ export default function CentroPage() {
           <TabsTrigger value="perfil" className="h-10 shrink-0 px-4">Perfil</TabsTrigger>
           <TabsTrigger value="endereco" className="h-10 shrink-0 px-4">Endereço</TabsTrigger>
           <TabsTrigger value="quadras" className="h-10 shrink-0 px-4">Quadras ({data.courts.length})</TabsTrigger>
+          <TabsTrigger value="publica" className="h-10 shrink-0 px-4">Página pública</TabsTrigger>
         </TabsList>
         <TabsContent value="perfil"><VenueForm key={data.venue?.id ?? "novo"} venue={data.venue} tenantId={org.id} canEdit={canVenue} section="perfil" onSaved={reload} /></TabsContent>
         <TabsContent value="endereco"><VenueForm key={(data.venue?.id ?? "novo") + "e"} venue={data.venue} tenantId={org.id} canEdit={canVenue} section="endereco" onSaved={reload} /></TabsContent>
+        <TabsContent value="publica"><PublicPage venue={data.venue} slug={(org as { slug?: string }).slug ?? ""} canEdit={canVenue} hasCourts={data.courts.some((c) => c.active)} onSaved={reload} /></TabsContent>
         <TabsContent value="quadras"><Courts venue={data.venue} courts={data.courts} tenantId={org.id} canEdit={canCourts} onChanged={reload} /></TabsContent>
       </Tabs>
     </>
@@ -281,5 +283,38 @@ function Courts({ venue, courts, tenantId, canEdit, onChanged }: { venue: Venue 
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+/** Página pública do centro (opt-in): liga/desliga, confirmação automática e o link para divulgar. */
+function PublicPage({ venue, slug, canEdit, hasCourts, onSaved }: { venue: Venue | null; slug: string; canEdit: boolean; hasCourts: boolean; onSaved: () => void }) {
+  const [busy, setBusy] = React.useState(false)
+  if (!venue) return <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Cadastre o perfil do centro primeiro.</p>
+  const url = typeof window === "undefined" ? "" : `${window.location.origin}/quadras/${slug}`
+  async function set(patch: { public_enabled?: boolean; public_auto_confirm?: boolean }) {
+    setBusy(true)
+    const r = await supabase().from("court_venues").update(patch).eq("id", venue!.id)
+    setBusy(false)
+    if (r.error) toast.error(r.error.message); else { toast.success("Configuração salva."); onSaved() }
+  }
+  return (
+    <Card><CardContent className="space-y-4 pt-4">
+      <div><h2 className="font-semibold">Página pública e reservas online</h2><p className="text-sm text-muted-foreground">Jogadores e organizadores veem suas quadras, preços e horários livres e solicitam reservas sem criar conta. Os dados privados (CPF/CNPJ, clientes, financeiro) nunca aparecem.</p></div>
+      <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-4" disabled={!canEdit || busy || (!venue.public_enabled && !hasCourts)} checked={!!venue.public_enabled} onChange={(e) => set({ public_enabled: e.target.checked })} />
+        <span><strong>Publicar a página do centro</strong><br /><span className="text-muted-foreground">{hasCourts ? "Desligado, a página e a busca deixam de mostrar o centro." : "Cadastre ao menos uma quadra ativa e os horários de funcionamento antes de publicar."}</span></span></label>
+      <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-4" disabled={!canEdit || busy} checked={!!venue.public_auto_confirm} onChange={(e) => set({ public_auto_confirm: e.target.checked })} />
+        <span><strong>Confirmar reservas online automaticamente</strong><br /><span className="text-muted-foreground">Desligado (recomendado), cada solicitação chega como <em>pendente</em> e a sua equipe confirma em Reservas.</span></span></label>
+      {venue.public_enabled && (
+        <div className="space-y-2 rounded-lg bg-muted p-3 text-sm">
+          <p className="font-medium">Link para divulgar</p>
+          <p className="break-all">{url}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => { void navigator.clipboard.writeText(url); toast.success("Link copiado.") }}>Copiar link</Button>
+            <a className="inline-flex h-8 items-center rounded-lg border px-3 text-sm font-medium hover:bg-secondary" target="_blank" rel="noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`Reserve horário na ${venue.trade_name}: ${url}`)}`}>Compartilhar no WhatsApp</a>
+          </div>
+          <p className="text-xs text-muted-foreground">Solicitações pendentes aparecem no Dashboard e em Reservas (origem “site”).</p>
+        </div>
+      )}
+    </CardContent></Card>
   )
 }

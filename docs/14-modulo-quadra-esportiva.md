@@ -1,4 +1,4 @@
-<!-- revisado: 1.22.0 -->
+<!-- revisado: 1.23.0 -->
 # Módulo Quadra Esportiva
 
 Módulo para a gestão profissional de quadras, arenas e centros esportivos. Está sendo implantado **neste sistema** para depois ser **migrado para o Partidou** (`partidou.com.br`). Por isso foi construído de forma **portátil** (ver "Contrato de portabilidade").
@@ -11,7 +11,7 @@ Módulo para a gestão profissional de quadras, arenas e centros esportivos. Est
 | 3 | Clientes, funcionários e permissões, lista de espera, histórico | **Entregue (v1.20.0)** |
 | 4 | Financeiro: contas a receber, baixas, mensalistas | **Entregue (v1.21.0)** |
 | 5 | Dashboard completo e relatórios (PDF e Excel) | **Entregue (v1.22.0)** |
-| 6 | Página pública, busca de disponibilidade, solicitação de reserva e camada de partidas/vagas | Pendente |
+| 6 | Página pública, busca de disponibilidade, solicitação de reserva e camada de partidas/vagas | **Entregue (v1.23.0)** |
 
 No menu, os itens das fases pendentes aparecem desativados (ícone de relógio).
 
@@ -68,6 +68,16 @@ Tabelas: `court_bookings` (reservas e bloqueios), `court_series`, `court_hours`,
 - **Exportação:** “Excel” gera CSV com “;” e acentos (o Excel abre direto, não é .xlsx); “PDF” abre uma página limpa do relatório e a janela de impressão do navegador (escolher “Salvar como PDF”; é preciso liberar pop-ups).
 - **Não existe:** avisos administrativos cadastráveis (o painel mostra avisos automáticos: horários não configurados e reservas pendentes) e agendamento de relatórios por e-mail.
 
+## Página pública, reservas online e partidas (Fase 6)
+**Telas públicas (sem login):** `/quadras` (busca), `/quadras/<slug>` (página do centro) e `/partida/<código>` (gestão da partida). **Painel:** Centro Esportivo → aba **Página pública** (publicar, confirmação automática, link e WhatsApp). **Banco:** `0040_quadra_fase6.sql`. O endereço usa o identificador (slug) da organização, ex.: `app.partidou.com.br/quadras/nome-do-centro`.
+- **Opt-in:** o centro nasce **não público**. A página só existe com `public_enabled`, módulo no plano, organização ativa (ou em teste dentro do prazo) e pelo menos uma quadra ativa. Desligar ou suspender fecha vitrine, busca e solicitações na hora.
+- **Segurança:** visitantes (`anon`) **não leem nenhuma tabela**; usam só funções públicas (`court_public_venue`, `court_public_availability`, `court_public_request`, `court_public_matches`, `court_public_match_join`, `court_public_search` e as de gestão da partida). A vitrine devolve apenas dados feitos para o público (nunca CPF/CNPJ, razão social, equipe, clientes, financeiro ou identificadores internos). O estabelecimento sempre vem do slug resolvido no servidor.
+- **Fonte única de disponibilidade:** o horário livre público (`court_free_slots`) e a solicitação usam as mesmas regras do painel (`court_validate_window`, preço, código sequencial) e a **mesma restrição de exclusão** do banco. Uma solicitação pendente já bloqueia o horário; duas pessoas no mesmo horário: só uma vence (testado). Reserva cancelada libera o horário.
+- **Solicitação:** nome, telefone com DDI, até 4 horas, antecedência mínima e máxima do centro, preço calculado no servidor, origem `publica`. Nasce **pendente** (a equipe confirma em Reservas) ou confirmada com a confirmação automática. **Freios:** no máximo 3 pendentes por telefone e 100 pendentes por centro, e um campo-isca contra robôs. Não há captcha: se houver abuso, avaliar Turnstile/hCaptcha.
+- **Partidas:** ao solicitar, o organizador pode publicar de 1 a 40 vagas. O banco devolve **uma vez** um código secreto (64 caracteres, guardado só como SHA-256) no link `/partida/<código>`; quem tem o link aprova, recusa e remove jogadores e cancela a publicação (sem login). A partida só aparece na vitrine com a reserva **confirmada**; jogadores pedem vaga com nome e telefone (o telefone só aparece ao organizador); ao preencher as vagas ela fica **completa** e sai da vitrine; remover jogador reabre. Cancelar a reserva cancela a partida. A equipe lê partidas e pedidos do próprio centro (somente leitura).
+- **Busca:** por modalidade, cidade (contém), estado e, se informado o dia, só centros com horário livre na faixa (manhã, tarde, noite).
+- **Limites conhecidos:** o jogador não tem conta no Partidou nem histórico (identificado por nome e telefone); não há pagamento online (cobrança pelo Financeiro, Pix só na integração futura); a equipe ainda não gerencia partidas pelo painel (somente leitura no banco, sem tela); notificações são links de WhatsApp, sem envio automático; a página é renderizada no navegador (sem pré-renderização para SEO). O endereço do centro no mapa usa latitude e longitude, se cadastradas, ou a busca pelo endereço.
+
 ## Perfis do módulo
 | Perfil | Como é definido | Pode (Fase 1) |
 |---|---|---|
@@ -101,5 +111,5 @@ O módulo depende do sistema hospedeiro em **apenas quatro pontos**. No Partidou
 Tudo o mais é do módulo: tabelas `court_*`, funções `court_*`, migrations `quadra_*` (arquivo `0035_quadra_fase1.sql` em diante), telas em `src/app/(admin)/quadra/`, hooks `use-court-role` e a classe de tema `.quadra-theme`.
 
 ## Pendências e riscos conhecidos
-- Os fluxos do Partidou de **jogador buscar quadra, criar partida e completar vagas** não existem neste sistema (as partidas daqui pertencem a um grupo); serão uma camada mínima na Fase 6.
+- As partidas do Partidou (`court_matches`) são uma camada própria do módulo e **não** se misturam com as partidas de grupo do GEAB; jogadores não têm conta (ver limites da Fase 6).
 - Pix e gateways: somente preparação de estrutura; nada simulado. Avisos da lista de espera por WhatsApp: apenas links, sem envio automático.

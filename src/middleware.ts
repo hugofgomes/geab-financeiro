@@ -32,6 +32,8 @@ export async function middleware(req: NextRequest) {
   if (path === "/recuperar" || path === "/redefinir-senha") return res
   // Site comercial: público. A raiz mostra o site para quem não está logado (quem está logado vê o painel).
   if (path === "/site" || path === "/demo" || path === "/privacidade" || path === "/termos") return res
+  // Quadras: busca, página pública do centro e gestão da partida pelo organizador (código secreto no link). Não exigem login.
+  if (path === "/quadras" || path.startsWith("/quadras/") || path.startsWith("/partida/")) return res
   if (!user && path === "/") { const u = req.nextUrl.clone(); u.pathname = "/site"; return NextResponse.rewrite(u) }
   if (!user) return path === "/login" || path === "/cadastro" || path === "/novo-grupo" ? res : go("/login")
 

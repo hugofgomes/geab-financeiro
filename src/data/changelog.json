@@ -2,6 +2,23 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.23.0",
+      "date": "2026-11-15",
+      "title": "Quadra Esportiva, Fase 6: página pública, reservas online e partidas",
+      "novidades": [
+        "Busca pública de quadras (/quadras) por modalidade, cidade, estado e, opcionalmente, dia e período com horário livre.",
+        "Página pública de cada centro (/quadras/nome-do-centro): fotos, descrição, endereço, quadras, preços, horários livres por dia e duração, e solicitação de reserva sem login. Só aparece se o centro publicar (aba Página pública em Centro Esportivo).",
+        "A reserva online usa a mesma regra de disponibilidade da agenda: nasce pendente (ou confirmada, se o centro ligar a confirmação automática), respeita funcionamento, grade, antecedência e conflitos, e bloqueia o horário na hora.",
+        "Partidas com vagas: o organizador publica vagas ao reservar, jogadores pedem vaga, o organizador aprova pelo link secreto (/partida/código) e a partida é marcada como completa; convites pelo WhatsApp.",
+        "Proteções: visitantes nunca leem tabelas, telefones dos jogadores só aparecem ao organizador, limite de solicitações pendentes por telefone e por centro."
+      ],
+      "melhorias": [
+        "Reservas pendentes do site aparecem no Dashboard e em Reservas.",
+        "Cancelar a reserva cancela a partida vinculada."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.22.0",
       "date": "2026-11-15",
       "title": "Quadra Esportiva, Fase 5: dashboard e relatórios",
