@@ -2,6 +2,23 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.21.0",
+      "date": "2026-11-15",
+      "title": "Quadra Esportiva, Fase 4: financeiro",
+      "novidades": [
+        "Financeiro (contas a receber): lançamentos com código, cliente, reserva, vencimento, valor, pago e saldo; status em aberto, parcialmente pago, pago, vencido e cancelado.",
+        "Registro de pagamento parcial ou integral com forma e data; histórico por lançamento; pagamentos são imutáveis e rastreáveis.",
+        "Botão “Gerar cobrança” nos detalhes da reserva (sem duplicar) e mensalidades geradas a partir da recorrência, uma por mês.",
+        "Cancelar a reserva aplica a regra financeira sem apagar nada: lançamento cancelado ou reduzido à multa de cancelamento tardio; com pagamento, fica sinalizado para tratamento manual.",
+        "Indicadores: total a receber, em atraso, recebido no período, receita por quadra, modalidade e categoria, inadimplência por cliente; filtros por status, quadra, cliente e vencimento; exportação para Excel (CSV)."
+      ],
+      "melhorias": [
+        "Situação de pagamento da reserva acompanha o lançamento.",
+        "Item Financeiro ativado no menu Quadra Esportiva."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.20.0",
       "date": "2026-11-15",
       "title": "Quadra Esportiva, Fase 3: clientes, funcionários e lista de espera",

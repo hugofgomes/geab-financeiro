@@ -220,6 +220,12 @@ export function DetailDialog({ booking, onClose, ctx, onEdit }: { booking: Booki
   if (!b) return null
   const court = courts.find((c) => c.id === b.court_id)
   const isBlock = b.kind === "bloqueio"
+  async function charge() {
+    setBusy(true)
+    const r = await supabase().rpc("court_receivable_create", { p_booking: b!.id, p_client: null, p_client_name: null, p_description: null, p_due: localParts(tz, b!.starts_at).date, p_amount_cents: null, p_method: null, p_notes: null })
+    setBusy(false)
+    if (r.error) toast.error(r.error.message); else toast.success("Cobrança gerada em Financeiro.")
+  }
   const editable = (isBlock ? role === "admin" || role === "gerente" : can(role)) && (b.status === "pendente" || b.status === "confirmada" || (!isBlock && (b.status === "concluida" || b.status === "nao_compareceu")))
   const live = b.status === "pendente" || b.status === "confirmada"
   const started = new Date(b.starts_at) <= new Date()
@@ -273,6 +279,7 @@ export function DetailDialog({ booking, onClose, ctx, onEdit }: { booking: Booki
             <div className="flex flex-wrap gap-2">
               {!isBlock && b.client_phone && <a href={whatsappLink(b, court?.name ?? "quadra", tz, venue.trade_name)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-secondary sm:min-h-9"><MessageCircle className="size-4" /> WhatsApp</a>}
               <Button variant="outline" className="h-11 sm:h-9" onClick={openHistory}><History /> Histórico</Button>
+              {!isBlock && b.status !== "cancelada" && (role === "admin" || role === "gerente" || role === "financeiro") && <Button variant="outline" className="h-11 sm:h-9" disabled={busy} onClick={charge}>Gerar cobrança</Button>}
             </div>
             {editable && (
               <div className="grid grid-cols-2 gap-2">

@@ -40,6 +40,7 @@
     "/quadra/configuracoes": "Quadra Esportiva: horários de funcionamento, regras de preço e regras de reserva",
     "/quadra/clientes": "Quadra Esportiva: cadastro de clientes, histórico de reservas e exportação",
     "/quadra/funcionarios": "Quadra Esportiva: convite, perfis e bloqueio de funcionários do centro",
+    "/quadra/financeiro": "Quadra Esportiva: contas a receber, pagamentos, mensalidades e indicadores financeiros",
     "/quadra/espera": "Quadra Esportiva: lista de espera e horários livres compatíveis"
   },
   "apis": {

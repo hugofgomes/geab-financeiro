@@ -1021,6 +1021,97 @@ section("Quadra Esportiva: clientes, lista de espera e equipe (0037)")
   await as(S.a2, async () => { ok("outro administrador não altera funcionário alheio", /não encontrado/.test(await err(`select public.court_staff_update('${S.r1}','gerente',null,true)`) ?? "") && (await one(`select count(*)::int from public.court_staff_list()`)) === 0) })
 }
 
+section("Quadra Esportiva: financeiro (0038)")
+{
+  const F = { o1: uid(1501), o2: uid(1502), a1: uid(1511), r1: uid(1512), f1: uid(1513), g1: uid(1514), a2: uid(1515), v1: uid(1521), v2: uid(1522), c1: uid(1531), c2: uid(1532) }
+  await q(`insert into auth.users (id, email) values ($1,'f-a1@x'),($2,'f-r1@x'),($3,'f-f1@x'),($4,'f-g1@x'),($5,'f-a2@x')`, [F.a1, F.r1, F.f1, F.g1, F.a2])
+  const mk = (o, slug) => q(`insert into public.organizations (id, slug, name, status, kind, plan_id) values ($1,$2,$2,'ativa','quadra',(select id from public.plans where code='quadra_t'))`, [o, slug])
+  await mk(F.o1, "arena-f1"); await mk(F.o2, "arena-f2")
+  const pf = (o, id, role) => q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,$3,$4)`, [o, id, "Pessoa " + id.slice(-3), role])
+  await pf(F.o1, F.a1, "admin"); await pf(F.o1, F.r1, "diretoria"); await pf(F.o1, F.f1, "diretoria"); await pf(F.o1, F.g1, "diretoria"); await pf(F.o2, F.a2, "admin")
+  await q(`insert into public.court_staff (tenant_id, profile_id, role) values ($1,$2,'recepcionista'),($1,$3,'financeiro'),($1,$4,'gerente')`, [F.o1, F.r1, F.f1, F.g1])
+  await q(`insert into public.court_venues (id, tenant_id, trade_name, cancel_free_hours, cancel_fee_pct) values ($1,$2,'Arena F1',24,50),($3,$4,'Arena F2',24,0)`, [F.v1, F.o1, F.v2, F.o2])
+  await q(`insert into public.court_courts (id, tenant_id, venue_id, name, sport, price_cents) values ($1,$2,$3,'Quadra F1','futsal',10000),($4,$5,$6,'Quadra F2','futsal',9000)`, [F.c1, F.o1, F.v1, F.c2, F.o2, F.v2])
+  await q(`insert into public.court_hours (tenant_id, weekday, opens_min, closes_min) select $1, d, 480, 1380 from generate_series(0,6) d`, [F.o1])
+  const T = (dia, h) => `2030-${dia}T${String(h).padStart(2, "0")}:00:00-03:00`
+  const bk = (u, s, e, name = "Cliente Fin") => as(u, async () => (await db.query(`select public.court_booking_create($1,'avulsa',$4,'(48) 99999-5555',null,$2,$3)`, [F.c1, s, e, name])).rows[0].court_booking_create, true)
+  const b1 = await bk(F.a1, T("08-10", 20), T("08-10", 21)), b2 = await bk(F.a1, T("08-11", 20), T("08-11", 21)), b3 = await bk(F.a1, T("08-12", 20), T("08-12", 21))
+  let r1
+
+  await as(F.f1, async () => {
+    r1 = (await db.query(`select public.court_receivable_create($1,null,null,null,'2030-08-10')`, [b1.id])).rows[0].court_receivable_create
+    ok("lançamento da reserva: valor, cliente e código vêm do servidor", r1.amount_cents === 10000 && r1.code === "L-000001" && r1.client_name === "Cliente Fin" && r1.status === "aberto")
+    ok("não gera cobrança duplicada para a mesma reserva", /já tem um lançamento/.test(await err(`select public.court_receivable_create('${b1.id}',null,null,null,'2030-08-10')`) ?? ""))
+    ok("pagamento maior que o saldo é recusado", /excede o saldo/.test(await err(`select public.court_payment_register('${r1.id}', 10001, 'pix')`) ?? ""))
+    ok("pagamento zero ou data futura é recusado", /maior que zero/.test(await err(`select public.court_payment_register('${r1.id}', 0, 'pix')`) ?? "") && /futura/.test(await err(`select public.court_payment_register('${r1.id}', 100, 'pix', '2999-01-01')`) ?? ""))
+    const p1 = (await db.query(`select public.court_payment_register($1, 4000, 'pix')`, [r1.id])).rows[0].court_payment_register
+    ok("pagamento parcial: parcialmente pago e saldo correto", p1.status === "parcial" && p1.paid_cents === 4000)
+    ok("reserva acompanha: pagamento parcial", (await one(`select payment_status from public.court_bookings where id=$1`, [b1.id])) === "parcial")
+    const p2 = (await db.query(`select public.court_payment_register($1, 6000, 'dinheiro')`, [r1.id])).rows[0].court_payment_register
+    ok("baixa do saldo: pago", p2.status === "pago" && (await one(`select payment_status from public.court_bookings where id=$1`, [b1.id])) === "pago")
+    ok("lançamento pago não recebe outro pagamento", /já está pago/.test(await err(`select public.court_payment_register('${r1.id}', 100, 'pix')`) ?? ""))
+    ok("dois pagamentos ficaram registrados", (await one(`select count(*)::int from public.court_payments where receivable_id=$1`, [r1.id])) === 2)
+    ok("pagamento é imutável (nem alterar nem apagar)", /não podem ser alterados/.test(await err(`update public.court_payments set amount_cents = 1`) ?? "") || /permission denied/.test(await err(`update public.court_payments set amount_cents = 1`) ?? ""))
+    ok("escrita direta nas tabelas financeiras é bloqueada", /permission denied/.test(await err(`insert into public.court_receivables (code, client_name, description, due_on, amount_cents) values ('X','Fulano X','x','2030-01-01',1)`) ?? "") && /permission denied/.test(await err(`delete from public.court_receivables`) ?? ""))
+    ok("lançamento pago com pagamentos não pode ser cancelado", /pagamentos registrados/.test(await err(`select public.court_receivable_cancel('${r1.id}','x')`) ?? ""))
+  }, true)
+  // cancelamento: sem pagamento e fora do prazo grátis → multa de 50%; longe do prazo → cancela o lançamento
+  await as(F.f1, async () => { await db.query(`select public.court_receivable_create($1,null,null,null,'2030-08-11')`, [b2.id]) }, true)
+  await as(F.r1, async () => { await db.query(`select public.court_booking_cancel($1,'desistiu')`, [b2.id]) }, true)   // 2030: faltam muitas horas → sem multa
+  ok("cancelar reserva (dentro do prazo) cancela o lançamento, sem apagar", (await one(`select status from public.court_receivables where booking_id=$1`, [b2.id])) === "cancelado" && (await one(`select count(*)::int from public.court_receivables where booking_id=$1`, [b2.id])) === 1)
+  await as(F.f1, async () => { ok("reserva cancelada não gera nova cobrança", /cancelada não gera/.test(await err(`select public.court_receivable_create('${b2.id}',null,null,null,'2030-08-11')`) ?? "")) })
+  // multa de cancelamento tardio: reserva próxima (passado recente permitido ao admin)
+  const soon = new Date(Date.now() + 3 * 3600e3); soon.setMinutes(0, 0, 0)
+  const sIso = soon.toISOString(), eIso = new Date(soon.getTime() + 3600e3).toISOString()
+  const hh = Number(new Intl.DateTimeFormat("en-US", { hour: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(soon)) % 24
+  await q(`update public.court_hours set opens_min=0, closes_min=1440 where tenant_id=$1`, [F.o1])
+  const b4 = await as(F.a1, async () => (await db.query(`select public.court_booking_create($1,'avulsa','Cliente Tardio','(48) 99999-6666',null,$2,$3)`, [F.c1, sIso, eIso])).rows[0].court_booking_create, true)
+  await as(F.f1, async () => { await db.query(`select public.court_receivable_create($1,null,null,null,'2030-08-11')`, [b4.id]) }, true)
+  await as(F.r1, async () => { await db.query(`select public.court_booking_cancel($1,'tarde')`, [b4.id]) }, true)
+  const lr = (await q(`select * from public.court_receivables where booking_id=$1`, [b4.id]))[0]
+  ok("cancelamento tardio reduz o lançamento à multa configurada (50%)", lr.status === "aberto" && lr.amount_cents === 5000 && /multa/.test(lr.description), JSON.stringify(lr))
+  // mensalidade
+  const ser = await as(F.a1, async () => (await db.query(`select public.court_series_create($1,'mensalista','Mensalista Um','(48) 98888-7777',null,'2030-09-02',1200,60,'semanal',null,4)`, [F.c1])).rows[0].court_series_create, true).catch((e) => ({ err: e.message }))
+  if (ser.err) ok("série criada para o teste de mensalidade", false, ser.err)
+  else {
+    const sid = ser.series_id ?? ser.id
+    await as(F.g1, async () => {
+      const m = (await db.query(`select public.court_receivable_generate_monthly($1,'2030-09-15',null)`, [sid])).rows[0].court_receivable_generate_monthly
+      ok("mensalidade soma as ocorrências do mês", m.amount_cents === 40000 && m.competence === "2030-09-01", JSON.stringify(m))
+      ok("mensalidade do mesmo mês não duplica", /já foi gerada/.test(await err(`select public.court_receivable_generate_monthly('${sid}','2030-09-01',null)`) ?? ""))
+    }, true)
+  }
+  // permissões e isolamento
+  await as(F.r1, async () => { ok("recepcionista não vê nem lança financeiro", (await one(`select count(*)::int from public.court_receivables`)) === 0 && /permissão/.test(await err(`select public.court_receivable_create('${b3.id}',null,null,null,'2030-08-12')`) ?? "")) })
+  await as(F.a2, async () => {
+    ok("outro estabelecimento não vê lançamentos nem pagamentos", (await one(`select count(*)::int from public.court_receivables`)) === 0 && (await one(`select count(*)::int from public.court_payments`)) === 0)
+    ok("outro estabelecimento não baixa nem cancela lançamento alheio", /não encontrado/.test(await err(`select public.court_payment_register('${r1.id}', 1, 'pix')`) ?? "") && /não encontrado/.test(await err(`select public.court_receivable_cancel('${r1.id}','x')`) ?? ""))
+    ok("outro estabelecimento não cobra reserva alheia", /não encontrada/.test(await err(`select public.court_receivable_create('${b3.id}',null,null,null,'2030-08-12')`) ?? ""))
+  })
+  // lançamento avulso, edição, cancelamento e indicadores
+  await as(F.g1, async () => {
+    const m = (await db.query(`select public.court_receivable_create(null,null,'Fulano Avulso','Taxa de torneio','2020-01-10',25000)`)).rows[0].court_receivable_create
+    ok("lançamento avulso sem reserva", m.amount_cents === 25000 && m.booking_id === null)
+    ok("valor não pode ficar abaixo do já pago", (await db.query(`select public.court_payment_register($1, 5000, 'pix')`, [m.id]), /menor que o já pago/.test(await err(`select public.court_receivable_update('${m.id}','x y',null,4000,null)`) ?? "")))
+    const s = (await db.query(`select public.court_finance_summary(current_date - 30, current_date)`)).rows[0].court_finance_summary
+    ok("indicadores: a receber, vencido e recebido", s.overdue === 20000 && s.overdue_count === 1 && s.received >= 15000 && s.to_receive >= 20000, JSON.stringify(s))
+    ok("receita por quadra e modalidade vêm das reservas", Array.isArray(s.by_court) && Array.isArray(s.by_sport))
+    await db.query(`select public.court_receivable_create(null,null,'Fulano Cancel','Teste','2030-01-10',1000)`)
+    const c = (await q(`select id from public.court_receivables where client_name='Fulano Cancel'`))[0]
+    await db.query(`select public.court_receivable_cancel($1,'engano')`, [c.id])
+    ok("cancelar lançamento mantém o registro", (await one(`select status from public.court_receivables where id=$1`, [c.id])) === "cancelado")
+  }, true)
+  // concorrência: duas baixas ao mesmo tempo no mesmo saldo
+  const rc = await as(F.a1, async () => (await db.query(`select public.court_receivable_create(null,null,'Fulano Conc','Concorrência','2030-01-10',10000)`)).rows[0].court_receivable_create, true)
+  const c2 = new pg.Client({ connectionString: "postgresql://postgres:test@localhost:54331/geab_test" }); await c2.connect()
+  await c2.query("begin"); await c2.query("set local role authenticated"); await c2.query("select set_config('request.jwt.claim.sub', $1, true)", [F.a1])
+  await c2.query(`select public.court_payment_register($1, 7000, 'pix')`, [rc.id])
+  await db.query("begin"); await db.query("set local role authenticated"); await db.query("select set_config('request.jwt.claim.sub', $1, true)", [F.f1])
+  const seg = db.query(`select public.court_payment_register($1, 7000, 'pix')`, [rc.id]).then(() => null, (e) => e.message)
+  await new Promise((r) => setTimeout(r, 400)); await c2.query("commit"); const msg = await seg; await db.query("rollback"); await c2.end()
+  ok("duas baixas simultâneas nunca passam do saldo", /excede o saldo/.test(msg ?? "") && (await one(`select paid_cents from public.court_receivables where id=$1`, [rc.id])) === 7000, String(msg))
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

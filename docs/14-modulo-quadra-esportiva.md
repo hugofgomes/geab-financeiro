@@ -1,4 +1,4 @@
-<!-- revisado: 1.20.0 -->
+<!-- revisado: 1.21.0 -->
 # Módulo Quadra Esportiva
 
 Módulo para a gestão profissional de quadras, arenas e centros esportivos. Está sendo implantado **neste sistema** para depois ser **migrado para o Partidou** (`partidou.com.br`). Por isso foi construído de forma **portátil** (ver "Contrato de portabilidade").
@@ -9,7 +9,7 @@ Módulo para a gestão profissional de quadras, arenas e centros esportivos. Est
 | 1 | Estrutura: módulo no plano, menu, centro esportivo e quadras | **Entregue (v1.18.0)** |
 | 2 | Agenda (dia, semana, mês), reservas avulsas, bloqueios, recorrência e conflitos | **Entregue (v1.19.0)** |
 | 3 | Clientes, funcionários e permissões, lista de espera, histórico | **Entregue (v1.20.0)** |
-| 4 | Financeiro: contas a receber, baixas, mensalistas | Pendente |
+| 4 | Financeiro: contas a receber, baixas, mensalistas | **Entregue (v1.21.0)** |
 | 5 | Dashboard completo e relatórios (PDF e Excel) | Pendente |
 | 6 | Página pública, busca de disponibilidade, solicitação de reserva e camada de partidas/vagas | Pendente |
 
@@ -45,6 +45,18 @@ Tabelas: `court_bookings` (reservas e bloqueios), `court_series`, `court_hours`,
 - **LGPD:** a data de nascimento só é usada em avisos com a marca "o cliente autorizou" (`birthday_consent`); na lista de espera, o botão de WhatsApp só aparece quando há autorização de contato.
 - **Funcionários:** só o administrador. O convite (`POST /api/quadra/funcionarios`) usa a chave de serviço **no servidor**, valida o perfil do administrador pela sessão, toma o estabelecimento da sessão (nunca do navegador) e envia o e-mail de convite do Supabase: a própria pessoa cria a senha em `/redefinir-senha` (nenhuma senha passa pelo sistema). O funcionário recebe o nível de sistema "diretoria" (somente leitura fora do módulo) e o perfil real fica em `court_staff` (gerente, recepcionista ou financeiro). **Bloquear** desativa o perfil e a equipe na hora (`court_role()` passa a nulo); reativar restaura; o histórico é mantido. Alterações ficam na auditoria (`audit_log`).
 - **Lista de espera:** nome, telefone ou e-mail, modalidade, quadra, dia da semana, horário, tipo, observações e situação (aguardando, avisado, atendido, cancelado). `court_waitlist_matches` aponta, para quem aguarda, os horários **livres nos próximos 14 dias** que respeitam funcionamento, grade e duração mínima; **não reserva nada** (regra 9). O aviso é um link do WhatsApp aberto pela equipe e registrado como "avisado"; **não há envio automático** nem integração de WhatsApp Business. O perfil financeiro não acessa a lista.
+
+## Financeiro (Fase 4)
+**Tela:** `/quadra/financeiro` (administrador, gerente e financeiro; a recepcionista não acessa). **Banco:** `0038_quadra_fase4.sql` (`court_receivables`, `court_payments`, funções `court_receivable_create/update/cancel/generate_monthly`, `court_payment_register`, `court_finance_summary` e o gatilho de cancelamento de reserva).
+- **Valores em centavos.** Escrita só por funções transacionais; as tabelas são somente leitura para o navegador.
+- **Lançamento:** código sequencial (`L-000001`), cliente, reserva ou recorrência, descrição, emissão, vencimento, valor, pago e saldo. **Vencido** é calculado pela data de vencimento no fuso do centro (não é gravado).
+- **Sem cobrança duplicada:** índices únicos garantem um lançamento ativo por reserva e um por recorrência e mês. Reserva cancelada e bloqueio não geram cobrança.
+- **Pagamentos:** parcial ou integral, nunca acima do saldo, data não futura; o lançamento é travado durante a baixa (duas baixas simultâneas não passam do saldo). Cada pagamento é um registro **imutável** (nem o servidor altera ou apaga; só a exclusão definitiva do estabelecimento pelo dono da plataforma remove). Lançamento com pagamento não pode ser cancelado.
+- **Reserva ↔ cobrança:** “Gerar cobrança” nos detalhes da reserva (valor da reserva). A situação de pagamento da reserva acompanha o lançamento. Se a situação da reserva for editada à mão depois, o lançamento continua sendo a fonte do financeiro.
+- **Cancelamento:** sem pagamento, o lançamento é cancelado; em cancelamento tardio com multa configurada (Configurações), vira a multa; com pagamento, permanece e recebe aviso para tratar devolução ou crédito manualmente. Nada é excluído.
+- **Mensalistas:** “Gerar mensalidade” soma as reservas ativas da recorrência no mês.
+- **Indicadores:** a receber, em atraso, recebido no período (pelos pagamentos), receita por quadra, modalidade e categoria (só cobranças ligadas a reservas) e inadimplência por cliente. Exportação CSV para Excel.
+- **Não existe ainda:** Pix e gateways (só os campos `gateway` e `external_ref`, com unicidade, para a integração futura), estorno de pagamento, geração automática de mensalidades e PDF (Fase 5).
 
 ## Perfis do módulo
 | Perfil | Como é definido | Pode (Fase 1) |
