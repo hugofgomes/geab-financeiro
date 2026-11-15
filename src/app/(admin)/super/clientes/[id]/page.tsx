@@ -20,7 +20,7 @@ type Detail = {
   org: {
     id: string; slug: string; name: string; status: string; created_at: string; trial_ends_at: string | null; cancelled_at: string | null
     logo_url: string | null; primary_color: string | null; website: string | null; tagline: string | null; card_footer: string | null
-    broadcast_opt_out?: boolean
+    broadcast_opt_out?: boolean; kind?: "grupo" | "quadra"
     suspended_at: string | null; suspended_by: string | null; deleted_at: string | null; deleted_by: string | null; purge_after: string | null; prev_status: string | null
     status_reason: string | null; notes: string | null; contact_name: string | null; contact_email: string | null; contact_phone: string | null
     plan_code: string; plan_name: string; plan_price_cents: number; plan_max_athletes: number | null
@@ -326,6 +326,10 @@ export default function ClientePage() {
               </div>
             </form>
             {o.notes && <p className="rounded-lg bg-secondary/60 p-3 text-sm">{o.notes}</p>}
+            <div className="space-y-1.5 sm:max-w-xs"><Label htmlFor="k-t">Tipo de cliente</Label>
+              <select id="k-t" disabled={busy} value={o.kind ?? "grupo"} onChange={(e) => run(() => db().rpc("sa_set_org_kind", { p_org: o.id, p_kind: e.target.value }), "Tipo do cliente alterado.")} className="h-11 w-full rounded-lg border bg-background px-3 text-base sm:h-9 sm:text-sm">
+                <option value="grupo">Grupo de futebol</option><option value="quadra">Centro esportivo (Quadra Esportiva)</option></select>
+              <p className="text-xs text-muted-foreground">Centro esportivo mostra só o módulo Quadra Esportiva no menu. O módulo precisa estar incluído no plano do cliente.</p></div>
             <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5" checked={!!o.broadcast_opt_out} disabled={busy}
               onChange={(e) => run(() => db().rpc("sa_set_broadcast_opt_out", { p_org: o.id, p_opt_out: e.target.checked }), e.target.checked ? "Cliente não receberá comunicados." : "Cliente voltou a receber comunicados.")} />
               Cliente pediu para não receber comunicados</label>

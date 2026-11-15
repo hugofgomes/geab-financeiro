@@ -1,4 +1,4 @@
-<!-- revisado: 1.13.0 -->
+<!-- revisado: 1.18.0 -->
 # Planos, teste grátis e assinatura
 
 ## Planos (tabela `plans`, editável no Painel do SaaS)
@@ -10,7 +10,7 @@
 | `premium` | Premium | sem preço | Nasce **inativo**: só aparece para venda quando o dono define o valor e ativa |
 | `ilimitado` | Ilimitado (interno) | R$ 0 | Usado pelo grupo do próprio dono; nunca é exibido |
 
-Cada plano define: preço, limite de atletas, limite de administradores, duração do teste, módulos incluídos (`importar`, `ao_vivo`, `pix`, `mensagens`) e uma **referência de gateway** (campo de preparação para integração futura). Plano desativado some das escolhas, mas os grupos que o usam continuam nele. Preço e limites são decididos **no banco**: o navegador nunca informa o valor cobrado.
+Cada plano define: preço, limite de atletas, limite de administradores, duração do teste, módulos incluídos (`importar`, `ao_vivo`, `pix`, `mensagens`, `quadras`), limite de quadras ativas (`max_courts`, só com o módulo `quadras`) e uma **referência de gateway** (campo de preparação para integração futura). Plano desativado some das escolhas, mas os grupos que o usam continuam nele. Preço e limites são decididos **no banco**: o navegador nunca informa o valor cobrado.
 
 ## Ciclo de vida do grupo
 1. **Cadastro** → grupo em `teste`, com `trial_ends_at = agora + dias do plano de teste`.

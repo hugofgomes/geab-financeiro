@@ -32,7 +32,9 @@
     "/offline": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)",
     "/super/comunicados": "Comunicados em massa aos clientes (e-mail e aviso no painel), com público, teste, histórico e reenvio de falhas",
     "/privacidade": "Política de privacidade (pública)",
-    "/termos": "Termos de uso (públicos)"
+    "/termos": "Termos de uso (públicos)",
+    "/quadra": "Quadra Esportiva: dashboard do centro esportivo (cadastro, quadras e primeiros passos)",
+    "/quadra/centro": "Quadra Esportiva: perfil, endereço e quadras do centro esportivo"
   },
   "apis": {
     "/api/assinatura": "Cria a assinatura no Asaas e devolve o link de pagamento",

@@ -2,6 +2,22 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.18.0",
+      "date": "2026-11-15",
+      "title": "Quadra Esportiva, Fase 1: estrutura",
+      "novidades": [
+        "Novo módulo Quadra Esportiva com submenu (Dashboard, Agenda, Centro Esportivo, Reservas, Lista de Espera, Clientes, Funcionários, Financeiro, Relatórios e Configurações); os itens das próximas fases aparecem desativados.",
+        "Centro Esportivo: perfil (nome fantasia, razão social, CPF/CNPJ validado, logotipo, contatos e redes), endereço com busca por CEP e localização no mapa, e cadastro de várias quadras com modalidade, piso, cobertura, iluminação, capacidade, fotos, valor por horário e status.",
+        "Dashboard do módulo com indicadores do cadastro e passos iniciais.",
+        "Perfis do módulo (administrador, gerente, recepcionista e financeiro) com regras no banco, isolamento entre estabelecimentos e limite de quadras ativas por plano.",
+        "Painel do SaaS: módulo Quadra Esportiva e limite de quadras nos planos, e tipo de cliente (grupo de futebol ou centro esportivo); centros esportivos veem só o menu do módulo, com a identidade visual do Partidou."
+      ],
+      "melhorias": [
+        "O título da página e o item ativo do menu passam a usar o caminho mais específico."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.17.0",
       "date": "2026-11-15",
       "title": "Novo site de divulgação, em tema esportivo",

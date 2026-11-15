@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLoad } from "@/hooks/use-load"
+import { prepareImage } from "@/lib/image"
 import { supabase } from "@/lib/supabase/client"
 import { ImagePlus, Loader2, Megaphone, Send, X } from "lucide-react"
 import * as React from "react"
@@ -18,22 +19,6 @@ type Plan = { code: string; name: string; active: boolean }
 
 const STATUSES: [string, string][] = [["ativa", "Ativas"], ["teste", "Em teste"], ["suspensa", "Suspensas"], ["cancelada", "Canceladas"]]
 const dtm = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
-
-/** Reduz a imagem (máx. 1200 px de largura) e converte para JPEG: e-mail leve, sem metadados (localização do celular) e compatível com todos os leitores. */
-async function prepareImage(file: File): Promise<Blob> {
-  const bmp = await createImageBitmap(file)
-  const scale = Math.min(1, 1200 / bmp.width)
-  const c = document.createElement("canvas")
-  c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale)
-  const ctx = c.getContext("2d")!
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height)   // PNG com fundo transparente vira fundo branco
-  ctx.drawImage(bmp, 0, 0, c.width, c.height)
-  for (const q of [0.85, 0.7, 0.55]) {
-    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", q))
-    if (blob && blob.size <= 1_900_000) return blob
-  }
-  throw new Error("A imagem ficou grande demais. Use uma menor.")
-}
 
 async function load() {
   const db = supabase()

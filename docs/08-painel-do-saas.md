@@ -1,4 +1,4 @@
-<!-- revisado: 1.16.0 -->
+<!-- revisado: 1.18.0 -->
 # Painel do SaaS (dono da plataforma)
 
 Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Comunicados**, **Documentação**, **Site comercial** e **Demonstração**.
@@ -18,7 +18,7 @@ Tabela com responsável (e-mail e WhatsApp com link), plano, cadastro, venciment
 | Visão geral | Dados cadastrais, plano, utilização (barra de atletas) |
 | Usuários e atletas | Só **contagens** e a equipe administrativa (nome, e-mail, último acesso); nomes de atletas não aparecem |
 | Assinatura | Plano, valor, fim do teste, pago até, vínculo e último evento do Asaas |
-| Configurações | Edição de nome, site, lema, cor, logo, rodapé, contato do responsável e anotação interna |
+| Configurações | Edição de nome, site, lema, cor, logo, rodapé, contato do responsável, **tipo de cliente** (grupo de futebol ou centro esportivo) e anotação interna |
 | Atividades | Acessos por dia, avisos de vencimento enviados e alterações administrativas |
 
 Ações no topo: **Modo espião**, **Suspender/Reativar**, **+7 dias de teste**, **Excluir** (ou **Restaurar** / **Excluir definitivamente** quando já excluído).

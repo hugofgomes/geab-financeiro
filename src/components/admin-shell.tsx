@@ -5,6 +5,7 @@ import { AppFooter } from "@/components/app-footer"
 import { BirthdayCard } from "@/components/birthday-card"
 import { AnnouncementBanner } from "@/components/announcement-banner"
 import { InstallBanner } from "@/components/pwa"
+import { useCourtRole } from "@/hooks/use-court-role"
 import { SpyBanner } from "@/components/spy-banner"
 import { SidePanel } from "@/components/side-panel"
 import { TrialBanner } from "@/components/trial-banner"
@@ -14,7 +15,7 @@ import { useRole } from "@/hooks/use-role"
 import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Activity, BookOpen, Bell, Megaphone, Building2, CreditCard, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Clock, Activity, BookOpen, Bell, CalendarRange, ChartColumn, ClipboardList, Contact, Hourglass, LayoutDashboard, MapPin, Megaphone, Settings2, Wallet, Building2, CreditCard, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -39,12 +40,26 @@ const ADMIN = [
   { href: "/assinatura", label: "Assinatura", icon: CreditCard },
 ]
 
+/** Módulo Quadra Esportiva. Itens sem `ready` ainda não existem (chegam nas próximas fases) e aparecem desativados. */
+const QUADRA = [
+  { href: "/quadra", label: "Dashboard", icon: LayoutDashboard, ready: true },
+  { href: "/quadra/agenda", label: "Agenda de Quadras", icon: CalendarRange },
+  { href: "/quadra/centro", label: "Centro Esportivo", icon: MapPin, ready: true },
+  { href: "/quadra/reservas", label: "Reservas", icon: ClipboardList },
+  { href: "/quadra/espera", label: "Lista de Espera", icon: Hourglass },
+  { href: "/quadra/clientes", label: "Clientes", icon: Contact },
+  { href: "/quadra/funcionarios", label: "Funcionários", icon: Users },
+  { href: "/quadra/financeiro", label: "Financeiro", icon: Wallet },
+  { href: "/quadra/relatorios", label: "Relatórios", icon: ChartColumn },
+  { href: "/quadra/configuracoes", label: "Configurações", icon: Settings2 },
+]
+
 const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
 
-const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
+const isActive = (path: string, href: string) => (href === "/" || href === "/quadra" ? path === href : path === href || path.startsWith(href + "/"))
 const PLATFORM = { href: "/super", label: "Painel do SaaS", icon: Crown }
 const SAAS_LINKS = [{ href: "/super/acessos", label: "Log de acessos", icon: Activity }, { href: "/super/comunicados", label: "Comunicados", icon: Megaphone }, { href: "/super/documentacao", label: "Documentação", icon: BookOpen }, { href: "/site", label: "Site comercial", icon: Globe }, { href: "/demo", label: "Demonstração", icon: Play }]
-const titleOf = (path: string) => [...NAV, ...ADMIN, ...SAAS_LINKS, PLATFORM, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
+const titleOf = (path: string) => [...NAV, ...ADMIN, ...QUADRA, ...SAAS_LINKS, PLATFORM, ACCOUNT].filter((n) => isActive(path, n.href)).sort((a, b) => b.href.length - a.href.length)[0]?.label ?? ""
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
 
@@ -73,6 +88,37 @@ function useTip(label: string, enabled: boolean) {
   return { handlers: { onMouseEnter: show, onFocus: show, onMouseLeave: hide, onBlur: hide }, tip }
 }
 
+/** Submenu Quadra Esportiva (recolhível). Itens ainda não entregues aparecem desativados, com a marca "em breve". */
+function QuadraMenu({ path }: { path: string }) {
+  const collapsed = React.useContext(CollapsedCtx)
+  const [open, setOpen] = React.useState(path.startsWith("/quadra"))
+  React.useEffect(() => { if (path.startsWith("/quadra")) setOpen(true) }, [path])
+  const { handlers, tip } = useTip("Quadra Esportiva", collapsed)
+  const show = open || collapsed
+  return (
+    <div className="space-y-1">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={show} aria-controls="submenu-quadra" {...handlers}
+        className={cn("flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold text-white outline-none transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/70", collapsed && "lg:justify-center lg:px-0")}>
+        <LayoutDashboard className="size-[18px] shrink-0" aria-hidden />
+        <span className={cn("flex-1 truncate text-left", collapsed && "lg:sr-only")}>Quadra Esportiva</span>
+        <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", show && "rotate-180", collapsed && "lg:hidden")} />
+      </button>
+      {tip}
+      <div id="submenu-quadra" className={cn("space-y-1", !show && "hidden", !collapsed && "border-l border-white/10 pl-2 ml-4")}>
+        {QUADRA.map((n) => n.ready
+          ? <SideLink key={n.href} {...n} path={path} />
+          : (
+            <div key={n.href} aria-disabled className={cn("flex h-10 cursor-not-allowed items-center gap-3 rounded-lg px-3 text-sm text-white/35", collapsed && "lg:justify-center lg:px-0")} title="Disponível nas próximas etapas">
+              <n.icon className="size-[18px] shrink-0" aria-hidden />
+              <span className={cn("flex-1 truncate", collapsed && "lg:sr-only")}>{n.label}</span>
+              <Clock aria-label="em breve" className={cn("size-3.5 shrink-0 text-white/40", collapsed && "lg:hidden")} />
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}
+
 function SideLink({ href, label, icon: Icon, path, badge }: { href: string; label: string; icon: typeof Users; path: string; badge?: number }) {
   const active = isActive(path, href)
   const collapsed = React.useContext(CollapsedCtx)
@@ -86,7 +132,7 @@ function SideLink({ href, label, icon: Icon, path, badge }: { href: string; labe
         className={cn(
           "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 outline-none transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70",
           collapsed && "lg:justify-center lg:px-0",
-          active && "bg-[#EF3028] text-white shadow-sm hover:bg-[#EF3028]",
+          active && "bg-[var(--shell-active,#EF3028)] text-[var(--shell-active-fg,#fff)] shadow-sm hover:bg-[var(--shell-active,#EF3028)]",
         )}
       >
         <Icon className="size-[18px] shrink-0" aria-hidden />
@@ -135,10 +181,14 @@ function UserMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   const org = useOrg()
+  const courtRole = useCourtRole()
+  const goto = useRouter()
+  const isCenter = org?.kind === "quadra"
   const { role } = useRole()
   const readOnly = role !== "admin"      // Diretoria (e enquanto o nível carrega): sem controles de edição
   const [isPlatform, setIsPlatform] = React.useState(false)
   const [mods, setMods] = React.useState<string[] | null>(null)   // módulos do plano (nulo = ainda carregando: mostra tudo)
+  React.useEffect(() => { if (isCenter && path === "/") goto.replace("/quadra") }, [isCenter, path, goto])
   React.useEffect(() => { supabase().rpc("my_modules").then((r) => setMods(Array.isArray(r.data) ? (r.data as string[]) : null), () => {}) }, [])
   React.useEffect(() => { supabase().rpc("is_platform_admin").then((r) => setIsPlatform(r.data === true), () => {}) }, [])
   const [open, setOpen] = React.useState(false)
@@ -181,13 +231,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [open])
   return (
     <CollapsedCtx.Provider value={collapsed}>
-    <div className="flex min-h-dvh flex-col">
+    <div className={cn("flex min-h-dvh flex-col", (isCenter || path.startsWith("/quadra")) && "quadra-theme")}>
       {open && <div className="fixed inset-0 z-30 bg-[#0f2540]/50 backdrop-blur-[1px] lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
       <aside
         id="menu-lateral"
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#1E3A5F] text-white shadow-xl transition-[transform,width] duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[var(--shell-bg,#1E3A5F)] text-white shadow-xl transition-[transform,width] duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
           collapsed && "lg:w-[72px]",
           open ? "translate-x-0" : "max-lg:invisible max-lg:-translate-x-full",
         )}
@@ -206,13 +256,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         <nav className={cn("flex-1 space-y-6 overflow-y-auto px-3 py-5", collapsed && "lg:space-y-3")} aria-label="Principal">
-          <div className="space-y-1">
+          {courtRole && <QuadraMenu path={path} />}
+          {!isCenter && <div className="space-y-1">
             <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>Gestão</p>
             {NAV.filter((n) => (role === "admin" || !isAdminOnlyPath(n.href)) && (!mods || !((n.href === "/ao-vivo" && !mods.includes("ao_vivo"))))).map((n) => <SideLink key={n.href} {...n} path={path} badge={n.href === "/cadastros" ? pending : undefined} />)}
-          </div>
+          </div>}
           <div className="space-y-1">
             <p className={cn("px-3 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase", collapsed && "lg:hidden")}>{role === "admin" ? "Administração" : "Conta"}</p>
-            {role === "admin" && ADMIN.filter((n) => !mods || n.href !== "/importar" || mods.includes("importar")).map((n) => <SideLink key={n.href} {...n} path={path} />)}
+            {role === "admin" && ADMIN.filter((n) => (!isCenter || n.href === "/assinatura") && (!mods || n.href !== "/importar" || mods.includes("importar"))).map((n) => <SideLink key={n.href} {...n} path={path} />)}
             <SideLink {...ACCOUNT} path={path} />
           </div>
           {role === "admin" && isPlatform && (
@@ -265,7 +316,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
             {children}
           </main>
-          <SidePanel />
+          {!isCenter && !path.startsWith("/quadra") && <SidePanel />}
         </div>
         <AppFooter />
       </div>

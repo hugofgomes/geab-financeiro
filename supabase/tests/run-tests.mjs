@@ -732,6 +732,82 @@ section("Comunicados em massa (0033)")
   ok("opt-out fica na auditoria do cliente", (await one(`select count(*)::int from public.audit_log where action='SA_BROADCAST_OPT_OUT' and tenant_id=$1`, [C.o2])) === 1)
 }
 
+section("Quadra Esportiva: estrutura (0035)")
+{
+  const Q = { o1: uid(1201), o2: uid(1202), og: uid(1203), ob: uid(1204), a1: uid(1211), a2: uid(1212), ger: uid(1213), rec: uid(1214), fin: uid(1215), atl: uid(1216), ag: uid(1217), boss: uid(1218) }
+  const errq = async (sql) => { try { await q(sql); return null } catch (e) { return e.message } }
+  await q(`insert into auth.users (id, email) values ($1,'q-a1@x'),($2,'q-a2@x'),($3,'q-ger@x'),($4,'q-rec@x'),($5,'q-fin@x'),($6,'q-atl@x'),($7,'q-ag@x'),($8,'q-boss@x')`, [Q.a1, Q.a2, Q.ger, Q.rec, Q.fin, Q.atl, Q.ag, Q.boss])
+  await q(`insert into public.plans (code, name, price_cents, max_athletes, modules, max_courts) values ('quadra_t','Quadra T',9900,10,array['quadras'],2)`)
+  const mk = async (o, slug, plan, kind) => q(`insert into public.organizations (id, slug, name, status, kind, plan_id) values ($1,$2,$2,'ativa',$4,(select id from public.plans where code=$3))`, [o, slug, plan, kind])
+  await mk(Q.o1, "quadra-um", "quadra_t", "quadra"); await mk(Q.o2, "quadra-dois", "quadra_t", "quadra"); await mk(Q.og, "grupo-sem-modulo", "basico", "grupo"); await mk(Q.ob, "quadra-boss", "basico", "grupo")
+  const pf = (o, id, role) => q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'X',$3)`, [o, id, role])
+  await pf(Q.o1, Q.a1, "admin"); await pf(Q.o2, Q.a2, "admin"); await pf(Q.o1, Q.ger, "diretoria"); await pf(Q.o1, Q.rec, "diretoria"); await pf(Q.o1, Q.fin, "diretoria"); await pf(Q.o1, Q.atl, "diretoria"); await pf(Q.og, Q.ag, "admin"); await pf(Q.ob, Q.boss, "admin")
+  await q(`insert into public.platform_admins (user_id) values ($1)`, [Q.boss])
+  await q(`insert into public.court_staff (tenant_id, profile_id, role) values ($1,$2,'gerente'),($1,$3,'recepcionista'),($1,$4,'financeiro')`, [Q.o1, Q.ger, Q.rec, Q.fin])
+
+  const roleOf = async (u) => { let r; await as(u, async () => { r = await one(`select public.court_role()`) }); return r }
+  ok("perfis do módulo: admin, gerente, recepcionista e financeiro", (await roleOf(Q.a1)) === "admin" && (await roleOf(Q.ger)) === "gerente" && (await roleOf(Q.rec)) === "recepcionista" && (await roleOf(Q.fin)) === "financeiro")
+  ok("usuário do grupo sem cadastro na equipe e grupo sem o módulo no plano não têm acesso", (await roleOf(Q.atl)) === null && (await roleOf(Q.ag)) === null)
+
+  // centro esportivo
+  await as(Q.a1, async () => {
+    await db.query(`insert into public.court_venues (trade_name, doc_type, document, state, cep, phone) values ('Arena Um','cnpj','11.222.333/0001-81','SC','88010-000','48999991111')`.replace("88010-000", "88010000"))
+  }, true)
+  ok("administrador cria o centro; o estabelecimento vem da sessão, não do navegador", (await one(`select tenant_id::text from public.court_venues where trade_name='Arena Um'`)) === Q.o1)
+  ok("documento fica só com dígitos", (await one(`select document from public.court_venues where tenant_id=$1`, [Q.o1])) === "11222333000181")
+  await as(Q.a1, async () => {
+    ok("CNPJ inválido é recusado", /CNPJ inválido/.test(await err(`update public.court_venues set document='11222333000182'`) ?? ""))
+    ok("CPF inválido é recusado", /CPF inválido/.test(await err(`update public.court_venues set doc_type='cpf', document='11111111111'`) ?? ""))
+    ok("CPF válido é aceito", (await err(`update public.court_venues set doc_type='cpf', document='529.982.247-25'`)) === null)
+    ok("estado e CEP inválidos são recusados", (await err(`update public.court_venues set state='XX'`)) !== null && (await err(`update public.court_venues set cep='123'`)) !== null)
+    ok("fuso inválido é recusado", /Fuso/.test(await err(`update public.court_venues set timezone='Marte/Olimpo'`) ?? ""))
+    ok("não dá para criar centro em nome de outro estabelecimento", /fora da organização/.test(await err(`insert into public.court_venues (tenant_id, trade_name) values ('${Q.o2}','Invasor')`) ?? ""))
+    ok("logo fora do armazenamento do módulo é recusado", (await err(`update public.court_venues set logo_url='https://evil.example.com/a.png'`)) !== null)
+  })
+  await as(Q.ger, async () => { ok("gerente lê o centro mas não altera o perfil", (await one(`select count(*)::int from public.court_venues`)) === 1 && (await q(`update public.court_venues set description='x' returning 1`)).length === 0) })
+  await as(Q.rec, async () => { ok("recepcionista não altera o perfil", (await q(`update public.court_venues set description='x' returning 1`)).length === 0) })
+  await as(Q.a2, async () => { ok("outro estabelecimento não enxerga o centro", (await one(`select count(*)::int from public.court_venues`)) === 0) })
+  await as(Q.atl, async () => { ok("usuário sem perfil no módulo não lê o centro", (await one(`select count(*)::int from public.court_venues`)) === 0) })
+  await as(Q.ag, async () => { ok("grupo sem o módulo não cria centro, mesmo sendo admin", /row-level security|violates/i.test(await err(`insert into public.court_venues (trade_name) values ('Sem módulo')`) ?? "")) })
+
+  // quadras
+  const venue = await one(`select id from public.court_venues where tenant_id=$1`, [Q.o1])
+  await as(Q.ger, async () => {
+    await db.query(`insert into public.court_courts (venue_id, name, sport, floor_type, covered, lighting, capacity, price_cents) values ($1,'Quadra 1','futebol_society','grama_sintetica',true,true,14,12000)`, [venue])
+  }, true)
+  ok("gerente cadastra quadras", (await one(`select count(*)::int from public.court_courts where tenant_id=$1`, [Q.o1])) === 1)
+  await as(Q.rec, async () => { ok("recepcionista não cadastra quadra", /row-level security|violates/i.test(await err(`insert into public.court_courts (venue_id, name, sport) values ('${venue}','Quadra X','futsal')`) ?? "")) })
+  await as(Q.a1, async () => {
+    ok("nome repetido (sem diferenciar maiúsculas) é recusado", /court_courts_name_uniq|duplicate/i.test(await err(`insert into public.court_courts (venue_id, name, sport) values ('${venue}','quadra 1','futsal')`) ?? ""))
+    ok("modalidade inválida é recusada", (await err(`insert into public.court_courts (venue_id, name, sport) values ('${venue}','Quadra Y','sinuca')`)) !== null)
+    ok("foto fora do armazenamento do módulo é recusada", /Foto inválida/.test(await err(`insert into public.court_courts (venue_id, name, sport, photos) values ('${venue}','Quadra Z','futsal', array['https://evil.example.com/x.jpg'])`) ?? ""))
+    await db.query(`insert into public.court_courts (venue_id, name, sport) values ($1,'Quadra 2','futsal')`, [venue])
+    ok("limite de quadras ativas do plano (2)", /Limite de 2 quadra/.test(await err(`insert into public.court_courts (venue_id, name, sport) values ('${venue}','Quadra 3','padel')`) ?? ""))
+    await db.query(`update public.court_courts set active=false where name='Quadra 2'`)
+    ok("inativar libera vaga no limite", (await err(`insert into public.court_courts (venue_id, name, sport) values ('${venue}','Quadra 3','padel')`)) === null)
+    ok("auditoria registra o cadastro de quadras no estabelecimento", (await one(`select count(*)::int from public.audit_log where entity='court_courts'`)) >= 3)
+  }, true)
+  await as(Q.a2, async () => {
+    ok("outro estabelecimento não vê quadras", (await one(`select count(*)::int from public.court_courts`)) === 0)
+    await db.query(`insert into public.court_venues (trade_name) values ('Arena Dois')`)
+    ok("quadra não pode apontar para o centro de outro estabelecimento", /outra organização|fora da organização/.test(await err(`insert into public.court_courts (venue_id, name, sport) values ('${venue}','Intrusa','futsal')`) ?? ""))
+  }, true)
+
+  // modo espião e plataforma
+  await as(Q.boss, async () => { await db.query(`select public.sa_support_start($1,'conferir quadras',30)`, [Q.o1]) }, true)
+  await as(Q.boss, async () => {
+    ok("modo espião: o dono lê o centro e as quadras do cliente", (await one(`select count(*)::int from public.court_venues`)) === 1 && (await one(`select count(*)::int from public.court_courts`)) >= 2)
+    ok("modo espião: nada pode ser alterado", /somente leitura/.test(await err(`update public.court_courts set price_cents = 1`) ?? ""))
+  })
+  await q(`delete from public.support_sessions`)
+  await as(Q.a1, async () => { ok("administrador comum não altera o tipo da organização", /restrito/i.test(await err(`select public.sa_set_org_kind('${Q.o1}','grupo')`) ?? "")) })
+  ok("tipo padrão é grupo, e o dono consegue mudar", (await one(`select kind from public.organizations where id=$1`, [Q.og])) === "grupo")
+  await as(Q.boss, async () => { await db.query(`select public.sa_set_org_kind($1,'quadra')`, [Q.og]) }, true)
+  ok("tipo alterado para centro esportivo", (await one(`select kind from public.organizations where id=$1`, [Q.og])) === "quadra")
+  await q(`update public.organizations set kind='grupo' where id=$1`, [Q.og])
+  ok("exportação do estabelecimento inclui as tabelas do módulo", await (async () => { let ex; await as(Q.boss, async () => { ex = await one(`select public.sa_org_export($1)`, [Q.o1]) }, true); return ex.tabelas.court_courts?.length >= 2 && ex.tabelas.court_venues?.length === 1 })())
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

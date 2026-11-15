@@ -147,6 +147,21 @@
 /* Diretoria (somente consulta): esconde tudo que grava. O banco já recusa qualquer escrita; isto só limpa a tela. */
 [data-readonly] [data-write] { display: none !important; }
 
+/* Módulo Quadra Esportiva: identidade do Partidou, aplicada só às telas do módulo (e ao menu dos centros esportivos) */
+.quadra-theme {
+  --background: #F6F8F4;
+  --primary: #142C25;
+  --primary-foreground: #B9F344;
+  --ring: #B9F344;
+  --accent: #E8F5C8;
+  --accent-foreground: #142C25;
+  --secondary: #EAEFE6;
+  --secondary-foreground: #19221D;
+  --shell-bg: #142C25;
+  --shell-active: #B9F344;
+  --shell-active-fg: #142C25;
+}
+
 /* Site comercial */
 @keyframes site-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 .site-float { animation: site-float 6s ease-in-out infinite }

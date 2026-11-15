@@ -32,8 +32,8 @@ type Dash = {
   overdue: number; trials_expired: number; new_month: number; cancelled_month: number; inactive_30d: number
   growth: { month: string; novos: number; total: number }[]; mrr: { month: string; mrr_cents: number; ativas: number }[]
 }
-type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; active: boolean; sort_order: number; orgs: number; max_admins: number | null; modules: string[]; trial_days: number; gateway_ref: string | null }
-const MODULES: [string, string][] = [["importar", "Importar planilha"], ["ao_vivo", "Gols ao vivo"], ["pix", "Pix automático"], ["mensagens", "WhatsApp e e-mail"]]
+type Plan = { code: string; name: string; price_cents: number; max_athletes: number | null; active: boolean; sort_order: number; orgs: number; max_admins: number | null; modules: string[]; trial_days: number; gateway_ref: string | null; max_courts: number | null }
+const MODULES: [string, string][] = [["importar", "Importar planilha"], ["ao_vivo", "Gols ao vivo"], ["pix", "Pix automático"], ["mensagens", "WhatsApp e e-mail"], ["quadras", "Quadra Esportiva"]]
 type Data = { overview: Overview; orgs: Org[]; plans: Plan[]; dash: Dash }
 
 const STATUS: Record<string, string> = { teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada", excluida: "Excluída" }
@@ -390,16 +390,16 @@ export default function SuperPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Planos</h2>
         <details className="text-xs text-muted-foreground"><summary className="flex min-h-10 cursor-pointer items-center font-medium text-primary">Como funcionam os planos</summary><p>Limite vazio = ilimitado. Plano desativado some das escolhas de assinatura, mas os grupos que já o usam continuam nele (o Premium nasce inativo e sem preço: defina o valor e ative). Módulos desligados bloqueiam o recurso no servidor e somem do menu. A duração do teste vale para novos grupos. A referência do gateway é só um campo de preparação: a cobrança atual usa o preço do plano no Asaas.</p></details>
         <div className="space-y-2">
-          {plans.map((p) => <PlanRow key={p.code} p={p} busy={busy} onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: p.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway }), "Plano salvo.")} />)}
-          <PlanRow key="novo" p={{ code: "", name: "", price_cents: 0, max_athletes: null, active: true, sort_order: 0, orgs: 0, max_admins: null, modules: MODULES.map(([k]) => k), trial_days: 10, gateway_ref: null }} busy={busy} isNew onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: v.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway }), "Plano criado.")} />
+          {plans.map((p) => <PlanRow key={p.code} p={p} busy={busy} onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: p.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway, p_max_courts: v.courts }), "Plano salvo.")} />)}
+          <PlanRow key="novo" p={{ code: "", name: "", price_cents: 0, max_athletes: null, active: true, sort_order: 0, orgs: 0, max_admins: null, modules: MODULES.map(([k]) => k).filter((k) => k !== "quadras"), trial_days: 10, gateway_ref: null, max_courts: null }} busy={busy} isNew onSave={(v) => act(() => db().rpc("sa_upsert_plan", { p_code: v.code, p_name: v.name, p_price_cents: v.price, p_max_athletes: v.max, p_active: v.active, p_max_admins: v.admins, p_modules: v.modules, p_trial_days: v.trial, p_gateway_ref: v.gateway, p_max_courts: v.courts }), "Plano criado.")} />
         </div>
       </CardContent></Card>
     </>
   )
 }
 
-function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: boolean; onSave: (v: { code: string; name: string; price: number; max: number | null; active: boolean; admins: number | null; modules: string[]; trial: number; gateway: string }) => void }) {
-  const [v, setV] = React.useState({ code: p.code, name: p.name, price: (p.price_cents / 100).toFixed(2), max: p.max_athletes == null ? "" : String(p.max_athletes), admins: p.max_admins == null ? "" : String(p.max_admins),
+function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: boolean; onSave: (v: { code: string; name: string; price: number; max: number | null; active: boolean; admins: number | null; courts: number | null; modules: string[]; trial: number; gateway: string }) => void }) {
+  const [v, setV] = React.useState({ code: p.code, name: p.name, price: (p.price_cents / 100).toFixed(2), max: p.max_athletes == null ? "" : String(p.max_athletes), admins: p.max_admins == null ? "" : String(p.max_admins), courts: p.max_courts == null ? "" : String(p.max_courts),
     trial: String(p.trial_days), gateway: p.gateway_ref ?? "", active: p.active, modules: p.modules })
   const save = () => {
     const price = Math.round(Number(v.price.replace(",", ".")) * 100)
@@ -408,11 +408,13 @@ function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: b
     if (max != null && (!Number.isInteger(max) || max < 1)) return toast.error("Limite de atletas inválido.")
     const admins = v.admins.trim() === "" ? null : Number(v.admins)
     if (admins != null && (!Number.isInteger(admins) || admins < 1)) return toast.error("Limite de administradores inválido.")
+    const courts = v.courts.trim() === "" ? null : Number(v.courts)
+    if (courts != null && (!Number.isInteger(courts) || courts < 1)) return toast.error("Limite de quadras inválido.")
     const trial = Number(v.trial)
     if (!Number.isInteger(trial) || trial < 1 || trial > 90) return toast.error("Duração do teste: de 1 a 90 dias.")
     if (isNew && !/^[a-z0-9_]{2,30}$/.test(v.code)) return toast.error("Código: 2 a 30 letras minúsculas, números ou _.")
-    onSave({ code: v.code, name: v.name.trim(), price, max, active: v.active, admins, modules: v.modules, trial, gateway: v.gateway })
-    if (isNew) setV({ code: "", name: "", price: "0.00", max: "", admins: "", trial: "10", gateway: "", active: true, modules: MODULES.map(([k]) => k) })
+    onSave({ code: v.code, name: v.name.trim(), price, max, active: v.active, admins, courts, modules: v.modules, trial, gateway: v.gateway })
+    if (isNew) setV({ code: "", name: "", price: "0.00", max: "", admins: "", courts: "", trial: "10", gateway: "", active: true, modules: MODULES.map(([k]) => k).filter((k) => k !== "quadras") })
   }
   const toggle = (k: string) => setV((x) => ({ ...x, modules: x.modules.includes(k) ? x.modules.filter((m) => m !== k) : [...x.modules, k] }))
   const limits = [p.max_athletes == null ? "atletas ∞" : `${p.max_athletes} atletas`, p.max_admins == null ? "admins ∞" : `${p.max_admins} admin(s)`].join(" · ")
@@ -423,6 +425,7 @@ function PlanRow({ p, busy, onSave, isNew }: { p: Plan; busy: boolean; isNew?: b
           : <div className="col-span-2 text-xs text-muted-foreground lg:col-span-1">{p.code} · {p.orgs} grupo(s)</div>}
         <label className="col-span-2 space-y-1 text-xs text-muted-foreground lg:col-span-1">Nome<Input aria-label="Nome do plano" className="h-11 sm:h-9" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></label>
         <label className="space-y-1 text-xs text-muted-foreground">Preço mensal (R$)<Input aria-label="Preço mensal (R$)" className="h-11 sm:h-9" inputMode="decimal" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} /></label>
+        {v.modules.includes("quadras") && <label className="space-y-1 text-xs text-muted-foreground">Limite de quadras ativas<Input aria-label="Limite de quadras" className="h-11 sm:h-9" inputMode="numeric" placeholder="ilimitado" value={v.courts} onChange={(e) => setV({ ...v, courts: e.target.value })} /></label>}
         <label className="space-y-1 text-xs text-muted-foreground">Duração do teste (dias)<Input aria-label="Duração do teste em dias" className="h-11 sm:h-9" inputMode="numeric" value={v.trial} onChange={(e) => setV({ ...v, trial: e.target.value })} /></label>
         <label className="space-y-1 text-xs text-muted-foreground">Limite de atletas<Input aria-label="Limite de atletas" className="h-11 sm:h-9" inputMode="numeric" placeholder="ilimitado" value={v.max} onChange={(e) => setV({ ...v, max: e.target.value })} /></label>
         <label className="space-y-1 text-xs text-muted-foreground">Limite de administradores<Input aria-label="Limite de administradores" className="h-11 sm:h-9" inputMode="numeric" placeholder="ilimitado" value={v.admins} onChange={(e) => setV({ ...v, admins: e.target.value })} /></label>
