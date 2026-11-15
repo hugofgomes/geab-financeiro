@@ -6,6 +6,8 @@ const BUILD_ID = process.env.BUILD_ID || "dev";
 const nextConfig: NextConfig = {
   output: "standalone", // imagem Docker enxuta
   generateBuildId: async () => BUILD_ID,
+  // Build econômico (VPS pequena): um processo por vez e menos memória no webpack
+  experimental: { cpus: 1, webpackMemoryOptimizations: true },
   env: { NEXT_PUBLIC_BUILD_ID: BUILD_ID },
   // /favicon.ico (buscado sozinho por navegadores e robôs): arquivo da marca da instalação (NEXT_PUBLIC_BRAND=partidou).
   async redirects() {

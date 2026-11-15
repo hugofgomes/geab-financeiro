@@ -14,7 +14,8 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_TELEMETRY_DISABLED=1
 # Identifica esta versão (usada para detectar atualizações no navegador)
-RUN BUILD_ID=$(date +%s) npm run build
+# Limita a memória do build (a VPS é pequena e atende outros sistemas): o Node não passa de ~1,5 GB de heap
+RUN NODE_OPTIONS=--max-old-space-size=1536 BUILD_ID=$(date +%s) npm run build
 
 FROM node:22-alpine AS run
 WORKDIR /app
