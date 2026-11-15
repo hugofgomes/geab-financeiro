@@ -1,5 +1,6 @@
 "use client"
 
+import { IS_PARTIDOU } from "@/lib/brand"
 import { Menu } from "@base-ui/react/menu"
 import { AppFooter } from "@/components/app-footer"
 import { BirthdayCard } from "@/components/birthday-card"
@@ -243,6 +244,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className={cn("flex h-16 items-center justify-between border-b border-white/10 px-5", collapsed && "lg:justify-center lg:px-0")}>
+          {IS_PARTIDOU ? (
+            <span className="flex min-w-0 items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={collapsed ? "/brand/partidou-marca.png" : "/brand/partidou-logo.png"} alt="Partidou" className={cn("w-auto object-contain", collapsed ? "h-8 max-lg:h-9" : "h-9 max-w-44")} />
+            </span>
+          ) : (
           <span className="flex min-w-0 items-center gap-2">
             {org?.logo_url && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -251,6 +258,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <span className={cn("truncate text-[15px] font-bold tracking-[0.14em] uppercase", collapsed && "lg:hidden")}>{org?.name ?? "\u00a0"}</span>
             {collapsed && !org?.logo_url && <span aria-hidden className="hidden size-9 place-items-center rounded-lg bg-white/10 text-sm font-bold lg:grid">{(org?.name ?? "G")[0]}</span>}
           </span>
+          )}
           <button type="button" onClick={() => setOpen(false)} aria-label="Fechar menu" className="grid size-10 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden">
             <X className="size-5" />
           </button>

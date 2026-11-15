@@ -1,4 +1,5 @@
 "use client"
+/* eslint-disable @next/next/no-img-element -- logotipo da marca */
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -40,7 +41,7 @@ export default function GerirPartida() {
   const share = `${m.title} · ${b.venue}, ${b.court}, ${fmtDateBR(localParts(tz, b.starts_at).date)} ${fmtRange(tz, b.starts_at, b.ends_at)}. Faltam ${m.slots_total - approved.length} jogador(es)! Peça sua vaga: ${typeof window === "undefined" ? "" : window.location.origin}/quadras/${b.slug}`
   return (
     <div className="quadra-theme min-h-dvh bg-background text-foreground">
-      <header className="bg-primary px-4 py-5 text-primary-foreground"><div className="mx-auto max-w-xl"><p className="text-xs font-semibold tracking-wide opacity-80">PARTIDOU · SUA PARTIDA</p><h1 className="text-2xl font-bold">{m.title}</h1><p className="text-sm opacity-90">{b.venue} · {b.court} · {fmtDateBR(localParts(tz, b.starts_at).date)} {fmtRange(tz, b.starts_at, b.ends_at)}</p></div></header>
+      <header className="bg-primary px-4 py-5 text-primary-foreground"><div className="mx-auto max-w-xl"><img src="/brand/partidou-logo.png" alt="Partidou" className="mb-1 h-7 w-auto" /><p className="text-xs font-semibold tracking-wide opacity-80">SUA PARTIDA</p><h1 className="text-2xl font-bold">{m.title}</h1><p className="text-sm opacity-90">{b.venue} · {b.court} · {fmtDateBR(localParts(tz, b.starts_at).date)} {fmtRange(tz, b.starts_at, b.ends_at)}</p></div></header>
       <main className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <div className="rounded-xl border bg-card p-3 text-sm"><p>Reserva <strong>{b.code}</strong>: {b.status === "confirmada" ? "confirmada pelo centro" : b.status === "pendente" ? "aguardando confirmação do centro (a partida só aparece na vitrine depois de confirmada)" : b.status === "cancelada" ? "cancelada" : b.status}.</p>
           <p className="mt-1">Vagas: <strong>{approved.length}/{m.slots_total}</strong> preenchidas · partida <strong>{m.status}</strong>.</p></div>

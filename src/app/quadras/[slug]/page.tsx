@@ -66,7 +66,7 @@ export default function CentroPublico() {
       <header className="bg-primary px-4 py-6 text-primary-foreground">
         <div className="mx-auto flex max-w-4xl items-center gap-4">
           {venue.logo_url ? <img src={venue.logo_url} alt="" className="size-16 shrink-0 rounded-xl bg-white object-cover" /> : null}
-          <div className="min-w-0"><Link href="/quadras" className="text-xs font-semibold tracking-wide opacity-80">PARTIDOU</Link><h1 className="text-2xl font-bold leading-tight">{venue.name}</h1>
+          <div className="min-w-0"><Link href="/quadras" aria-label="Partidou: buscar outras quadras" className="inline-block"><img src="/brand/partidou-logo.png" alt="Partidou" className="h-7 w-auto" /></Link><h1 className="text-2xl font-bold leading-tight">{venue.name}</h1>
             <p className="flex items-center gap-1 text-sm opacity-90"><MapPin className="size-4 shrink-0" />{addressLine(venue)}</p></div>
         </div>
       </header>

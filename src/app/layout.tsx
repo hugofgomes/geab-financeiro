@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   applicationName: BRAND_NAME,
   appleWebApp: { capable: true, title: IS_PARTIDOU ? "Partidou" : "GEAB", statusBarStyle: "default" },
   formatDetection: { telephone: false },
+  ...(IS_PARTIDOU ? { icons: { icon: [{ url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" }, { url: "/brand/favicon-96.png", sizes: "96x96", type: "image/png" }], apple: [{ url: "/brand/apple-icon.png", sizes: "180x180", type: "image/png" }] } } : {}),
 }
 
 export const viewport: Viewport = { themeColor: BRAND_PRIMARY, viewportFit: "cover" }

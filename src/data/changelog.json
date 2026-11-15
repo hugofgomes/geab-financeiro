@@ -8,7 +8,8 @@
       "novidades": [
         "Paleta oficial do Partidou aplicada a todas as telas (menu, botões, login, cadastro, gráficos e e-mails): verde-escuro #142C25, lima #B9F344, branco gelo #F6F8F4 e grafite #19221D. Vermelho segue só para erro e atraso.",
         "A marca é ligada por instalação (variável NEXT_PUBLIC_BRAND=partidou): o GEAB continua com a identidade dele.",
-        "No endereço do Partidou, quem não está logado cai na busca de quadras (/quadras), que ganhou o link “Sou um centro esportivo · Entrar”; título, manifesto e cor do app passam a ser do Partidou."
+        "No endereço do Partidou, quem não está logado cai na busca de quadras (/quadras), que ganhou o link “Sou um centro esportivo · Entrar”; título, manifesto e cor do app passam a ser do Partidou.",
+        "Logotipo oficial do Partidou no login, cadastro, recuperação de senha, menu lateral e páginas públicas; favicon e ícones do app (PWA) do Partidou."
       ],
       "melhorias": [
         "Telas de entrada, gráficos e e-mails de comunicado usam a cor principal da marca em vez de cor fixa."

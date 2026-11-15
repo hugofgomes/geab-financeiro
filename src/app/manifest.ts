@@ -15,12 +15,21 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: BRAND_PRIMARY,
     theme_color: BRAND_PRIMARY,
     categories: ["sports", "business", "productivity"],
-    icons: [
-      { src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/pwa/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/pwa/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-    ],
-    shortcuts: [
+    icons: IS_PARTIDOU
+      ? [
+          { src: "/brand/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/brand/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/brand/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ]
+      : [
+          { src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/pwa/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/pwa/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+    shortcuts: IS_PARTIDOU ? [
+      { name: "Agenda", short_name: "Agenda", url: "/quadra/agenda", icons: [{ src: "/brand/icon-192.png", sizes: "192x192" }] },
+      { name: "Reservas", short_name: "Reservas", url: "/quadra/reservas", icons: [{ src: "/brand/icon-192.png", sizes: "192x192" }] },
+    ] : [
       { name: "Mensalidades", short_name: "Mensalidades", url: "/mensalidades", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] },
       { name: "Jogos", short_name: "Jogos", url: "/jogos", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] },
       { name: "Atletas", short_name: "Atletas", url: "/atletas", icons: [{ src: "/pwa/icon-192.png", sizes: "192x192" }] },

@@ -45,7 +45,7 @@ O aplicativo é o mesmo (um só Supabase e um só contêiner); o domínio é ape
 Observação: a página pública das quadras (`/quadras/<nome>`) é da Fase 6 e ainda não existe.
 
 ## Marca por instalação (Partidou × GEAB)
-O mesmo código serve as duas marcas. Na aplicação do Partidou, defina a variável de **build** `NEXT_PUBLIC_BRAND=partidou`: as variáveis CSS da classe `.brand-partidou` (em `globals.css`) trocam as cores do sistema inteiro para verde-escuro `#142C25`, lima `#B9F344`, branco gelo `#F6F8F4` e grafite `#19221D`; título, manifesto e cor do app passam a ser do Partidou, e visitantes na raiz vão para `/quadras`. Sem a variável (GEAB), nada muda. Como é variável de build, exige novo deploy. Os ícones do app (`public/pwa`) e o logotipo ainda são os do GEAB.
+O mesmo código serve as duas marcas. Na aplicação do Partidou, defina a variável de **build** `NEXT_PUBLIC_BRAND=partidou`: as variáveis CSS da classe `.brand-partidou` (em `globals.css`) trocam as cores do sistema inteiro para verde-escuro `#142C25`, lima `#B9F344`, branco gelo `#F6F8F4` e grafite `#19221D`; título, manifesto e cor do app passam a ser do Partidou, e visitantes na raiz vão para `/quadras`. Sem a variável (GEAB), nada muda. Como é variável de build, exige novo deploy. Os arquivos da marca ficam em `public/brand/` (logo sem fundo para uso sobre verde-escuro, marca compacta “P” com a bola, favicon e ícones do app); o `/favicon.ico` redireciona (via `next.config.ts`) para o da marca da instalação e os do GEAB ficam em `public/brand/geab-favicon.ico` e `public/pwa`.
 
 ## Problemas conhecidos e dicas
 - Deploy com a VPS sem memória: se o build travar, repetir o deploy ou aumentar a memória/swap.

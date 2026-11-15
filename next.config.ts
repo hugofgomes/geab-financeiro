@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   output: "standalone", // imagem Docker enxuta
   generateBuildId: async () => BUILD_ID,
   env: { NEXT_PUBLIC_BUILD_ID: BUILD_ID },
+  // /favicon.ico (buscado sozinho por navegadores e robôs): arquivo da marca da instalação (NEXT_PUBLIC_BRAND=partidou).
+  async redirects() {
+    return [{ source: "/favicon.ico", destination: process.env.NEXT_PUBLIC_BRAND === "partidou" ? "/brand/favicon.ico" : "/brand/geab-favicon.ico", permanent: false }];
+  },
   async headers() {
     return [
       // Arquivos com hash no nome: cache longo (já é o padrão do Next, explícito aqui).
