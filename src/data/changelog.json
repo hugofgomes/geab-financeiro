@@ -2,6 +2,19 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.15.0",
+      "date": "2026-11-14",
+      "title": "Comunicados em massa para os clientes",
+      "novidades": [
+        "Nova área Comunicados no Painel do SaaS: o dono envia novidades e avisos aos clientes por e-mail e/ou como aviso dentro do painel dos grupos (administrador e diretoria, com botão para dispensar).",
+        "Público por situação do cliente e por plano, com contagem ao vivo de grupos e e-mails, envio de teste só para o dono e confirmação antes de enviar.",
+        "Envio em lotes com barra de progresso, retomada (Continuar envio), resultado por destinatário e reenvio das falhas; histórico dos comunicados.",
+        "Clientes podem ser marcados como não querendo receber comunicados (aba Configurações do cliente); clientes excluídos nunca recebem."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "version": "1.14.0",
       "date": "2026-11-14",
       "title": "Aplicativo instalável para celular",

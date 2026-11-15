@@ -658,6 +658,72 @@ section("Cadastro sem grupo (0031)")
   ok("anônimo não cria grupo", await (async () => { try { await q(`set role anon; select public.create_my_org('X Y Z','xyz-grupo')`); return false } catch (e) { await q(`reset role`); return /permission|Entre/.test(e.message) } })())
 }
 
+section("Comunicados em massa (0033)")
+{
+  const C = { o1: uid(1101), o2: uid(1102), o3: uid(1103), o4: uid(1104), o5: uid(1105), a1: uid(1111), a2: uid(1112), a3: uid(1113), a4: uid(1114), a5: uid(1115), at1: uid(1116) }
+  const errq = async (sql) => { try { await q(sql); return null } catch (e) { return e.message } }
+  await q(`insert into auth.users (id, email) values ($1,'c1@x.com'),($2,'c2@x.com'),($3,'c3@x.com'),($4,'c4@x.com'),($5,'c5@x.com'),($6,'at@x.com')`, [C.a1, C.a2, C.a3, C.a4, C.a5, C.at1])
+  const mk = async (o, slug, st, plan, adm) => {
+    await q(`insert into public.organizations (id, slug, name, status, plan_id) values ($1,$2,$2,$3,(select id from public.plans where code=$4))`, [o, slug, st, plan])
+    await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Adm','admin')`, [o, adm])
+  }
+  await mk(C.o1, "com-ativa", "ativa", "basico", C.a1)
+  await mk(C.o2, "com-teste", "teste", "teste", C.a2)
+  await mk(C.o3, "com-susp", "suspensa", "basico", C.a3)
+  await mk(C.o4, "com-optout", "ativa", "basico", C.a4)
+  await mk(C.o5, "com-excl", "ativa", "basico", C.a5)
+  await q(`update public.organizations set status='excluida' where id=$1`, [C.o5])
+  await q(`insert into public.profiles (tenant_id, id, full_name, role, athlete_id) values ($1,$2,'Atl','atleta',null)`, [C.o1, C.at1]).catch(() => {})
+  await q(`insert into public.org_internal (org_id, contact_email, broadcast_opt_out) values ($1,'c1@x.com',false), ($2,null,true) on conflict (org_id) do update set broadcast_opt_out = excluded.broadcast_opt_out, contact_email = excluded.contact_email`, [C.o1, C.o4])
+  await as(U.geabAdmin, async () => {
+    ok("admin comum não vê nem cria comunicados", /restrito/i.test(await err(`select public.sa_broadcast_preview(array['ativa'], null)`) ?? "") && /restrito/i.test(await err(`select public.sa_broadcast_send('Assunto','Mensagem',true,false,array['ativa'],null,14)`) ?? "") && /restrito/i.test(await err(`select * from public.sa_broadcasts()`) ?? ""))
+    ok("admin comum não chama as funções de envio", (await err(`select * from public.broadcast_next('${C.o1}', 10)`)) !== null && (await err(`select public.broadcast_progress('${C.o1}')`)) !== null)
+  })
+  let bid
+  await as(uid(600), async () => {
+    const pv = await one(`select public.sa_broadcast_preview(array['ativa','teste'], null)`)
+    ok("prévia: só ativas e em teste, sem excluída nem quem pediu para não receber", pv.orgs >= 2 && pv.emails >= 2, JSON.stringify(pv))
+    const pv2 = await one(`select public.sa_broadcast_preview(array['ativa'], array['basico'])`)
+    const pv3 = await one(`select public.sa_broadcast_preview(array['suspensa'], array['basico'])`)
+    ok("prévia respeita situação e plano", pv3.orgs >= 1 && pv2.orgs >= 1)
+    ok("canal é obrigatório", /canal/i.test(await err(`select public.sa_broadcast_send('Assunto','Mensagem',false,false,array['ativa'],null,14)`) ?? ""))
+    ok("situação excluída é recusada", /Situação inválida/.test(await err(`select public.sa_broadcast_send('Assunto','Mensagem',true,false,array['excluida'],null,14)`) ?? ""))
+    ok("assunto curto é recusado", (await err(`select public.sa_broadcast_send('Ab','Mensagem',true,false,array['ativa'],null,14)`)) !== null)
+    bid = await one(`select public.sa_broadcast_send('Novidades de novembro','Agora há documentação e app instalável.',true,true,array['ativa','teste'],array['basico','teste'],7)`)
+  }, true)
+  const rec = await q(`select org_id::text, email, status from public.broadcast_recipients where broadcast_id=$1`, [bid])
+  ok("destinatários: admins dos grupos do público, sem repetir e sem excluído/opt-out", rec.some((r) => r.email === "c1@x.com") && rec.some((r) => r.email === "c2@x.com") && !rec.some((r) => r.email === "c5@x.com" || r.email === "c4@x.com" || r.email === "c3@x.com") && new Set(rec.map((r) => r.email)).size === rec.length, JSON.stringify(rec.map((r) => r.email)))
+  ok("todos nascem pendentes e o comunicado está enviando", rec.every((r) => r.status === "pendente") && (await one(`select status from public.broadcasts where id=$1`, [bid])) === "enviando")
+  // envio em lotes pelo servidor
+  const lote = await q(`select * from public.broadcast_next($1, 1)`, [bid])
+  ok("lote respeita o limite", lote.length === 1)
+  for (const r of rec) await q(`select public.broadcast_mark($1,$2,$3,$4)`, [bid, r.email, r.email === "c2@x.com" ? "falhou" : "enviado", r.email === "c2@x.com" ? "caixa cheia" : null])
+  const prog = await one(`select public.broadcast_progress($1)`, [bid])
+  ok("progresso fecha o envio quando não há pendentes", prog.pending === 0 && prog.failed === 1 && (await one(`select status from public.broadcasts where id=$1`, [bid])) === "enviada", JSON.stringify(prog))
+  await as(uid(600), async () => {
+    const l = (await q(`select * from public.sa_broadcasts() where id=$1`, [bid]))[0]
+    ok("histórico traz contagens de enviados e falhas", l.sent_count === rec.length - 1 && l.failed_count === 1, JSON.stringify(l))
+    ok("detalhe lista cada destinatário com o resultado", (await one(`select jsonb_array_length(public.sa_broadcast_detail($1)->'recipients')`, [bid])) === rec.length)
+    ok("reenviar falhas recoloca na fila", (await one(`select public.sa_broadcast_retry($1)`, [bid])) === 1)
+  }, true)
+  ok("com pendentes volta a enviando", (await one(`select status from public.broadcasts where id=$1`, [bid])) === "enviando")
+  // aviso no painel
+  await as(C.a1, async () => {
+    const a = await q(`select subject from public.my_announcements()`)
+    ok("administrador do grupo vê o aviso no painel", a.length === 1 && a[0].subject === "Novidades de novembro")
+    await db.query(`select public.dismiss_announcement($1)`, [bid])
+  }, true)
+  await as(C.a1, async () => { ok("depois de dispensar o aviso some", (await q(`select 1 from public.my_announcements()`)).length === 0) })
+  await as(C.a2, async () => { ok("outro grupo do público também vê", (await q(`select 1 from public.my_announcements()`)).length === 1) })
+  await as(C.a4, async () => { ok("grupo fora do público não vê", (await q(`select 1 from public.my_announcements()`)).length === 0) })
+  await as(C.a1, async () => { ok("tabelas de comunicados são fechadas ao navegador", /permission denied/.test(await err(`select count(*) from public.broadcast_dismissals`) ?? "") && /permission denied/.test(await err(`select count(*) from public.broadcast_recipients`) ?? "")) })
+  await as(uid(600), async () => {
+    await db.query(`select public.sa_set_broadcast_opt_out($1, true)`, [C.o2])
+  }, true)
+  ok("opt-out tira o grupo de novos envios", (await one(`select count(*)::int from public.broadcast_audience_orgs(array['teste'], null) x where x = $1`, [C.o2])) === 0)
+  ok("opt-out fica na auditoria do cliente", (await one(`select count(*)::int from public.audit_log where action='SA_BROADCAST_OPT_OUT' and tenant_id=$1`, [C.o2])) === 1)
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)

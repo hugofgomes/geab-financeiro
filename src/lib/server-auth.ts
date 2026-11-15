@@ -44,3 +44,16 @@ export async function moduleEnabled(sb: NonNullable<Awaited<ReturnType<typeof ad
   return Array.isArray(data) && data.includes(mod)
 }
 export const MODULE_OFF = { error: "Este recurso não está incluído no plano do grupo. Fale com o suporte." }
+
+/** Dono da plataforma logado (sessão + confirmação no banco). Devolve o cliente da sessão e o usuário, ou null. */
+export async function platformOwner() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  const jar = await cookies()
+  const sb = createServerClient(url, key, { cookies: { getAll: () => jar.getAll(), setAll: () => {} } })
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) return null
+  const { data } = await sb.rpc("is_platform_admin")
+  return data === true ? { sb, user } : null
+}

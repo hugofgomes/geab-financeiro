@@ -1,5 +1,5 @@
 {
- "version": "1.14.0",
+ "version": "1.15.0",
  "versionDate": "2026-11-14",
  "stack": {
   "next": "15.5.29",
@@ -52,8 +52,8 @@
   {
    "id": "painel-do-saas",
    "title": "Painel do SaaS (dono da plataforma)",
-   "revisado": "1.13.0",
-   "markdown": "# Painel do SaaS (dono da plataforma)\n\nAcesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Documentação**, **Site comercial** e **Demonstração**.\n\n## Dashboard (`/super`)\n- Cards: total de clientes, ativos, suspensos, em teste, assinaturas vencidas, MRR (e ARR), novos no mês, cancelamentos do mês.\n- Gráficos: crescimento de clientes e evolução do MRR. O banco não guarda o passado do MRR: o histórico mensal (`platform_mrr_history`) é gravado a cada abertura do painel desde a v1.7.0.\n- Bloco **Atenção**: testes por vencer (7 dias), testes vencidos, pagamentos em atraso e clientes sem acesso há mais de 30 dias.\n- Receita por plano; criação manual de grupo (com administrador já cadastrado); **gestão de planos** (preço, limites, módulos, teste, gateway).\n\n## Gerenciar clientes\nTabela com responsável (e-mail e WhatsApp com link), plano, cadastro, vencimento, atletas/limite, situação e último acesso. Busca sem acento, filtros por situação e plano, ordenação, paginação e exportação CSV. Clientes excluídos ficam ocultos por padrão (filtro \"Excluída\").\n\n## Página do cliente (`/super/clientes/[id]`)\n| Aba | Conteúdo |\n|---|---|\n| Visão geral | Dados cadastrais, plano, utilização (barra de atletas) |\n| Usuários e atletas | Só **contagens** e a equipe administrativa (nome, e-mail, último acesso); nomes de atletas não aparecem |\n| Assinatura | Plano, valor, fim do teste, pago até, vínculo e último evento do Asaas |\n| Configurações | Edição de nome, site, lema, cor, logo, rodapé, contato do responsável e anotação interna |\n| Atividades | Acessos por dia, avisos de vencimento enviados e alterações administrativas |\n\nAções no topo: **Modo espião**, **Suspender/Reativar**, **+7 dias de teste**, **Excluir** (ou **Restaurar** / **Excluir definitivamente** quando já excluído).\n\n## Suspensão\nBloqueia o acesso imediatamente e **preserva todos os dados**. Registra motivo, data e quem suspendeu. O cliente vê uma tela amigável com o motivo e a orientação de falar com o suporte.\n\n## Log de acessos (`/super/acessos`)\nQuem abriu o sistema em cada dia (horário de Brasília), por grupo, com navegação por dia e busca. Alimentado por `log_access()` (uma vez por aba por dia).\n\n## Funções do banco usadas (`sa_*`)\nTodas começam validando `sa_guard()` (só dono). Lista completa e atualizada na seção \"Funções do banco\" desta documentação."
+   "revisado": "1.15.0",
+   "markdown": "# Painel do SaaS (dono da plataforma)\n\nAcesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Comunicados**, **Documentação**, **Site comercial** e **Demonstração**.\n\n## Dashboard (`/super`)\n- Cards: total de clientes, ativos, suspensos, em teste, assinaturas vencidas, MRR (e ARR), novos no mês, cancelamentos do mês.\n- Gráficos: crescimento de clientes e evolução do MRR. O banco não guarda o passado do MRR: o histórico mensal (`platform_mrr_history`) é gravado a cada abertura do painel desde a v1.7.0.\n- Bloco **Atenção**: testes por vencer (7 dias), testes vencidos, pagamentos em atraso e clientes sem acesso há mais de 30 dias.\n- Receita por plano; criação manual de grupo (com administrador já cadastrado); **gestão de planos** (preço, limites, módulos, teste, gateway).\n\n## Gerenciar clientes\nTabela com responsável (e-mail e WhatsApp com link), plano, cadastro, vencimento, atletas/limite, situação e último acesso. Busca sem acento, filtros por situação e plano, ordenação, paginação e exportação CSV. Clientes excluídos ficam ocultos por padrão (filtro \"Excluída\").\n\n## Página do cliente (`/super/clientes/[id]`)\n| Aba | Conteúdo |\n|---|---|\n| Visão geral | Dados cadastrais, plano, utilização (barra de atletas) |\n| Usuários e atletas | Só **contagens** e a equipe administrativa (nome, e-mail, último acesso); nomes de atletas não aparecem |\n| Assinatura | Plano, valor, fim do teste, pago até, vínculo e último evento do Asaas |\n| Configurações | Edição de nome, site, lema, cor, logo, rodapé, contato do responsável e anotação interna |\n| Atividades | Acessos por dia, avisos de vencimento enviados e alterações administrativas |\n\nAções no topo: **Modo espião**, **Suspender/Reativar**, **+7 dias de teste**, **Excluir** (ou **Restaurar** / **Excluir definitivamente** quando já excluído).\n\n## Suspensão\nBloqueia o acesso imediatamente e **preserva todos os dados**. Registra motivo, data e quem suspendeu. O cliente vê uma tela amigável com o motivo e a orientação de falar com o suporte.\n\n## Log de acessos (`/super/acessos`)\nQuem abriu o sistema em cada dia (horário de Brasília), por grupo, com navegação por dia e busca. Alimentado por `log_access()` (uma vez por aba por dia).\n\n## Comunicados em massa (`/super/comunicados`)\nPara avisar os clientes sobre novidades, manutenções e recados gerais.\n- **Canais:** e-mail (administradores ativos de cada grupo + o responsável cadastrado) e/ou **aviso dentro do painel** (administrador e diretoria; fica de 1 a 90 dias e cada pessoa pode dispensar o seu).\n- **Público:** por situação do cliente (ativas, em teste, suspensas, canceladas) e por plano. A tela mostra ao vivo quantos grupos e e-mails recebem. Clientes **excluídos** e os que **pediram para não receber** (opção na aba Configurações do cliente) ficam de fora.\n- **Antes de enviar:** botão **Enviar teste para mim** (só o seu e-mail) e confirmação com a contagem final.\n- **Envio:** o banco guarda um instantâneo dos destinatários (`broadcast_recipients`); a rota `/api/super/comunicados/enviar` manda em lotes de 15 (pausa de 0,5 s entre e-mails para respeitar o limite do provedor) e a tela acompanha o progresso. Se a página for fechada, **Continuar envio** retoma de onde parou. Cada e-mail tem resultado individual; falhas podem ser **reenviadas**.\n- **E-mail:** texto digitado vira parágrafos, links https ficam clicáveis, nenhum HTML cru. Rodapé informa por que a pessoa recebe e como pedir a retirada; o *Reply-To* é o seu e-mail.\n- **Histórico:** assunto, data, grupos, e-mails enviados/falhas e quantos dispensaram o aviso. Tabelas: `broadcasts`, `broadcast_orgs`, `broadcast_recipients`, `broadcast_dismissals`.\n- **Limite do provedor:** planos gratuitos de e-mail têm cota diária; e-mails recusados ficam como falha e podem ser reenviados no dia seguinte.\n\n## Funções do banco usadas (`sa_*`)\nTodas começam validando `sa_guard()` (só dono). Lista completa e atualizada na seção \"Funções do banco\" desta documentação."
   },
   {
    "id": "cadastro-e-autenticacao",
@@ -214,6 +214,10 @@
   {
    "file": "0032_cadastro_fone.sql",
    "summary": "Cadastro de novo grupo: nome completo e telefone (WhatsApp) passam a ser obrigatórios e o contato já nasce no painel do SaaS. Reversão: recriar handle_signup_form (0017) e create_my_org (0031) e remover o telefone obrigatório."
+  },
+  {
+   "file": "0033_comunicados.sql",
+   "summary": "Comunicados em massa (Painel do SaaS): o dono envia novidades e avisos aos clientes por e-mail e/ou como aviso no painel dos clientes. O banco decide o público (situação e plano), guarda um instantâneo dos destinatários e o resultado de cada envio."
   }
  ],
  "tables": [
@@ -232,6 +236,22 @@
   {
    "name": "audit_log",
    "file": "0001_schema.sql"
+  },
+  {
+   "name": "broadcast_dismissals",
+   "file": "0033_comunicados.sql"
+  },
+  {
+   "name": "broadcast_orgs",
+   "file": "0033_comunicados.sql"
+  },
+  {
+   "name": "broadcast_recipients",
+   "file": "0033_comunicados.sql"
+  },
+  {
+   "name": "broadcasts",
+   "file": "0033_comunicados.sql"
   },
   {
    "name": "btg_connection",
@@ -405,6 +425,36 @@
    "area": "Geral"
   },
   {
+   "name": "broadcast_audience_orgs",
+   "file": "0033_comunicados.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "broadcast_content",
+   "file": "0033_comunicados.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "broadcast_mark",
+   "file": "0033_comunicados.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "broadcast_next",
+   "file": "0033_comunicados.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "broadcast_org_emails",
+   "file": "0033_comunicados.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "broadcast_progress",
+   "file": "0033_comunicados.sql",
+   "area": "Geral"
+  },
+  {
    "name": "check_payment",
    "file": "0001_schema.sql",
    "area": "Geral"
@@ -422,6 +472,11 @@
   {
    "name": "default_tenant",
    "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "dismiss_announcement",
+   "file": "0033_comunicados.sql",
    "area": "Geral"
   },
   {
@@ -487,6 +542,11 @@
   {
    "name": "month_birthdays",
    "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "my_announcements",
+   "file": "0033_comunicados.sql",
    "area": "Geral"
   },
   {
@@ -660,6 +720,31 @@
    "area": "Painel do SaaS"
   },
   {
+   "name": "sa_broadcast_detail",
+   "file": "0033_comunicados.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_broadcast_preview",
+   "file": "0033_comunicados.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_broadcast_retry",
+   "file": "0033_comunicados.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_broadcast_send",
+   "file": "0033_comunicados.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_broadcasts",
+   "file": "0033_comunicados.sql",
+   "area": "Painel do SaaS"
+  },
+  {
    "name": "sa_create_org",
    "file": "0018_super_admin.sql",
    "area": "Painel do SaaS"
@@ -696,7 +781,7 @@
   },
   {
    "name": "sa_org_detail",
-   "file": "0027_super_exclusao.sql",
+   "file": "0033_comunicados.sql",
    "area": "Painel do SaaS"
   },
   {
@@ -732,6 +817,11 @@
   {
    "name": "sa_restore_org",
    "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_set_broadcast_opt_out",
+   "file": "0033_comunicados.sql",
    "area": "Painel do SaaS"
   },
   {
@@ -912,6 +1002,11 @@
    "description": "Página do cliente: dados, usuários, assinatura, configurações, atividades, modo espião, suspensão e exclusão"
   },
   {
+   "path": "/super/comunicados",
+   "access": "Dono da plataforma",
+   "description": "Comunicados em massa aos clientes (e-mail e aviso no painel), com público, teste, histórico e reenvio de falhas"
+  },
+  {
    "path": "/super/documentacao",
    "access": "Dono da plataforma",
    "description": "Esta documentação (somente dono da plataforma)"
@@ -988,6 +1083,20 @@
     "POST"
    ],
    "description": "Lê abas de planilha do Google publicada na web"
+  },
+  {
+   "path": "/api/super/comunicados/enviar",
+   "methods": [
+    "POST"
+   ],
+   "description": "Envia o próximo lote de e-mails de um comunicado (somente dono da plataforma)"
+  },
+  {
+   "path": "/api/super/comunicados/teste",
+   "methods": [
+    "POST"
+   ],
+   "description": "Envia o comunicado de teste só para o e-mail do dono"
   },
   {
    "path": "/api/versao",
@@ -1137,7 +1246,7 @@
    "name": "PLATFORM_ALERT_EMAIL",
    "scope": "Servidor",
    "description": "E-mail que recebe o resumo diário dos avisos enviados",
-   "uses": 1
+   "uses": 2
   },
   {
    "name": "PLATFORM_ORG_SLUG",
@@ -1149,37 +1258,37 @@
    "name": "SMTP_FROM",
    "scope": "Servidor",
    "description": "Remetente dos e-mails do aplicativo",
-   "uses": 2
+   "uses": 3
   },
   {
    "name": "SMTP_FROM_NAME",
    "scope": "Servidor",
    "description": "Nome exibido como remetente dos avisos (padrão Gestão de Futebol)",
-   "uses": 1
+   "uses": 2
   },
   {
    "name": "SMTP_HOST",
    "scope": "Servidor",
    "description": "Servidor SMTP (Resend)",
-   "uses": 2
+   "uses": 3
   },
   {
    "name": "SMTP_PASS",
    "scope": "Servidor",
    "description": "Senha do SMTP (chave da Resend)",
-   "uses": 2
+   "uses": 3
   },
   {
    "name": "SMTP_PORT",
    "scope": "Servidor",
    "description": "Porta do SMTP (465)",
-   "uses": 2
+   "uses": 3
   },
   {
    "name": "SMTP_USER",
    "scope": "Servidor",
    "description": "Usuário do SMTP",
-   "uses": 2
+   "uses": 3
   },
   {
    "name": "SUPABASE_SERVICE_ROLE_KEY",
@@ -1219,6 +1328,19 @@
   }
  ],
  "changelog": [
+  {
+   "version": "1.15.0",
+   "date": "2026-11-14",
+   "title": "Comunicados em massa para os clientes",
+   "novidades": [
+    "Nova área Comunicados no Painel do SaaS: o dono envia novidades e avisos aos clientes por e-mail e/ou como aviso dentro do painel dos grupos (administrador e diretoria, com botão para dispensar).",
+    "Público por situação do cliente e por plano, com contagem ao vivo de grupos e e-mails, envio de teste só para o dono e confirmação antes de enviar.",
+    "Envio em lotes com barra de progresso, retomada (Continuar envio), resultado por destinatário e reenvio das falhas; histórico dos comunicados.",
+    "Clientes podem ser marcados como não querendo receber comunicados (aba Configurações do cliente); clientes excluídos nunca recebem."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
   {
    "version": "1.14.0",
    "date": "2026-11-14",
@@ -1404,23 +1526,13 @@
     "Avisos no sino do topo: mensalidade a vencer ou vencida, jogo próximo e aniversários do dia."
    ],
    "correcoes": []
-  },
-  {
-   "version": "1.5.5",
-   "date": "2026-11-11",
-   "title": "Telas do celular no site de vendas",
-   "novidades": [
-    "Site comercial com a seção Seu grupo na palma da mão, mostrando as telas Painel, Atletas, Jogos e Caixa no celular."
-   ],
-   "melhorias": [],
-   "correcoes": []
   }
  ],
  "stats": {
-  "migrations": 32,
-  "tables": 25,
-  "functions": 91,
-  "pages": 29,
-  "apis": 14
+  "migrations": 33,
+  "tables": 29,
+  "functions": 105,
+  "pages": 30,
+  "apis": 16
  }
 }

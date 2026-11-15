@@ -29,7 +29,8 @@
     "/super/clientes/[id]": "Página do cliente: dados, usuários, assinatura, configurações, atividades, modo espião, suspensão e exclusão",
     "/super/documentacao": "Esta documentação (somente dono da plataforma)",
     "/usuarios": "Usuários e privilégios do grupo",
-    "/offline": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)"
+    "/offline": "Tela de \"Sem conexão\" do app instalável (pública, sem dados)",
+    "/super/comunicados": "Comunicados em massa aos clientes (e-mail e aviso no painel), com público, teste, histórico e reenvio de falhas"
   },
   "apis": {
     "/api/assinatura": "Cria a assinatura no Asaas e devolve o link de pagamento",
@@ -45,7 +46,9 @@
     "/api/webhooks/asaas": "Eventos de cobrança do Asaas (ativa, suspende, cancela grupos)",
     "/api/webhooks/btg": "Baixas de Pix recebidas do BTG",
     "/api/webhooks/openpix": "Baixas de Pix recebidas da OpenPix",
-    "/api/whatsapp": "Envia confirmação de pagamento por WhatsApp"
+    "/api/whatsapp": "Envia confirmação de pagamento por WhatsApp",
+    "/api/super/comunicados/enviar": "Envia o próximo lote de e-mails de um comunicado (somente dono da plataforma)",
+    "/api/super/comunicados/teste": "Envia o comunicado de teste só para o e-mail do dono"
   },
   "env": {
     "APP_URL": "Endereço público usado nos links dos e-mails de aviso (padrão: domínio principal)",

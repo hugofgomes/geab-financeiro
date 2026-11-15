@@ -1,7 +1,7 @@
-<!-- revisado: 1.13.0 -->
+<!-- revisado: 1.15.0 -->
 # Painel do SaaS (dono da plataforma)
 
-Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Documentação**, **Site comercial** e **Demonstração**.
+Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Comunicados**, **Documentação**, **Site comercial** e **Demonstração**.
 
 ## Dashboard (`/super`)
 - Cards: total de clientes, ativos, suspensos, em teste, assinaturas vencidas, MRR (e ARR), novos no mês, cancelamentos do mês.
@@ -28,6 +28,16 @@ Bloqueia o acesso imediatamente e **preserva todos os dados**. Registra motivo, 
 
 ## Log de acessos (`/super/acessos`)
 Quem abriu o sistema em cada dia (horário de Brasília), por grupo, com navegação por dia e busca. Alimentado por `log_access()` (uma vez por aba por dia).
+
+## Comunicados em massa (`/super/comunicados`)
+Para avisar os clientes sobre novidades, manutenções e recados gerais.
+- **Canais:** e-mail (administradores ativos de cada grupo + o responsável cadastrado) e/ou **aviso dentro do painel** (administrador e diretoria; fica de 1 a 90 dias e cada pessoa pode dispensar o seu).
+- **Público:** por situação do cliente (ativas, em teste, suspensas, canceladas) e por plano. A tela mostra ao vivo quantos grupos e e-mails recebem. Clientes **excluídos** e os que **pediram para não receber** (opção na aba Configurações do cliente) ficam de fora.
+- **Antes de enviar:** botão **Enviar teste para mim** (só o seu e-mail) e confirmação com a contagem final.
+- **Envio:** o banco guarda um instantâneo dos destinatários (`broadcast_recipients`); a rota `/api/super/comunicados/enviar` manda em lotes de 15 (pausa de 0,5 s entre e-mails para respeitar o limite do provedor) e a tela acompanha o progresso. Se a página for fechada, **Continuar envio** retoma de onde parou. Cada e-mail tem resultado individual; falhas podem ser **reenviadas**.
+- **E-mail:** texto digitado vira parágrafos, links https ficam clicáveis, nenhum HTML cru. Rodapé informa por que a pessoa recebe e como pedir a retirada; o *Reply-To* é o seu e-mail.
+- **Histórico:** assunto, data, grupos, e-mails enviados/falhas e quantos dispensaram o aviso. Tabelas: `broadcasts`, `broadcast_orgs`, `broadcast_recipients`, `broadcast_dismissals`.
+- **Limite do provedor:** planos gratuitos de e-mail têm cota diária; e-mails recusados ficam como falha e podem ser reenviados no dia seguinte.
 
 ## Funções do banco usadas (`sa_*`)
 Todas começam validando `sa_guard()` (só dono). Lista completa e atualizada na seção "Funções do banco" desta documentação.

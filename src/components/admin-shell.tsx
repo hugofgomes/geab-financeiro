@@ -3,6 +3,7 @@
 import { Menu } from "@base-ui/react/menu"
 import { AppFooter } from "@/components/app-footer"
 import { BirthdayCard } from "@/components/birthday-card"
+import { AnnouncementBanner } from "@/components/announcement-banner"
 import { InstallBanner } from "@/components/pwa"
 import { SpyBanner } from "@/components/spy-banner"
 import { SidePanel } from "@/components/side-panel"
@@ -13,7 +14,7 @@ import { useRole } from "@/hooks/use-role"
 import { ROLE_LABEL, isAdminOnlyPath } from "@/lib/roles"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Activity, BookOpen, Bell, Building2, CreditCard, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
+import { Activity, BookOpen, Bell, Megaphone, Building2, CreditCard, Crown, PanelLeftClose, PanelLeftOpen, Globe, Play, CalendarCheck, ChevronDown, Trophy, FileUp, LayoutDashboard, LogOut, Menu as MenuIcon, Radio, ReceiptText, Shirt, ShieldCheck, UserCog, UserPlus, Users, Wallet, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -42,7 +43,7 @@ const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"))
 const PLATFORM = { href: "/super", label: "Painel do SaaS", icon: Crown }
-const SAAS_LINKS = [{ href: "/super/acessos", label: "Log de acessos", icon: Activity }, { href: "/super/documentacao", label: "Documentação", icon: BookOpen }, { href: "/site", label: "Site comercial", icon: Globe }, { href: "/demo", label: "Demonstração", icon: Play }]
+const SAAS_LINKS = [{ href: "/super/acessos", label: "Log de acessos", icon: Activity }, { href: "/super/comunicados", label: "Comunicados", icon: Megaphone }, { href: "/super/documentacao", label: "Documentação", icon: BookOpen }, { href: "/site", label: "Site comercial", icon: Globe }, { href: "/demo", label: "Demonstração", icon: Play }]
 const titleOf = (path: string) => [...NAV, ...ADMIN, ...SAAS_LINKS, PLATFORM, ACCOUNT].find((n) => isActive(path, n.href))?.label ?? ""
 
 const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
@@ -259,6 +260,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <main className="min-w-0 flex-1 space-y-6" data-readonly={readOnly ? "" : undefined}>
             <SpyBanner />
             <InstallBanner />
+            <AnnouncementBanner />
             {role === "admin" && <TrialBanner />}
             {role === "diretoria" && <p role="note" className="rounded-lg border bg-secondary px-3 py-2 text-xs text-muted-foreground">Acesso de consulta ({ROLE_LABEL.diretoria}): você vê todas as áreas, mas não altera dados nem acessa a administração.</p>}
             {children}
