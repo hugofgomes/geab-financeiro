@@ -1,4 +1,4 @@
-<!-- revisado: 1.18.0 -->
+<!-- revisado: 1.20.0 -->
 # Painel do SaaS (dono da plataforma)
 
 Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Comunicados**, **Documentação**, **Site comercial** e **Demonstração**.
@@ -10,7 +10,10 @@ Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **
 - Receita por plano; criação manual de grupo (com administrador já cadastrado); **gestão de planos** (preço, limites, módulos, teste, gateway).
 
 ## Gerenciar clientes
-Tabela com responsável (e-mail e WhatsApp com link), plano, cadastro, vencimento, atletas/limite, situação e último acesso. Busca sem acento, filtros por situação e plano, ordenação, paginação e exportação CSV. Clientes excluídos ficam ocultos por padrão (filtro "Excluída").
+Lista com **abas de filtro com contagem** (Todos, Em teste, Ativos, Suspensos, Cancelados, **Vencem em até 7 dias** e, quando houver, Excluídos), busca sem acento (nome, responsável, e-mail, telefone), filtro por plano, **ordenação** (mais recentes, vencimento, nome, atletas, último acesso) e exportação CSV.
+- **Vencimento:** mostra a data e o prazo em texto ("em 6 dias", "vence hoje", "venceu há 1 dia", em vermelho quando vencido e em âmbar até 3 dias). Vale o fim do período pago (`paid_until`) ou, para quem não pagou, o **fim do teste** — inclusive clientes no plano de teste com situação Ativa (ativados manualmente: nesse caso o acesso não bloqueia na data, e a tela avisa). Plano interno mostra "Sem vencimento"; cancelados e excluídos não têm vencimento.
+- **Layout adaptável:** a tabela completa (cliente com avatar e datas de cadastro e acesso, responsável com WhatsApp, plano, vencimento, atletas com barra de uso do limite, situação) aparece quando a área tem largura suficiente; em áreas menores os clientes viram **cartões**.
+- **Ações no menu "⋯":** abrir cliente, contato do responsável, anotação interna, +7 dias de teste, ativar, suspender e reativar.
 
 ## Página do cliente (`/super/clientes/[id]`)
 | Aba | Conteúdo |

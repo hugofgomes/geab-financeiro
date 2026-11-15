@@ -11,8 +11,11 @@ import { useLoad } from "@/hooks/use-load"
 import { formatBRL } from "@/lib/format"
 import { supabase } from "@/lib/supabase/client"
 import { slugify } from "@/lib/tenant"
-import { Download } from "lucide-react"
+import { maskPhone } from "@/lib/whatsapp"
+import { Menu } from "@base-ui/react/menu"
+import { Download, ExternalLink, MoreHorizontal, StickyNote, UserPen } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import * as React from "react"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -44,8 +47,32 @@ const BADGE: Record<string, string> = {
   teste: "bg-blue-100 text-blue-800", ativa: "bg-green-100 text-green-800", suspensa: "bg-amber-100 text-amber-900", cancelada: "bg-slate-200 text-slate-700", excluida: "bg-red-100 text-red-800",
 }
 const mes = (m: string) => { const [y, n] = m.split("-"); return `${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][Number(n) - 1]}/${y.slice(2)}` }
-/** Vencimento: fim do teste (em teste) ou fim do período pago (ativa). */
-const dueOf = (g: Org) => (g.status === "teste" ? g.trial_ends_at : g.status === "ativa" ? g.paid_until : null)
+/** Vencimento: fim do período pago, ou fim do teste (também para quem está no plano de teste com situação Ativa). Plano interno e clientes cancelados/excluídos não têm. */
+type Due = { iso: string; kind: "paid" | "trial"; days: number }
+const dueInfo = (g: Org): Due | null => {
+  if (g.status === "excluida" || g.status === "cancelada") return null
+  const iso = g.paid_until ?? (g.plan_code !== "ilimitado" ? g.trial_ends_at : null)
+  return iso ? { iso, kind: g.paid_until ? "paid" : "trial", days: Math.ceil((new Date(iso).getTime() - Date.now()) / DAY) } : null
+}
+const dueOf = (g: Org) => dueInfo(g)?.iso ?? null
+const ago = (iso: string | null) => { if (!iso) return "nunca"; const d = Math.floor((Date.now() - new Date(iso).getTime()) / DAY); return d <= 0 ? "hoje" : d === 1 ? "ontem" : d < 30 ? `há ${d} dias` : dt(iso) }
+const dts = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "—")
+const plural = (n: number) => `${n} dia${n === 1 ? "" : "s"}`
+const phoneBR = (v: string | null) => (v ? maskPhone(v.replace(/^55/, "")) : "")
+
+/** Vencimento com a data e um selo de prazo (vermelho vencido, âmbar até 3 dias). */
+function DueCell({ g }: { g: Org }) {
+  const d = dueInfo(g)
+  if (!d) return <span className="text-sm text-muted-foreground">{g.plan_code === "ilimitado" ? "Sem vencimento" : "—"}</span>
+  const tone = d.days < 0 ? "text-red-700" : d.days <= 3 ? "text-amber-700" : "text-muted-foreground"
+  const txt = d.days < 0 ? `venceu há ${plural(-d.days)}` : d.days === 0 ? "vence hoje" : `em ${plural(d.days)}`
+  return (
+    <div className="leading-tight" title={d.kind === "trial" && g.status === "ativa" ? "Ativado manualmente: o acesso não bloqueia nesta data" : undefined}>
+      <div className="font-medium tabular-nums">{dt(d.iso)}</div>
+      <div className={`text-xs ${tone}`}>{d.kind === "trial" ? "Teste · " : ""}{txt}</div>
+    </div>
+  )
+}
 const inactive = (g: Org) => (g.status === "ativa" || g.status === "teste") && Date.now() - new Date(g.created_at).getTime() > 30 * DAY && (!g.last_access || Date.now() - new Date(g.last_access).getTime() > 30 * DAY)
 const whats = (v: string | null) => { const d = (v ?? "").replace(/\D/g, ""); return d ? `https://wa.me/${d.length <= 11 ? "55" + d : d}` : null }
 
@@ -146,7 +173,8 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
 /** Painel do dono da plataforma: só números agregados por grupo (nunca dados internos dos grupos). */
 export default function SuperPage() {
   const { data, error, loading, reload } = useLoad(load, [])
-  const [filter, setFilter] = React.useState("")
+  const [view, setView] = React.useState("")
+  const router = useRouter()
   const [q, setQ] = React.useState("")
   const [planF, setPlanF] = React.useState("")
   const [sort, setSort] = React.useState<{ key: string; dir: 1 | -1 }>({ key: "created_at", dir: -1 })
@@ -173,7 +201,7 @@ export default function SuperPage() {
     switch (sort.key) {
       case "name": return g.name.toLowerCase()
       case "athletes": return g.athletes
-      case "due": return dueOf(g) ?? ""
+      case "due": return dueOf(g) ?? "9999-12-31"
       case "last_access": return g.last_access ?? ""
       case "plan": return g.plan_name.toLowerCase()
       case "status": return g.status
@@ -181,16 +209,24 @@ export default function SuperPage() {
     }
   }
   const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+  const live = orgs.filter((g) => g.status !== "excluida")
+  const inView = (g: Org) => view === "" ? g.status !== "excluida" : view === "trial" ? (g.status === "teste" || g.plan_code === "teste") && g.status !== "excluida" && g.status !== "cancelada"
+    : view === "venc" ? (dueInfo(g)?.days ?? 99) <= 7 : g.status === view
+  const chips: [string, string, number][] = [["", "Todos", live.length], ["trial", "Em teste", live.filter((g) => (g.status === "teste" || g.plan_code === "teste") && g.status !== "cancelada").length],
+    ["ativa", "Ativos", live.filter((g) => g.status === "ativa").length], ["suspensa", "Suspensos", live.filter((g) => g.status === "suspensa").length], ["cancelada", "Cancelados", live.filter((g) => g.status === "cancelada").length],
+    ["venc", "Vencem em até 7 dias", live.filter((g) => (dueInfo(g)?.days ?? 99) <= 7).length]]
+  const excluidos = orgs.length - live.length
+  if (excluidos) chips.push(["excluida", "Excluídos", excluidos])
   const filtered = orgs
-    .filter((g) => (filter ? g.status === filter : g.status !== "excluida") && (!planF || g.plan_code === planF) && (!q || norm([g.name, g.slug, g.contact_name, g.contact_email, g.contact_phone].join(" ")).includes(norm(q))))
+    .filter((g) => inView(g) && (!planF || g.plan_code === planF) && (!q || norm([g.name, g.slug, g.contact_name, g.contact_email, g.contact_phone].join(" ")).includes(norm(q))))
     .sort((a, b) => (val(a) < val(b) ? -1 : val(a) > val(b) ? 1 : 0) * sort.dir)
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE))
   const cur = Math.min(page, pages - 1)
   const shown = filtered.slice(cur * PAGE, cur * PAGE + PAGE)
-  const now = Date.now()
   const attention = orgs.flatMap((g) => {
     const w: string[] = []
-    if (g.status === "teste" && g.trial_ends_at) { const d = Math.ceil((new Date(g.trial_ends_at).getTime() - now) / DAY); if (d > 0 && d <= 7) w.push(`teste termina em ${d} dia(s)`); else if (d <= 0 && d > -14) w.push("teste vencido, sem assinatura") }
+    const di = dueInfo(g)
+    if (di?.kind === "trial" && g.status !== "suspensa") { if (di.days > 0 && di.days <= 7) w.push(`teste termina em ${plural(di.days)}`); else if (di.days <= 0 && di.days > -14) w.push("teste vencido, sem assinatura") }
     if (g.status === "suspensa" && /^inadimpl/.test(g.status_reason ?? "")) w.push("pagamento em atraso")
     if (inactive(g)) w.push("sem acesso há mais de 30 dias")
     return w.map((why) => ({ g, why }))
@@ -199,18 +235,50 @@ export default function SuperPage() {
     <TableHead className={cls}><button type="button" className="inline-flex items-center gap-1 font-medium hover:text-foreground" onClick={() => { setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 })); setPage(0) }}>
       {label}{sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : ""}</button></TableHead>
   )
-  const actions = (g: Org) => g.status === "excluida" ? (
-    <div className="flex justify-end max-2xl:justify-start"><Link href={`/super/clientes/${g.id}`} className="inline-flex min-h-10 items-center text-sm text-primary hover:underline">Recuperar ou excluir definitivamente</Link></div>
-  ) : (
-    <div className="flex flex-wrap justify-end gap-2 pr-2 max-2xl:justify-start max-2xl:pr-0">
-                    {g.status === "suspensa" || g.status === "cancelada"
-                      ? <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")}>Reativar</Button>
-                      : <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }}>Suspender</Button>}
-                    {g.status === "teste" && <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")}>+7 dias</Button>}
-                    {g.status === "teste" && <Button size="sm" variant="outline" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")}>Ativar</Button>}
-                    <Button size="sm" variant="ghost" className="max-2xl:h-10 max-2xl:px-4" onClick={() => setEdit(g)}>Contato</Button>
-                    <Button size="sm" variant="ghost" className="max-2xl:h-10 max-2xl:px-4" disabled={busy} onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }}>Nota</Button>
-                  </div>
+  const itemCls = "flex w-full cursor-default items-center gap-2.5 rounded-md px-2.5 py-2.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+  /** Menu "⋯" com as ações do cliente (no lugar dos botões soltos). */
+  const menu = (g: Org) => (
+    <Menu.Root>
+      <Menu.Trigger aria-label={`Ações de ${g.name}`} className="grid size-10 shrink-0 place-items-center rounded-lg text-muted-foreground outline-none transition hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-secondary sm:size-9"><MoreHorizontal className="size-5" /></Menu.Trigger>
+      <Menu.Portal><Menu.Positioner align="end" sideOffset={6} className="z-50"><Menu.Popup className="min-w-56 rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg outline-none">
+        <Menu.Item onClick={() => router.push(`/super/clientes/${g.id}`)} className={itemCls}><ExternalLink className="size-4" /> {g.status === "excluida" ? "Recuperar ou excluir definitivamente" : "Abrir cliente"}</Menu.Item>
+        {g.status !== "excluida" && <>
+          <Menu.Item onClick={() => setEdit(g)} className={itemCls}><UserPen className="size-4" /> Contato do responsável</Menu.Item>
+          <Menu.Item onClick={() => { const n = window.prompt("Anotação interna (só você vê):", g.notes ?? ""); if (n !== null) act(() => db().rpc("sa_set_notes", { p_org: g.id, p_notes: n }), "Anotação salva.") }} className={itemCls}><StickyNote className="size-4" /> Anotação interna</Menu.Item>
+          <Menu.Separator className="my-1 h-px bg-border" />
+          {g.status === "teste" && <Menu.Item onClick={() => act(() => db().rpc("sa_extend_trial", { p_org: g.id, p_days: 7 }), "Teste estendido em 7 dias.")} className={itemCls}>+7 dias de teste</Menu.Item>}
+          {g.status === "teste" && <Menu.Item onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo ativado.")} className={itemCls}>Ativar grupo</Menu.Item>}
+          {g.status === "suspensa" || g.status === "cancelada"
+            ? <Menu.Item onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")} className={itemCls}>Reativar acesso</Menu.Item>
+            : <Menu.Item onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }} className={`${itemCls} text-red-700`}>Suspender acesso</Menu.Item>}
+        </>}
+      </Menu.Popup></Menu.Positioner></Menu.Portal>
+    </Menu.Root>
+  )
+  const contact = (g: Org) => {
+    const wa = whats(g.contact_phone)
+    return g.contact_name || g.contact_email || g.contact_phone ? (
+      <div className="min-w-0 leading-tight">
+        <div className="truncate text-sm font-medium">{g.contact_name ?? "Responsável"}</div>
+        {g.contact_email && <div className="truncate text-xs text-muted-foreground">{g.contact_email}</div>}
+        {wa && <a href={wa} target="_blank" rel="noreferrer" className="inline-block py-0.5 text-xs text-primary hover:underline">{phoneBR(g.contact_phone)}</a>}
+      </div>
+    ) : <button type="button" className="inline-flex min-h-8 items-center text-xs text-primary hover:underline" onClick={() => setEdit(g)}>+ Adicionar contato</button>
+  }
+  const athletesCell = (g: Org) => {
+    const full = g.athletes_limit != null && g.athletes >= g.athletes_limit
+    return (
+      <div className="w-24 leading-tight">
+        <div className={`text-sm tabular-nums ${full ? "font-semibold text-red-700" : "font-medium"}`}>{g.athletes}{g.athletes_limit != null && <span className="font-normal text-muted-foreground"> / {g.athletes_limit}</span>}</div>
+        {g.athletes_limit != null && <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary" aria-hidden><div className={`h-full rounded-full ${full ? "bg-red-500" : "bg-primary"}`} style={{ width: `${Math.min(100, (g.athletes / g.athletes_limit) * 100)}%` }} /></div>}
+      </div>
+    )
+  }
+  const planSelect = (g: Org, cls: string) => (
+    <NativeSelect aria-label={`Plano de ${g.name}`} className={cls} value={g.plan_code} disabled={busy || g.status === "excluida"}
+      onChange={(e) => act(() => db().rpc("sa_set_org_plan", { p_org: g.id, p_plan: e.target.value }), "Plano alterado.")}>
+      {plans.filter((p) => p.active || p.code === g.plan_code).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+    </NativeSelect>
   )
   const maxMrr = Math.max(1, ...o.by_plan.map((x) => x.mrr_cents))
 
@@ -271,93 +339,87 @@ export default function SuperPage() {
         ))}
       </CardContent></Card>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto text-sm font-semibold uppercase tracking-wide text-primary">Gerenciar clientes ({filtered.length})</h2>
-        <Input aria-label="Buscar cliente" className="h-10 w-full sm:h-8 sm:w-56" placeholder="Nome, responsável, e-mail…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} />
-        <NativeSelect aria-label="Situação" className="h-10 w-full sm:h-8 sm:w-auto" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(0) }}>
-          <option value="">Todas (sem excluídos)</option>
-          {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </NativeSelect>
-        <NativeSelect aria-label="Plano" className="h-10 w-full sm:h-8 sm:w-auto" value={planF} onChange={(e) => { setPlanF(e.target.value); setPage(0) }}>
-          <option value="">Todos os planos</option>
-          {plans.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
-        </NativeSelect>
-        <Button size="sm" variant="outline" className="h-10 w-full sm:h-8 sm:w-auto" disabled={!filtered.length} onClick={() => exportCsv(filtered)}><Download /> CSV</Button>
-      </div>
-      <Card className="hidden overflow-x-auto py-0 2xl:block">
+      <div className="@container space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="mr-auto text-sm font-semibold uppercase tracking-wide text-primary">Gerenciar clientes <span className="font-normal text-muted-foreground">({filtered.length})</span></h2>
+          <Input aria-label="Buscar cliente" className="h-10 w-full sm:h-9 sm:w-60" placeholder="Buscar nome, responsável, e-mail…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} />
+          <NativeSelect aria-label="Plano" className="h-10 w-full sm:h-9 sm:w-auto" value={planF} onChange={(e) => { setPlanF(e.target.value); setPage(0) }}>
+            <option value="">Todos os planos</option>
+            {plans.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
+          </NativeSelect>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <NativeSelect aria-label="Ordenar por" className="h-10 flex-1 sm:h-9 sm:flex-none" value={sort.key} onChange={(e) => { setSort({ key: e.target.value, dir: e.target.value === "name" || e.target.value === "due" ? 1 : -1 }); setPage(0) }}>
+              <option value="created_at">Mais recentes</option><option value="due">Vencimento</option><option value="name">Nome</option><option value="athletes">Atletas</option><option value="last_access">Último acesso</option>
+            </NativeSelect>
+            <Button size="icon" variant="outline" className="size-10 sm:size-9" aria-label={sort.dir === 1 ? "Ordem crescente" : "Ordem decrescente"} onClick={() => setSort((x) => ({ ...x, dir: x.dir === 1 ? -1 : 1 }))}>{sort.dir === 1 ? "↑" : "↓"}</Button>
+            <Button size="sm" variant="outline" className="h-10 sm:h-9" disabled={!filtered.length} onClick={() => exportCsv(filtered)}><Download /> CSV</Button>
+          </div>
+        </div>
+        <div role="tablist" aria-label="Filtrar clientes" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {chips.map(([k, label, n]) => (
+            <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => { setView(k); setPage(0) }}
+              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-sm transition sm:min-h-9 ${view === k ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-secondary"}`}>
+              {label}<span className={`rounded-full px-1.5 text-xs tabular-nums ${view === k ? "bg-white/20" : "bg-secondary text-muted-foreground"}`}>{n}</span>
+            </button>
+          ))}
+        </div>
+
+      <Card className="hidden overflow-x-auto py-0 @5xl:block">
         <Table>
-          <TableHeader><TableRow>
-            {th("name", "Grupo", "pl-4")}<TableHead>Responsável</TableHead>{th("plan", "Plano")}{th("created_at", "Cadastro")}{th("due", "Vencimento")}
-            {th("athletes", "Atletas", "text-center")}{th("status", "Situação")}{th("last_access", "Último acesso")}<TableHead />
+          <TableHeader><TableRow className="bg-secondary/40 hover:bg-secondary/40">
+            {th("name", "Cliente", "h-11 pl-4 text-xs uppercase tracking-wide")}<TableHead className="text-xs uppercase tracking-wide">Responsável</TableHead>{th("plan", "Plano", "text-xs uppercase tracking-wide")}{th("due", "Vencimento", "text-xs uppercase tracking-wide")}
+            {th("athletes", "Atletas", "text-xs uppercase tracking-wide")}{th("status", "Situação", "text-xs uppercase tracking-wide")}<TableHead className="w-14" />
           </TableRow></TableHeader>
           <TableBody>
-            {shown.map((g) => {
-              const full = g.athletes_limit != null && g.athletes >= g.athletes_limit
-              const wa = whats(g.contact_phone)
-              return (
-                <TableRow key={g.id}>
-                  <TableCell className="pl-4"><Link href={`/super/clientes/${g.id}`} className="inline-block py-1 font-medium text-primary hover:underline">{g.name}</Link><div className="text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></TableCell>
-                  <TableCell className="text-xs">
-                    {g.contact_name || g.contact_email || g.contact_phone ? <>
-                      <div className="font-medium">{g.contact_name ?? "—"}</div>
-                      <div className="text-muted-foreground">{g.contact_email}</div>
-                      {wa && <a href={wa} target="_blank" rel="noreferrer" className="text-primary hover:underline">{g.contact_phone}</a>}
-                    </> : <button type="button" className="inline-flex min-h-8 items-center text-primary hover:underline" onClick={() => setEdit(g)}>Adicionar contato</button>}
-                  </TableCell>
-                  <TableCell>
-                    <NativeSelect aria-label={`Plano de ${g.name}`} className="h-7 text-xs" value={g.plan_code} disabled={busy}
-                      onChange={(e) => act(() => db().rpc("sa_set_org_plan", { p_org: g.id, p_plan: e.target.value }), "Plano alterado.")}>
-                      {plans.filter((p) => p.active || p.code === g.plan_code).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
-                    </NativeSelect>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">{dt(g.created_at)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{dt(dueOf(g))}</TableCell>
-                  <TableCell className={`text-center tabular-nums ${full ? "font-semibold text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? ` / ${g.athletes_limit}` : ""}</TableCell>
-                  <TableCell><StatusBadge status={g.status} />{g.status_reason && <div className="mt-0.5 max-w-40 text-xs text-muted-foreground">{g.status_reason}</div>}</TableCell>
-                  <TableCell className="whitespace-nowrap">{dt(g.last_access)}{inactive(g) && <div className="text-xs text-amber-700">inativo</div>}</TableCell>
-                  <TableCell>{actions(g)}</TableCell>
-                </TableRow>
-              )
-            })}
-            {shown.length === 0 && <TableRow><TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">Nenhum cliente encontrado com esses filtros.</TableCell></TableRow>}
+            {shown.map((g) => (
+              <TableRow key={g.id} className="align-middle">
+                <TableCell className="py-3 pl-4">
+                  <div className="flex items-center gap-3">
+                    <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{(g.name.trim()[0] ?? "?").toUpperCase()}</span>
+                    <div className="min-w-0 leading-tight">
+                      <Link href={`/super/clientes/${g.id}`} className="block max-w-40 truncate font-medium text-foreground hover:text-primary hover:underline" title={g.name}>{g.name}</Link>
+                      <div className="mt-0.5 max-w-44 truncate text-xs text-muted-foreground" title={g.slug}>{g.slug}</div>
+                      <div className="max-w-44 truncate text-xs text-muted-foreground">cadastro {dts(g.created_at)}</div>
+                      <div className="max-w-44 truncate text-xs text-muted-foreground">acesso {ago(g.last_access)}{inactive(g) && <span className="ml-1 rounded bg-amber-100 px-1 text-amber-800">inativo</span>}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-40 py-3">{contact(g)}</TableCell>
+                <TableCell className="py-3">{planSelect(g, "h-8 w-36 rounded-full border-transparent bg-secondary px-2.5 text-xs font-medium")}</TableCell>
+                <TableCell className="py-3 whitespace-nowrap"><DueCell g={g} /></TableCell>
+                <TableCell className="py-3">{athletesCell(g)}</TableCell>
+                <TableCell className="py-3"><StatusBadge status={g.status} />{g.status_reason && <div className="mt-1 max-w-24 truncate text-xs text-muted-foreground" title={g.status_reason}>{g.status_reason}</div>}</TableCell>
+                <TableCell className="w-14 py-3 pr-3 text-right">{menu(g)}</TableCell>
+              </TableRow>
+            ))}
+            {shown.length === 0 && <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">Nenhum cliente encontrado com esses filtros.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-2 2xl:hidden">
-        {shown.map((g) => {
-          const full = g.athletes_limit != null && g.athletes >= g.athletes_limit
-          const wa = whats(g.contact_phone)
-          return (
-            <Card key={g.id}><CardContent className="space-y-3 pt-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><Link href={`/super/clientes/${g.id}`} className="block truncate py-1 font-semibold text-primary hover:underline">{g.name}</Link><div className="truncate text-xs text-muted-foreground">{g.slug}{g.notes ? ` · ${g.notes}` : ""}</div></div>
-                <StatusBadge status={g.status} />
+      <div className="grid gap-3 @2xl:grid-cols-2 @5xl:hidden">
+        {shown.map((g) => (
+          <Card key={g.id}><CardContent className="space-y-3 pt-4">
+            <div className="flex items-start gap-3">
+              <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{(g.name.trim()[0] ?? "?").toUpperCase()}</span>
+              <div className="min-w-0 flex-1 leading-tight">
+                <Link href={`/super/clientes/${g.id}`} className="block truncate py-0.5 font-semibold hover:text-primary hover:underline">{g.name}</Link>
+                <div className="truncate text-xs text-muted-foreground">{g.slug} · cadastro {dt(g.created_at)}</div>
+                <div className="truncate text-xs text-muted-foreground">acesso {ago(g.last_access)}{inactive(g) ? " · inativo" : ""}</div>
               </div>
-              {g.status_reason && <p className="text-xs text-muted-foreground">{g.status_reason}</p>}
-              <div className="text-xs">
-                {g.contact_name || g.contact_email || g.contact_phone ? <>
-                  <span className="font-medium">{g.contact_name ?? "Responsável"}</span>{g.contact_email ? ` · ${g.contact_email}` : ""}
-                  {wa && <> · <a href={wa} target="_blank" rel="noreferrer" className="inline-block py-2 text-primary hover:underline">{g.contact_phone}</a></>}
-                </> : <span className="text-muted-foreground">Sem contato do responsável</span>}
-                {" "}<button type="button" className="inline-flex min-h-10 items-center px-1 text-primary hover:underline" onClick={() => setEdit(g)}>editar</button>
-              </div>
-              <dl className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-lg bg-secondary/60 py-2"><dd className={`text-base font-semibold tabular-nums ${full ? "text-destructive" : ""}`}>{g.athletes}{g.athletes_limit != null ? `/${g.athletes_limit}` : ""}</dd><dt className="text-muted-foreground">Atletas</dt></div>
-                <div className="rounded-lg bg-secondary/60 py-2"><dd className="text-base font-semibold tabular-nums">{g.admins}</dd><dt className="text-muted-foreground">Admins</dt></div>
-                <div className="rounded-lg bg-secondary/60 py-2"><dd className="text-base font-semibold tabular-nums">{g.matches}</dd><dt className="text-muted-foreground">Jogos</dt></div>
-              </dl>
-              <p className="text-xs text-muted-foreground">Cadastro {dt(g.created_at)}{dueOf(g) ? ` · vence ${dt(dueOf(g))}` : ""} · último acesso {dt(g.last_access)}{inactive(g) ? " (inativo)" : ""}</p>
-              <label className="flex items-center gap-2 text-sm"><span className="text-muted-foreground">Plano</span>
-                <NativeSelect aria-label={`Plano de ${g.name}`} className="h-10 flex-1" value={g.plan_code} disabled={busy}
-                  onChange={(e) => act(() => db().rpc("sa_set_org_plan", { p_org: g.id, p_plan: e.target.value }), "Plano alterado.")}>
-                  {plans.filter((p) => p.active || p.code === g.plan_code).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
-                </NativeSelect></label>
-              {actions(g)}
-            </CardContent></Card>
-          )
-        })}
-        {shown.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground md:col-span-2">Nenhum cliente encontrado com esses filtros.</p>}
+              {menu(g)}
+            </div>
+            <div className="flex flex-wrap items-center gap-2"><StatusBadge status={g.status} />{g.status_reason && <span className="text-xs text-muted-foreground">{g.status_reason}</span>}</div>
+            <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/50 p-3">
+              <div><div className="text-xs text-muted-foreground">Vencimento</div><DueCell g={g} /></div>
+              <div><div className="text-xs text-muted-foreground">Atletas</div>{athletesCell(g)}</div>
+            </div>
+            <div>{contact(g)}</div>
+            <label className="flex items-center gap-2 text-sm"><span className="text-muted-foreground">Plano</span>{planSelect(g, "h-10 flex-1 rounded-full border-transparent bg-secondary px-3 text-sm font-medium")}</label>
+          </CardContent></Card>
+        ))}
+        {shown.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground @2xl:col-span-2">Nenhum cliente encontrado com esses filtros.</p>}
+      </div>
       </div>
       {filtered.length > PAGE && (
         <nav aria-label="Paginação" className="flex items-center justify-between gap-2 text-sm">

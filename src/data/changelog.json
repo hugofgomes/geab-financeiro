@@ -2,6 +2,23 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.20.0",
+      "date": "2026-11-15",
+      "title": "Lista de clientes mais limpa, com vencimento do teste",
+      "novidades": [
+        "Gerenciar clientes redesenhado: avatar, datas de cadastro e último acesso em texto simples, responsável com WhatsApp, plano em selo, atletas com barra de uso do limite e ações reunidas no menu ⋯.",
+        "Coluna Vencimento mostra a data e o prazo (em N dias, vence hoje, venceu há N dias) também para clientes em teste, inclusive os no plano de teste com situação Ativa, com cores de alerta.",
+        "Abas de filtro com contagem (Todos, Em teste, Ativos, Suspensos, Cancelados e Vencem em até 7 dias) e ordenação por vencimento, nome, atletas e último acesso."
+      ],
+      "melhorias": [
+        "A lista se adapta à largura disponível: tabela completa quando cabe e cartões quando não cabe, sem colunas cortadas.",
+        "O bloco Atenção também avisa testes a vencer e vencidos de clientes ativados manualmente no plano de teste."
+      ],
+      "correcoes": [
+        "A coluna Vencimento aparecia vazia para clientes no plano de teste com situação Ativa."
+      ]
+    },
+    {
       "version": "1.23.0",
       "date": "2026-11-15",
       "title": "Quadra Esportiva, Fase 6: página pública, reservas online e partidas",
