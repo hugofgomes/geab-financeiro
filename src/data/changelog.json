@@ -2,6 +2,19 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.16.1",
+      "date": "2026-11-14",
+      "title": "Comunicados: detalhe do histórico e remetente do e-mail",
+      "novidades": [],
+      "melhorias": [
+        "No detalhe de um comunicado enviado, a mensagem de erro de cada destinatário aparece inteira, com quebra de linha, em vez de ser cortada."
+      ],
+      "correcoes": [
+        "O detalhe do comunicado abria cortado e com rolagem horizontal quando havia e-mails com erro longo. Agora cabe na tela e ocupa a largura prevista.",
+        "O e-mail de comunicado (e o teste ao dono) falhava com \"The email address needs to follow...\" quando o remetente configurado já vinha no formato Nome <endereço>. Agora o remetente é aceito nos dois formatos."
+      ]
+    },
+    {
       "version": "1.16.0",
       "date": "2026-11-15",
       "title": "Imagem nos comunicados",

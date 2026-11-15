@@ -227,16 +227,16 @@ export default function ComunicadosPage() {
       </Dialog>
 
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[85dvh] overflow-x-hidden overflow-y-auto sm:max-w-lg">
           {detail && <>
             <DialogHeader><DialogTitle>{detail.broadcast.subject}</DialogTitle><DialogDescription>{detail.recipients.length} destinatário(s){detail.broadcast.show_in_app ? ` · ${detail.dismissed} dispensaram o aviso no painel` : ""}</DialogDescription></DialogHeader>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {detail.broadcast.image_url && <img src={detail.broadcast.image_url} alt="" className="max-h-56 w-full rounded-lg border object-cover" />}
-            <p className="whitespace-pre-wrap rounded-lg bg-secondary/60 p-3 text-sm">{detail.broadcast.body}</p>
+            <p className="whitespace-pre-wrap break-words rounded-lg bg-secondary/60 p-3 text-sm">{detail.broadcast.body}</p>
             <ul className="divide-y text-sm">
               {detail.recipients.map((x) => (
                 <li key={x.email} className="flex items-start justify-between gap-2 py-2">
-                  <span className="min-w-0"><span className="block truncate">{x.email}</span><span className="block truncate text-xs text-muted-foreground">{x.org}{x.error ? ` · ${x.error}` : ""}</span></span>
+                  <span className="min-w-0"><span className="block truncate">{x.email}</span><span className="block break-words text-xs text-muted-foreground">{x.org}{x.error ? ` · ${x.error}` : ""}</span></span>
                   <span className={`shrink-0 text-xs font-medium ${x.status === "enviado" ? "text-green-700" : x.status === "falhou" ? "text-destructive" : "text-muted-foreground"}`}>{x.status === "enviado" ? "Enviado" : x.status === "falhou" ? "Falhou" : "Pendente"}</span>
                 </li>
               ))}

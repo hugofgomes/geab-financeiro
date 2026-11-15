@@ -3,7 +3,13 @@ import nodemailer from "nodemailer"
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!)
 const brand = () => process.env.SMTP_FROM_NAME || "Gestão de Futebol"
 
-export const mailerConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+/** SMTP_FROM pode ser só o endereço ("geab@dominio.com") ou já "Nome <geab@dominio.com>": nos dois casos sai um remetente válido (antes o 2º virava "Nome <Nome <x>>" e o provedor recusava). */
+export function fromAddress() {
+  const raw = (process.env.SMTP_FROM || process.env.SMTP_USER || "").trim()
+  return /<[^<>\s]+@[^<>\s]+>\s*$/.test(raw) ? raw : `${brand()} <${raw}>`
+}
+
+export const mailerConfigured =() => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
 
 export function transporter() {
   const port = Number(process.env.SMTP_PORT || 465)
@@ -34,5 +40,5 @@ export function buildBroadcastEmail(subject: string, body: string, imageUrl?: st
 
 export async function sendBroadcastMail(tr: ReturnType<typeof transporter>, to: string, subject: string, body: string, replyTo?: string | null, imageUrl?: string | null) {
   const m = buildBroadcastEmail(subject, body, imageUrl)
-  await tr.sendMail({ from: `${brand()} <${process.env.SMTP_FROM || process.env.SMTP_USER}>`, to, subject, text: m.text, html: m.html, ...(replyTo ? { replyTo } : {}) })
+  await tr.sendMail({ from: fromAddress(), to, subject, text: m.text, html: m.html, ...(replyTo ? { replyTo } : {}) })
 }
