@@ -1,10 +1,11 @@
 {
   "name": "geab-financeiro",
-  "version": "1.12.2",
+  "version": "1.13.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node tools/check-changelog.mjs",
+    "predev": "node tools/build-docs.mjs",
+    "prebuild": "node tools/check-changelog.mjs && node tools/build-docs.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

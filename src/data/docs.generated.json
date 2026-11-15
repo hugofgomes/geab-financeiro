@@ -1,0 +1,1411 @@
+{
+ "version": "1.13.0",
+ "versionDate": "2026-11-14",
+ "stack": {
+  "next": "15.5.29",
+  "react": "19.1.0",
+  "supabase": "^2.118.0"
+ },
+ "chapters": [
+  {
+   "id": "visao-geral",
+   "title": "Visão geral",
+   "revisado": "1.13.0",
+   "markdown": "# Visão geral\n\n## O que é o sistema\nPlataforma SaaS (software por assinatura) para **gestão de grupos de futebol amador**: cadastro de atletas, mensalidades e caixa, jogos, escalações, gols e artilharia, com uma área própria para cada atleta. Nasceu como o sistema interno do **GEAB Futebol** e hoje atende **vários grupos (clientes) na mesma instalação**, cada um com os seus dados isolados.\n\n## Quem usa\n| Perfil | Quem é | O que faz |\n|---|---|---|\n| **Dono da plataforma** (Super Admin) | O proprietário do SaaS | Gerencia clientes, planos, assinaturas, suspensões e exclusões; acessa o Painel do SaaS e esta documentação |\n| **Administrador** | Quem criou o grupo (ou foi promovido) | Gerencia tudo do próprio grupo |\n| **Diretoria** | Dirigentes do grupo | Consulta tudo do grupo, sem alterar nada |\n| **Atleta** | Jogador do grupo | Vê só os próprios dados, jogos e mensalidades |\n\n## Visão do produto\n- **Site de divulgação** (`/site`): apresenta o produto, os planos (vindos do banco) e leva ao cadastro de cliente.\n- **Demonstração** (`/demo`): versão navegável com dados fictícios, sem cadastro.\n- **Teste gratuito**: todo grupo novo nasce em teste, com os dias definidos no plano de teste (hoje 10), sem cartão.\n- **Assinatura**: ao fim do teste o grupo precisa assinar (Pix, boleto ou cartão pelo Asaas) para continuar.\n\n## Endereços\n- Produção: `geab.vendadigital.com` e `futebol.vendadigital.com` (mesma instalação).\n- Cada grupo pode ter endereço próprio no formato `grupo.dominio-base` quando `NEXT_PUBLIC_BASE_DOMAIN` está configurada; sem ela, o grupo é identificado pelo parâmetro `?grupo=` no cadastro de atleta.\n\n## Tecnologias\nNext.js (App Router) e React no servidor e no navegador, Tailwind CSS para o visual, Supabase (PostgreSQL, Autenticação e regras de acesso por linha), hospedagem em VPS com Coolify (Docker). Detalhes no capítulo de arquitetura."
+  },
+  {
+   "id": "arquitetura",
+   "title": "Arquitetura",
+   "revisado": "1.13.0",
+   "markdown": "# Arquitetura\n\n## Camadas\n1. **Navegador**: páginas React. Conversa com o Supabase diretamente (com a chave pública *anon* e a sessão da pessoa) e com as rotas `/api/*` do próprio sistema.\n2. **Aplicativo Next.js** (`src/app`): páginas por perfil, rotas de API, *middleware* de proteção e rotinas do servidor.\n3. **Supabase**: banco PostgreSQL com funções (RPC), gatilhos e **RLS (regras de acesso por linha)**; Autenticação (e-mail e senha, recuperação, convite).\n4. **Serviços externos**: Asaas (cobrança), Resend/SMTP (e-mails), BTG e OpenPix (Pix automático), WhatsApp Cloud API (mensagens).\n\n## Princípio central: o banco é a barreira de verdade\nAs telas escondem o que a pessoa não pode usar, mas **quem decide o acesso é o banco** (RLS, funções `SECURITY DEFINER` e gatilhos). Mesmo que alguém altere o navegador, as regras do banco continuam valendo. Por isso a lógica sensível (limites de plano, bloqueio de grupo, somente leitura do modo espião, exclusão) está em SQL.\n\n## Estrutura do código\n| Pasta | Conteúdo |\n|---|---|\n| `src/app/(admin)` | Painel do administrador/diretoria e do dono da plataforma (`/super`) |\n| `src/app/atleta` | Área do atleta |\n| `src/app/(site)` | Site de divulgação e demonstração |\n| `src/app/api` | Rotas de servidor (cobrança, webhooks, e-mail, WhatsApp, Pix, rotina diária, documentação) |\n| `src/components` | Componentes (menu, rodapé, faixas de aviso, mockups do site etc.) |\n| `src/lib` | Regras compartilhadas (perfis, formatação, Supabase, Pix, tenant) |\n| `src/data/changelog.json` | Histórico de versões (fonte única) |\n| `supabase/migrations` | Evolução do banco, numerada e em ordem |\n| `supabase/tests` | Testes do banco (rodam em um PostgreSQL embutido) |\n| `scripts` | Ferramentas de operação (migrations, backup, configuração do Coolify/Asaas) |\n| `tools` | Verificações de build (histórico de versões, geração desta documentação) |\n| `docs` | Capítulos escritos à mão desta documentação |\n\n## Proteção de rotas (middleware)\nO *middleware* (`src/middleware.ts`) roda antes de cada página: exige login, encaminha cada perfil para a sua área (administrador/diretoria para o painel, atleta para `/atleta`) e **bloqueia grupos sem acesso** (teste vencido, suspenso, cancelado ou excluído), levando-os à tela de assinatura. Ficam fora dele apenas `/api/versao`, `/api/webhooks/*` e `/api/cron/*` (que têm autenticação própria por segredo) e arquivos estáticos.\n\n## Versão e atualização no navegador\nA versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões."
+  },
+  {
+   "id": "perfis-e-permissoes",
+   "title": "Perfis e permissões",
+   "revisado": "1.13.0",
+   "markdown": "# Perfis e permissões\n\n## Os quatro níveis\n| Nível | Onde fica no banco | Acesso |\n|---|---|---|\n| **Dono da plataforma** | tabela `platform_admins` | `/super` (Painel do SaaS, log de acessos, esta documentação). Vê **agregados** de cada cliente, nunca nomes de atletas nem pagamentos (exceto na exportação de dados e no modo espião, ambos registrados) |\n| **Administrador** | `profiles.role = 'admin'` | Tudo do próprio grupo: atletas, mensalidades, caixa, extrato, jogos, escalação, cadastros, usuários, importação, assinatura, \"Meu grupo\" |\n| **Diretoria** | `profiles.role = 'diretoria'` | Consulta todas as áreas de operação, **sem alterar nada** e sem acessar usuários, importação, \"Meu grupo\", gols ao vivo e assinatura |\n| **Atleta** | `profiles.role = 'atleta'`, ligado a um atleta | Só a própria conta, mensalidades, jogos e desempenho |\n\nAs áreas exclusivas do administrador estão em `src/lib/roles.ts` (lista `ADMIN_ONLY`); a tela esconde, mas **o banco recusa** de qualquer forma.\n\n## Como o acesso é decidido\n- `is_admin()`, `is_staff()` e `current_tenant()` são as funções que as regras de acesso consultam.\n- `current_tenant()` devolve o grupo da pessoa **somente se o grupo estiver utilizável** (ativo, ou em teste dentro do prazo). Grupo bloqueado não lê nenhuma linha.\n- O dono da plataforma **não** enxerga dados dos grupos pelas tabelas: usa funções `sa_*` específicas (`sa_guard()` valida que é dono).\n\n## Limites por plano (impostos pelo banco)\n- **Atletas ativos**: gatilho `enforce_athlete_limit` barra novos atletas acima do limite do plano.\n- **Administradores**: gatilho `enforce_admin_limit` barra novos administradores (ou promoções) acima do limite. A Diretoria não conta.\n- **Módulos**: cada plano liga/desliga importação de planilha, gols ao vivo, Pix automático e WhatsApp/e-mail; as rotas do servidor consultam `my_modules()` e recusam o que o plano não inclui.\n\n## Regras de proteção\n- Um grupo nunca fica sem administrador ativo (`guard_last_admin`), exceto na exclusão definitiva do grupo inteiro.\n- O administrador não pode se rebaixar nem se desativar.\n- O dono da plataforma não pode excluir (nem entrar em modo espião no) próprio grupo."
+  },
+  {
+   "id": "multi-tenant-e-seguranca",
+   "title": "Multi-tenant e segurança",
+   "revisado": "1.13.0",
+   "markdown": "# Multi-tenant e segurança\n\n## Isolamento entre clientes\nCada cliente é uma **organização** (tabela `organizations`). Todas as tabelas de dados têm a coluna `tenant_id` e regras de acesso que exigem `tenant_id = current_tenant()`. Gatilhos (`tenant_ref_check`) impedem ligar registros de grupos diferentes (por exemplo, uma cobrança de um grupo a um atleta de outro). Os testes automáticos tentam justamente furar esse isolamento.\n\n## Situações do grupo\n| Situação | Acesso | Como chega |\n|---|---|---|\n| `teste` | Sim, até o fim do teste | Cadastro de novo grupo |\n| `ativa` | Sim | Pagamento confirmado ou ativação manual |\n| `suspensa` | Não | Pagamento vencido (motivo \"inadimplência\") ou suspensão manual |\n| `cancelada` | Não | Assinatura cancelada no Asaas ou manualmente |\n| `excluida` | Não | Exclusão lógica pelo dono (recuperável até o fim do prazo) |\n\n`org_usable(status, fim_do_teste)` é a regra única de \"pode acessar\".\n\n## Auditoria\nMudanças relevantes entram em `audit_log` **com o `tenant_id` do grupo**: operações do dono (prefixo `SA_`), criação de grupo, exportações, início/fim de modo espião. O administrador do grupo pode consultar a auditoria do próprio grupo no banco (ainda não há uma tela dedicada), inclusive os acessos de suporte.\n\n## Modo espião (suporte somente leitura)\n- Entrada: página do cliente → **Modo espião**, com **motivo obrigatório** e duração de 5 a 240 minutos.\n- Efeito: `support_sessions` faz `current_tenant()` devolver o grupo visitado; um gatilho (`a_support_readonly`) em **todas** as tabelas de dados recusa qualquer escrita; rotas do servidor que agem como administrador ficam fechadas.\n- Visível: faixa amarela fixa \"Modo espião\" com botão de saída; início e fim ficam na auditoria do cliente e na aba Atividades da página dele no Painel do SaaS.\n- O cadastro de novo grupo avisa que a equipe pode acessar a conta, somente leitura e com registro.\n\n## Exclusão de clientes\n1. **Exclusão lógica**: exige motivo, prazo de recuperação (7 a 365 dias, padrão 30) e a digitação do nome do grupo. O acesso é bloqueado e **nenhum dado é apagado**. Pode ser restaurada.\n2. **Exportação**: JSON com todos os dados do grupo (exceto credenciais), registrada na auditoria.\n3. **Exclusão definitiva**: só depois do prazo, digitando o nome de novo. Apaga **somente** as linhas daquele grupo e os logins dele, e deixa um registro em `platform_purges`.\n\n## Credenciais e segredos\n- Chaves de serviço (`SUPABASE_SERVICE_ROLE_KEY`), Asaas, SMTP e `CRON_SECRET` existem **apenas** como variáveis do servidor (Coolify). Nenhuma vai para o navegador nem para o Git.\n- O arquivo local `.env.deploy` (ignorado pelo Git) guarda temporariamente o token do Coolify e a conexão do banco; o procedimento é esvaziá-lo e revogar os acessos ao terminar (ver capítulo de operação).\n- Webhooks e rotina diária só aceitam chamadas com o segredo correto (comparação em tempo constante).\n\n## Dados pessoais (LGPD)\nAtletas informam nome, nascimento, WhatsApp e e-mail com aceite expresso; o consentimento de mensagens pelo WhatsApp é opcional. Backups e exportações contêm dados pessoais: guardar em local seguro e apagar o que não for necessário."
+  },
+  {
+   "id": "modulos-do-grupo",
+   "title": "Módulos do painel do grupo",
+   "revisado": "1.13.0",
+   "markdown": "# Módulos do painel do grupo\n\nTelas usadas por Administrador (edita) e Diretoria (só consulta). O menu lateral é recolhível e funciona em celular.\n\n## Início (`/`)\nPainel com indicadores do mês (previsto x recebido, pendências), gráfico de mensalidades, aniversariantes e artilharia.\n\n## Atletas (`/atletas`)\nCadastro completo (nome, apelido, nascimento, contatos, valor da mensalidade, situação ativo/inativo). O limite de atletas ativos do plano é imposto pelo banco. O administrador pode **criar acesso ao sistema** para o atleta (login com senha provisória exibida uma única vez, rota `/api/atletas/acesso`).\n\n## Mensalidades (`/mensalidades`)\nCobranças por competência (mês). Situações: pendente, parcial, pago, atrasado, em conferência. Registro de pagamentos, geração de Pix (automático quando configurado) e envio de confirmações por WhatsApp/e-mail (conforme o plano e a configuração do servidor). Nesta tela também fica a configuração do **Pix manual** (código copia e cola do grupo), usado para gerar o valor exato da mensalidade quando não há Pix automático.\n\n## Caixa (`/caixa`) e Extrato (`/extrato`)\nEntradas (mensalidades e outras receitas), despesas (descrição, categoria, local e valor) e saldo. O extrato lista os lançamentos para conferência.\n\n## Jogos (`/jogos`), Escalação (`/escalacao`) e Gols ao vivo (`/ao-vivo`)\n- Agenda de jogos com placar, equipes (padrão \"Equipe Azul\" x \"Equipe Branco\") e local.\n- Escalação por jogo (equipes A, B e reserva) e card pronto para compartilhar no WhatsApp (com rodapé do grupo).\n- Gols ao vivo: o administrador registra gols durante a partida; a artilharia é calculada por temporada.\n- Alterações de jogos avisam a Área do Atleta, que se atualiza.\n\n## Cadastros (`/cadastros`)\nSolicitações de entrada de atletas (formulário público). O administrador **aprova** — ligando a pessoa a um atleta já cadastrado ou criando um atleta novo — ou **recusa**.\n\n## Usuários e privilégios (`/usuarios`)\nLista os logins do grupo, altera o nível (Administrador, Diretoria, Atleta), ativa/desativa e vincula usuário a atleta.\n\n## Importar planilha (`/importar`)\nImporta atletas, mensalidades e entradas de uma planilha do Google **publicada na web** (cada aba é lida como CSV pela rota `/api/planilha`, que só aceita endereços do Google). Módulo `importar` do plano.\n\n## Meu grupo (`/grupo`)\nIdentidade do grupo: nome, logo, cor, site, lema e rodapé do card da escalação.\n\n## Assinatura (`/assinatura`)\nSituação do teste/assinatura, escolha do plano e ida ao pagamento (Asaas). Também é a tela que o grupo bloqueado vê, com a mensagem adequada (teste terminou, pagamento pendente, acesso suspenso, grupo encerrado).\n\n## Minha conta (`/conta`)\nTroca de senha e dados do próprio usuário."
+  },
+  {
+   "id": "area-do-atleta",
+   "title": "Área do Atleta",
+   "revisado": "1.13.0",
+   "markdown": "# Área do Atleta\n\nRota `/atleta`. O atleta vê **apenas os próprios dados** (o banco entrega só o que é dele). Quatro abas (menu inferior no celular):\n\n| Aba | Conteúdo |\n|---|---|\n| **Visão geral** | Próximo jogo com contagem de dias, mensalidade do mês com pagamento por Pix, desempenho (gols, jogos, média), último jogo, artilharia com a posição do atleta e aniversariantes |\n| **Jogos** | Histórico dos jogos do atleta, gols e equipe em cada um |\n| **Financeiro** | Mensalidades em aberto e histórico de pagamentos |\n| **Perfil** | Dados pessoais e contatos (edição própria) e alteração de senha com medidor de força |\n\n## Detalhes\n- Avisos no sino: mensalidade a vencer/vencida, jogo próximo e aniversários do dia.\n- Pagamento Pix: usa o Pix gerado pelo grupo (QR e copia e cola) ou o código estático do grupo com o valor exato da mensalidade.\n- A tela se atualiza quando a Diretoria salva um jogo e ao voltar para a aba.\n- Quem tem login de atleta mas ainda não foi ligado a um atleta vê a mensagem de acesso não liberado."
+  },
+  {
+   "id": "planos-e-assinatura",
+   "title": "Planos, teste grátis e assinatura",
+   "revisado": "1.13.0",
+   "markdown": "# Planos, teste grátis e assinatura\n\n## Planos (tabela `plans`, editável no Painel do SaaS)\n| Código | Nome | Preço inicial | Observação |\n|---|---|---|---|\n| `teste` | Teste gratuito | R$ 0 | Dias de teste = `trial_days` deste plano (hoje 10), limite de atletas e módulos próprios |\n| `basico` | Básico | R$ 99/mês | Entrada |\n| `pro` | Profissional | R$ 150/mês | |\n| `premium` | Premium | sem preço | Nasce **inativo**: só aparece para venda quando o dono define o valor e ativa |\n| `ilimitado` | Ilimitado (interno) | R$ 0 | Usado pelo grupo do próprio dono; nunca é exibido |\n\nCada plano define: preço, limite de atletas, limite de administradores, duração do teste, módulos incluídos (`importar`, `ao_vivo`, `pix`, `mensagens`) e uma **referência de gateway** (campo de preparação para integração futura). Plano desativado some das escolhas, mas os grupos que o usam continuam nele. Preço e limites são decididos **no banco**: o navegador nunca informa o valor cobrado.\n\n## Ciclo de vida do grupo\n1. **Cadastro** → grupo em `teste`, com `trial_ends_at = agora + dias do plano de teste`.\n2. **Avisos** por e-mail ao administrador: 3 dias antes, no último dia, ao terminar o teste.\n3. **Fim do teste sem assinar** → acesso bloqueado (os dados ficam guardados); a tela de assinatura permite assinar.\n4. **Assinatura** (Asaas) → pagamento confirmado deixa o grupo `ativa`, no plano contratado.\n5. **Atraso** → grupo `suspensa` por inadimplência (aviso por e-mail); volta sozinho quando o pagamento entra.\n6. **Cancelamento** da assinatura → `cancelada`.\n\nSuspensão ou cancelamento **manuais** do dono nunca são desfeitos por um pagamento.\n\n## Integração com o Asaas\n- `POST /api/assinatura`: o administrador escolhe o plano e informa CPF/CNPJ; o servidor cria cliente e assinatura e devolve o link de pagamento (Pix, boleto ou cartão).\n- `POST /api/webhooks/asaas`: recebe os eventos. A autenticidade vem do cabeçalho `asaas-access-token` (= `ASAAS_WEBHOOK_TOKEN`). Quem decide é a função `billing_event` (idempotente): `PAYMENT_CONFIRMED`/`PAYMENT_RECEIVED` ativam; `PAYMENT_OVERDUE` suspende; `SUBSCRIPTION_DELETED`/`SUBSCRIPTION_INACTIVATED` cancelam. Grupos excluídos ignoram os eventos.\n- Estado da cobrança por grupo: tabela `org_billing` (cliente, assinatura, pago até, último evento).\n- Ambiente: `ASAAS_ENV` (`production` ou `sandbox`) e `ASAAS_API_KEY`. A chave do Asaas começa com `$`: no Coolify a variável precisa estar marcada como **literal**.\n\n## Notificações de vencimento\n- Rotina diária `GET/POST /api/cron/vencimentos`, protegida por `CRON_SECRET`, agendada no Coolify (todos os dias às 12:00 UTC = 9h de Brasília).\n- O banco decide quem deve receber (`billing_notify_candidates`) e registra cada envio (`org_notifications`): **cada aviso sai uma única vez**; falhas são tentadas de novo no dia seguinte.\n- Destinatários: administradores ativos do grupo e o e-mail do responsável cadastrado. Resumo diário opcional ao dono (`PLATFORM_ALERT_EMAIL`).\n- Tipos: `trial_3d`, `trial_1d`, `trial_fim`, `inadimplencia`."
+  },
+  {
+   "id": "painel-do-saas",
+   "title": "Painel do SaaS (dono da plataforma)",
+   "revisado": "1.13.0",
+   "markdown": "# Painel do SaaS (dono da plataforma)\n\nAcesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Documentação**, **Site comercial** e **Demonstração**.\n\n## Dashboard (`/super`)\n- Cards: total de clientes, ativos, suspensos, em teste, assinaturas vencidas, MRR (e ARR), novos no mês, cancelamentos do mês.\n- Gráficos: crescimento de clientes e evolução do MRR. O banco não guarda o passado do MRR: o histórico mensal (`platform_mrr_history`) é gravado a cada abertura do painel desde a v1.7.0.\n- Bloco **Atenção**: testes por vencer (7 dias), testes vencidos, pagamentos em atraso e clientes sem acesso há mais de 30 dias.\n- Receita por plano; criação manual de grupo (com administrador já cadastrado); **gestão de planos** (preço, limites, módulos, teste, gateway).\n\n## Gerenciar clientes\nTabela com responsável (e-mail e WhatsApp com link), plano, cadastro, vencimento, atletas/limite, situação e último acesso. Busca sem acento, filtros por situação e plano, ordenação, paginação e exportação CSV. Clientes excluídos ficam ocultos por padrão (filtro \"Excluída\").\n\n## Página do cliente (`/super/clientes/[id]`)\n| Aba | Conteúdo |\n|---|---|\n| Visão geral | Dados cadastrais, plano, utilização (barra de atletas) |\n| Usuários e atletas | Só **contagens** e a equipe administrativa (nome, e-mail, último acesso); nomes de atletas não aparecem |\n| Assinatura | Plano, valor, fim do teste, pago até, vínculo e último evento do Asaas |\n| Configurações | Edição de nome, site, lema, cor, logo, rodapé, contato do responsável e anotação interna |\n| Atividades | Acessos por dia, avisos de vencimento enviados e alterações administrativas |\n\nAções no topo: **Modo espião**, **Suspender/Reativar**, **+7 dias de teste**, **Excluir** (ou **Restaurar** / **Excluir definitivamente** quando já excluído).\n\n## Suspensão\nBloqueia o acesso imediatamente e **preserva todos os dados**. Registra motivo, data e quem suspendeu. O cliente vê uma tela amigável com o motivo e a orientação de falar com o suporte.\n\n## Log de acessos (`/super/acessos`)\nQuem abriu o sistema em cada dia (horário de Brasília), por grupo, com navegação por dia e busca. Alimentado por `log_access()` (uma vez por aba por dia).\n\n## Funções do banco usadas (`sa_*`)\nTodas começam validando `sa_guard()` (só dono). Lista completa e atualizada na seção \"Funções do banco\" desta documentação."
+  },
+  {
+   "id": "cadastro-e-autenticacao",
+   "title": "Cadastro e autenticação",
+   "revisado": "1.13.0",
+   "markdown": "# Cadastro e autenticação\n\nA autenticação é do Supabase Auth (e-mail e senha). A criação de perfis e grupos é feita por um gatilho no banco (`handle_signup_form`, sobre `auth.users`), então vale mesmo que alguém chame a API de cadastro direto.\n\n## Quatro portas de entrada\n| Quem | Onde | O que acontece |\n|---|---|---|\n| **Cliente do SaaS** (novo grupo) | `/novo-grupo` (botão \"Criar conta grátis\" do site) | Informa nome do grupo, endereço, **nome completo, WhatsApp**, e-mail e senha. Depois de confirmar o e-mail, o grupo já existe em teste e a pessoa é a Administradora. Nome, e-mail e WhatsApp viram o **contato do cliente** no Painel do SaaS |\n| **Atleta de um grupo** | `/cadastro?grupo=endereço` (ou no endereço do próprio grupo) | Formulário completo (nome, apelido, nascimento, WhatsApp, e-mail, senha, aceite LGPD). Gera uma **solicitação** que a administração aprova em Cadastros |\n| **`/cadastro` sem grupo** | Endereço principal | Tela \"Criar conta\": criar o próprio grupo (teste grátis) **ou** informar o endereço do grupo para entrar como atleta |\n| **Conta confirmada sem grupo** | `/cadastro/status` | A pessoa escolhe criar o grupo (pede WhatsApp) ou pedir entrada em um grupo; funções `create_my_org` e `request_join_group` |\n\nTodos os campos são obrigatórios no primeiro cadastro (o aceite de mensagens pelo WhatsApp é o único opcional, por ser consentimento). O banco também exige nome completo e telefone ao criar um grupo.\n\n## Confirmação de e-mail\nObrigatória. O link do e-mail abre `/auth/confirmar` (aceita os tipos `signup`, `email`, `invite` e `recovery`, inclusive o fluxo com `code`). Os e-mails saem pelo **SMTP do Supabase Auth configurado para a Resend** (remetente `geab@vendadigital.com`), com assuntos e textos em português.\n\n## Recuperação de senha\n`/recuperar` envia o link; `/redefinir-senha` define a nova senha. O login tem o atalho \"Esqueci minha senha\". As URLs de retorno permitidas (`uri_allow_list` do Supabase) incluem os dois domínios de produção.\n\n## Acesso criado pelo administrador\nNa ficha do atleta, \"Criar acesso ao sistema\" cria o login com senha provisória exibida uma vez (rota `/api/atletas/acesso`, com a chave de serviço no servidor). O atleta troca a senha na Área do Atleta.\n\n## Troca de senha\nNa Área do Atleta e em \"Minha conta\": exige a senha atual e aplica a nova (mínimo de 8 caracteres), com medidor de força."
+  },
+  {
+   "id": "integracoes",
+   "title": "Integrações",
+   "revisado": "1.13.0",
+   "markdown": "# Integrações\n\n## Asaas (assinaturas do SaaS)\nCobrança recorrente dos clientes. Ver o capítulo de planos e assinatura.\n\n## E-mail (SMTP / Resend)\n- **E-mails do sistema** (confirmação de cadastro, recuperação de senha, convites): SMTP do Supabase Auth apontando para a Resend (`smtp.resend.com`, porta 465, usuário `resend`, senha = chave da Resend).\n- **E-mails do aplicativo** (confirmação de pagamento ao atleta, avisos de vencimento, resumo ao dono): o servidor usa nodemailer com as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` e `SMTP_FROM_NAME` (a chave da Resend também é usada aqui).\n- Domínio de envio verificado: `vendadigital.com`.\n\n## Pix automático (BTG e OpenPix)\n- Gera cobranças Pix (QR e copia e cola) para as mensalidades dos atletas e recebe a baixa por webhook (`/api/webhooks/btg`, `/api/webhooks/openpix`).\n- **Credenciais globais do servidor pertencem a um único grupo**: o definido em `PLATFORM_ORG_SLUG` (padrão `geab`). Os demais grupos usam o **Pix manual** (código do próprio grupo) até existir credencial por grupo.\n- O BTG usa fluxo de autorização (`/api/btg/conectar` e `/api/btg/callback`); a conexão fica em `btg_connection` (nunca exportada).\n\n## WhatsApp Cloud API\nConfirmação de pagamento por mensagem com modelo aprovado (`WHATSAPP_*`). Só para o grupo dono do servidor e só para atletas que deram consentimento.\n\n## Importação do Google Sheets\nLê planilhas \"publicadas na web\" (`/api/planilha`); só aceita endereços do Google.\n\n## Supabase\n- **Banco e Auth**: um único projeto para todos os grupos.\n- **Chaves**: a chave pública (*anon*) vai no navegador; a chave de serviço (`SUPABASE_SERVICE_ROLE_KEY`) só existe no servidor e é usada pelos webhooks, pela rotina diária e pela criação de acessos."
+  },
+  {
+   "id": "operacao-e-deploy",
+   "title": "Operação, deploy e manutenção",
+   "revisado": "1.13.0",
+   "markdown": "# Operação, deploy e manutenção\n\n## Hospedagem\nVPS com **Coolify** (Docker). O build usa o `Dockerfile` do projeto (Node 22). A cada publicação o Coolify clona a branch `main` do GitHub, gera a imagem (rodando `npm run build`, que valida o histórico de versões e **regenera esta documentação**) e troca o contêiner.\n\nVariáveis de ambiente de produção ficam no Coolify. Variáveis `NEXT_PUBLIC_*` são gravadas no código **na hora do build**. Os nomes de todas as variáveis usadas pelo aplicativo estão na seção \"Variáveis de ambiente\" desta documentação (os valores nunca são exibidos).\n\n## Fluxo de uma entrega\n1. Alterar o código em uma branch.\n2. Se houver mudança no banco: nova migration numerada em `supabase/migrations` (somente adiciona; com instruções de reversão no fim) e testes em `supabase/tests/run-tests.mjs`.\n3. Subir a versão no `package.json` e registrar a entrada **no topo** de `src/data/changelog.json` (novidades, melhorias, correções, com data).\n4. Atualizar os capítulos de `docs/` afetados (e a marca `revisado`), e `docs/descricoes.json` se houver página, API ou variável nova.\n5. Rodar tipos, lint, build e testes; commitar.\n6. **Backup do banco → aplicar migrations → merge na `main` e push → deploy no Coolify** (nesta ordem; a migration antes do código novo).\n\n## Ferramentas (`scripts/`)\n| Comando | Função |\n|---|---|\n| `node --env-file=.env.deploy scripts/migrate.mjs` | Aplica migrations pendentes (`--status` lista; `--baseline NNNN` marca como aplicadas) usando a tabela `public.schema_migrations` |\n| `node --env-file=.env.deploy scripts/backup-supabase.mjs` | Backup completo em `backups/AAAAMMDD-HHMM` (pasta ignorada pelo Git; contém dados pessoais) |\n| `node --env-file=.env.deploy scripts/coolify-setup.mjs [--deploy]` | Cria/atualiza variáveis do Asaas no Coolify e dispara o deploy |\n| `node --env-file=.env.deploy scripts/asaas-setup.mjs` | Cria o webhook no Asaas |\n\n`.env.deploy` (ignorado pelo Git) guarda `DATABASE_URL` (conexão do banco), `COOLIFY_URL`, `COOLIFY_TOKEN` (permissões read, write e deploy) e `COOLIFY_APP_UUID`. Use `node --env-file=` (não `source`, pois o token contém `|`).\n\n## Rotina diária\nTarefa agendada no Coolify (`avisos-de-vencimento`, `0 12 * * *` = 9h de Brasília) chama `/api/cron/vencimentos` dentro do contêiner com o `CRON_SECRET`. Não depende do token do Coolify depois de criada.\n\n## Testes\n`node supabase/tests/run-tests.mjs` sobe um PostgreSQL embutido, aplica **todas** as migrations em ordem e executa centenas de verificações (isolamento entre grupos, limites, cobrança, exclusão, modo espião, cadastro etc.). Deve passar 100% antes de qualquer publicação.\n\n## Segurança operacional\n- Credenciais só em `.env.deploy` local ou nas variáveis do Coolify; nunca no chat, no Git ou em arquivos versionados.\n- Ao terminar um trabalho: esvaziar `COOLIFY_TOKEN` e `DATABASE_URL` do `.env.deploy`, **revogar o token no Coolify** e **trocar a senha do banco** no Supabase.\n- **Não revogar** a chave do Asaas, a da Resend nem a `SUPABASE_SERVICE_ROLE_KEY`: a produção depende delas. Para trocá-las, crie a nova, atualize Coolify e Supabase, faça o deploy e só então apague a antiga.\n- Guardar uma cópia segura dos backups e apagar os desnecessários.\n\n## Problemas conhecidos e dicas\n- Deploy com a VPS sem memória: se o build travar, repetir o deploy ou aumentar a memória/swap.\n- Imagens do site em `public/site` precisam das extensões liberadas no `matcher` do middleware (já inclui svg, png, jpg, jpeg, webp, gif, ico).\n- Chave do Asaas começa com `$`: marcar a variável como literal no Coolify."
+  },
+  {
+   "id": "como-manter-esta-documentacao",
+   "title": "Como esta documentação se mantém atualizada",
+   "revisado": "1.13.0",
+   "markdown": "# Como esta documentação se mantém atualizada\n\n## O que atualiza sozinho\nA cada build (`npm run build`, que é o que o Coolify executa em cada deploy) o script `tools/build-docs.mjs` lê o código e regenera as seções automáticas:\n- versão atual, data e histórico das últimas versões;\n- lista de **migrations** (com o resumo do cabeçalho de cada uma);\n- **tabelas** e **funções do banco** (com a migration de origem);\n- **páginas** e **rotas de API** (com o nível de acesso das páginas e os métodos das APIs);\n- **variáveis de ambiente** usadas pelo aplicativo (somente os nomes).\n\nOu seja: criou uma página, rota, tabela, função ou migration, ela aparece aqui na próxima publicação, sem ninguém editar nada.\n\n## O que precisa de revisão humana\n- Os **capítulos** em `docs/NN-nome.md` explicam o \"porquê\" e o \"como\". Cada um tem a marca ``; quando a versão do sistema avança além disso, a tela mostra um aviso de que o capítulo pode estar desatualizado, até alguém revisar e atualizar a marca.\n- As **descrições** de páginas, APIs e variáveis ficam em `docs/descricoes.json`. Itens novos sem descrição aparecem marcados com \"sem descrição\" e saem como aviso no build.\n\n## Regra de ouro para quem altera o sistema\nToda entrega que mude comportamento: atualizar o capítulo correspondente, a marca `revisado` e `docs/descricoes.json` (se houver item novo), junto com o histórico de versões.\n\n## Quem vê\nSomente o dono da plataforma. A documentação não é servida como arquivo público: a rota `/api/docs` valida a sessão e confirma no banco que a conta é dona da plataforma antes de devolver qualquer conteúdo."
+  }
+ ],
+ "migrations": [
+  {
+   "file": "0001_schema.sql",
+   "summary": "GEAB Futebol — schema base (MVP: atletas, mensalidades, pagamentos, caixa). Regras de negócio ficam no banco para valerem para qualquer cliente (app, importação, webhook futuro)."
+  },
+  {
+   "file": "0002_other_income.sql",
+   "summary": "Entradas que não são mensalidade (patrocínio, uniforme, dinheiro, ajuste de saldo inicial)."
+  },
+  {
+   "file": "0003_signup.sql",
+   "summary": "Pré-cadastro público de atletas, com confirmação de e-mail (feita pelo Supabase Auth) e aprovação do admin. Quem se cadastra NÃO ganha acesso a nada: só passa a ter perfil quando o admin aprova."
+  },
+  {
+   "file": "0004_birth_date.sql",
+   "summary": "Data de nascimento do atleta (para o cartão de aniversário) e no pré-cadastro."
+  },
+  {
+   "file": "0005_accounts.sql",
+   "summary": "Contas e privilégios: \"admin\" = Diretoria (vê e gerencia tudo); \"atleta\" vê só a própria conta."
+  },
+  {
+   "file": "0006_delete_athlete.sql",
+   "summary": "Exclusão de atleta pela Diretoria. Atleta com pagamentos NÃO pode ser excluído: apagar o histórico alteraria o saldo do Caixa. Nesse caso, desativar."
+  },
+  {
+   "file": "0007_expense_location.sql",
+   "summary": "Local da despesa (onde o gasto aconteceu: quadra, loja, bar...). Opcional."
+  },
+  {
+   "file": "0008_matches.sql",
+   "summary": "Jogos (placar, histórico e próximo jogo) e aniversariantes do mês para a barra lateral."
+  },
+  {
+   "file": "0009_scorers.sql",
+   "summary": "Artilharia: quem jogou cada partida e quantos gols fez. Uma linha por (jogo, atleta) — sem duplicidade. Temporada = ano civil da data do jogo. Só contam jogos FINALIZADOS."
+  },
+  {
+   "file": "0010_pix_charges.sql",
+   "summary": "Cobranças Pix (via OpenPix): uma por tentativa de cobrar uma mensalidade. O webhook de pagamento chama register_pix_payment (só o servidor, com a chave de serviço) para baixar a mensalidade."
+  },
+  {
+   "file": "0011_app_settings.sql",
+   "summary": "Configurações simples do sistema (ex.: Pix copia e cola de recebimento). A Diretoria edita; todos os usuários ativos leem."
+  },
+  {
+   "file": "0012_charge_admin.sql",
+   "summary": "Diretoria edita (valor e vencimento) ou exclui uma mensalidade. Tudo auditado."
+  },
+  {
+   "file": "0013_btg_connection.sql",
+   "summary": "Conexão com a API do BTG Empresas (um único registro). Guarda os tokens de acesso. Ninguém no navegador lê ou escreve aqui: RLS ligado e SEM políticas; só o servidor, com a chave de serviço."
+  },
+  {
+   "file": "0014_charge_any_amount.sql",
+   "summary": "Diretoria pode alterar o valor da mensalidade para qualquer valor (inclusive 0 = isenção ou abaixo do já pago). O status é recalculado; pagamentos já feitos são preservados (o caixa não muda)."
+  },
+  {
+   "file": "0015_lineups.sql",
+   "summary": "Escalação dos jogos: quem joga em cada equipe (Azul/Branca), goleiros, número da camisa e reservas. Reaproveita athletes e matches. Só a Diretoria grava; qualquer usuário ativo pode consultar."
+  },
+  {
+   "file": "0016_multitenant.sql",
+   "summary": "════════════════════════════════════════════════════════════════════════════════════════════ GEAB Futebol SaaS — Etapa 1: base multi-tenant (organizações)."
+  },
+  {
+   "file": "0017_organizations_app.sql",
+   "summary": "Etapa 2 do SaaS: identidade do grupo, criação de novos grupos, suspensão e consulta pública (login/cadastro)."
+  },
+  {
+   "file": "0018_super_admin.sql",
+   "summary": "Etapa 3 do SaaS: painel do dono da plataforma (super admin), planos e limites. O super admin enxerga só AGREGADOS por grupo (contagens, plano, situação). Nunca nomes de atletas, pagamentos ou contatos:"
+  },
+  {
+   "file": "0019_role_diretoria.sql",
+   "summary": "Novo nível de acesso \"diretoria\" (consulta). Fica sozinho neste arquivo: o Postgres só deixa USAR um valor novo de enum depois que ele é confirmado (commit); as regras que o utilizam estão em 0020."
+  },
+  {
+   "file": "0020_roles_staff.sql",
+   "summary": "Três níveis de acesso, aplicados no banco (não dá para burlar pela tela): atleta     → só a própria conta e os próprios dados (como já era)."
+  },
+  {
+   "file": "0021_org_card_footer.sql",
+   "summary": "Rodapé do card da escalação: texto livre por grupo (ex.: \"GEAB - Grêmio Amigos da Bola\")."
+  },
+  {
+   "file": "0022_billing.sql",
+   "summary": "Etapa 4 do SaaS: teste de 10 dias com bloqueio automático e assinatura (Asaas). O bloqueio é decidido pelo próprio banco a cada acesso (sem depender de agendador): passou do prazo, o grupo perde o acesso."
+  },
+  {
+   "file": "0023_access_log.sql",
+   "summary": "Log de acessos diários: uma linha por usuário por dia (fuso de São Paulo). Só o administrador geral da plataforma consulta."
+  },
+  {
+   "file": "0024_team_branco.sql",
+   "summary": "Nome padrão da segunda equipe: \"Equipe Branco\" (antes \"Equipe Branca\"), inclusive nos jogos já gravados."
+  },
+  {
+   "file": "0025_super_dashboard.sql",
+   "summary": "Painel do SaaS (entrega 1): contato do responsável, data de cancelamento, histórico mensal de MRR e funções do dashboard. Só ADICIONA colunas/tabelas/funções: nenhum dado existente é alterado (exceto substituir sa_orgs, que ganha colunas)."
+  },
+  {
+   "file": "0026_super_detail.sql",
+   "summary": "Painel do SaaS (entrega 2): detalhe de um cliente e edição pelo dono da plataforma. Só funções novas (nenhuma tabela/coluna alterada). Privacidade mantida: o dono vê contagens e a equipe administrativa"
+  },
+  {
+   "file": "0027_super_exclusao.sql",
+   "summary": "Painel do SaaS (entrega 3): suspensão com registro, exclusão lógica (com prazo de recuperação), exportação e exclusão definitiva. Exclusão lógica = situação 'excluida': o grupo perde o acesso (org_usable só libera ativa/teste) e NENHUM dado é apagado."
+  },
+  {
+   "file": "0028_planos_modulos.sql",
+   "summary": "Painel do SaaS (entrega 4): planos com limite de administradores, módulos por plano, duração do teste editável e referência para gateway. Aditiva: planos existentes mantêm todos os módulos e nenhum limite novo (nada muda para quem já usa). Reversão no fim do arquivo."
+  },
+  {
+   "file": "0029_modo_espiao.sql",
+   "summary": "Modo espião (suporte): o dono da plataforma abre o painel de um cliente, SOMENTE LEITURA, por tempo limitado e com registro. Como funciona: sessão em support_sessions → current_tenant() passa a devolver o grupo visitado (as regras de acesso do banco"
+  },
+  {
+   "file": "0030_notificacoes_vencimento.sql",
+   "summary": "Notificações de vencimento: e-mail ao administrador do grupo quando o teste está acabando/acabou ou a assinatura está em atraso. O envio é feito por uma rota do servidor chamada uma vez por dia (agendamento do Coolify); o banco decide QUEM deve receber e"
+  },
+  {
+   "file": "0031_cadastro_sem_grupo.sql",
+   "summary": "Cadastro sem grupo: quem criou conta pelo endereço principal (sem indicar grupo) ficava sem perfil e sem solicitação. Agora essa pessoa, já logada e com e-mail confirmado, escolhe: criar o próprio grupo (teste gratuito do plano) ou pedir entrada num grupo."
+  },
+  {
+   "file": "0032_cadastro_fone.sql",
+   "summary": "Cadastro de novo grupo: nome completo e telefone (WhatsApp) passam a ser obrigatórios e o contato já nasce no painel do SaaS. Reversão: recriar handle_signup_form (0017) e create_my_org (0031) e remover o telefone obrigatório."
+  }
+ ],
+ "tables": [
+  {
+   "name": "access_log",
+   "file": "0023_access_log.sql"
+  },
+  {
+   "name": "app_settings",
+   "file": "0011_app_settings.sql"
+  },
+  {
+   "name": "athletes",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "audit_log",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "btg_connection",
+   "file": "0013_btg_connection.sql"
+  },
+  {
+   "name": "charges",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "expenses",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "match_lineups",
+   "file": "0015_lineups.sql"
+  },
+  {
+   "name": "match_players",
+   "file": "0009_scorers.sql"
+  },
+  {
+   "name": "matches",
+   "file": "0008_matches.sql"
+  },
+  {
+   "name": "notifications",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "org_billing",
+   "file": "0022_billing.sql"
+  },
+  {
+   "name": "org_internal",
+   "file": "0018_super_admin.sql"
+  },
+  {
+   "name": "org_notifications",
+   "file": "0030_notificacoes_vencimento.sql"
+  },
+  {
+   "name": "organizations",
+   "file": "0016_multitenant.sql"
+  },
+  {
+   "name": "other_income",
+   "file": "0002_other_income.sql"
+  },
+  {
+   "name": "payments",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "pix_charges",
+   "file": "0010_pix_charges.sql"
+  },
+  {
+   "name": "plans",
+   "file": "0018_super_admin.sql"
+  },
+  {
+   "name": "platform_admins",
+   "file": "0018_super_admin.sql"
+  },
+  {
+   "name": "platform_mrr_history",
+   "file": "0025_super_dashboard.sql"
+  },
+  {
+   "name": "platform_purges",
+   "file": "0027_super_exclusao.sql"
+  },
+  {
+   "name": "profiles",
+   "file": "0001_schema.sql"
+  },
+  {
+   "name": "signup_requests",
+   "file": "0003_signup.sql"
+  },
+  {
+   "name": "support_sessions",
+   "file": "0029_modo_espiao.sql"
+  }
+ ],
+ "functions": [
+  {
+   "name": "admin_delete_athlete",
+   "file": "0016_multitenant.sql",
+   "area": "Administração do grupo"
+  },
+  {
+   "name": "admin_delete_charge",
+   "file": "0016_multitenant.sql",
+   "area": "Administração do grupo"
+  },
+  {
+   "name": "admin_remove_access",
+   "file": "0016_multitenant.sql",
+   "area": "Administração do grupo"
+  },
+  {
+   "name": "admin_update_charge",
+   "file": "0016_multitenant.sql",
+   "area": "Administração do grupo"
+  },
+  {
+   "name": "admin_update_user",
+   "file": "0020_roles_staff.sql",
+   "area": "Administração do grupo"
+  },
+  {
+   "name": "admin_users",
+   "file": "0016_multitenant.sql",
+   "area": "Administração do grupo"
+  },
+  {
+   "name": "billing_attach",
+   "file": "0022_billing.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "billing_event",
+   "file": "0027_super_exclusao.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "billing_notify_candidates",
+   "file": "0030_notificacoes_vencimento.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "billing_notify_mark",
+   "file": "0030_notificacoes_vencimento.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "billing_plans",
+   "file": "0022_billing.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "billing_prepare",
+   "file": "0022_billing.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "my_billing",
+   "file": "0022_billing.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "org_usable",
+   "file": "0022_billing.sql",
+   "area": "Cobrança"
+  },
+  {
+   "name": "approve_signup",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "assert_goals_fit",
+   "file": "0009_scorers.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "audit",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "check_payment",
+   "file": "0001_schema.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "create_my_org",
+   "file": "0032_cadastro_fone.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "current_tenant",
+   "file": "0029_modo_espiao.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "default_tenant",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "enforce_admin_limit",
+   "file": "0028_planos_modulos.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "enforce_athlete_limit",
+   "file": "0018_super_admin.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "generate_charges",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "guard_last_admin",
+   "file": "0027_super_exclusao.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "handle_signup_form",
+   "file": "0032_cadastro_fone.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "is_admin",
+   "file": "0001_schema.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "is_member",
+   "file": "0008_matches.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "is_platform_admin",
+   "file": "0018_super_admin.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "is_staff",
+   "file": "0020_roles_staff.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "log_access",
+   "file": "0023_access_log.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "match_players_check",
+   "file": "0009_scorers.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "matches_goals_check",
+   "file": "0009_scorers.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "month_birthdays",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "my_athlete",
+   "file": "0001_schema.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "my_modules",
+   "file": "0029_modo_espiao.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "my_org_block",
+   "file": "0027_super_exclusao.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "org_public",
+   "file": "0022_billing.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "org_trial_default",
+   "file": "0028_planos_modulos.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "organizations_default_plan",
+   "file": "0018_super_admin.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "organizations_track_cancel",
+   "file": "0025_super_dashboard.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "plan_modules_valid",
+   "file": "0028_planos_modulos.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "public_plans",
+   "file": "0031_cadastro_sem_grupo.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "public_trial_days",
+   "file": "0031_cadastro_sem_grupo.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "recompute_charge",
+   "file": "0001_schema.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "register_pix_payment",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "reject_signup",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "request_join_group",
+   "file": "0031_cadastro_sem_grupo.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "resolve_tenant",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "safe_date",
+   "file": "0004_birth_date.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "scorer_seasons",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "scorer_stats",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "set_match_lineup",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "set_match_players",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "slug_available",
+   "file": "0017_organizations_app.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "slug_reserved",
+   "file": "0017_organizations_app.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "tenant_guard",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "tenant_ref_check",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "top_scorers",
+   "file": "0016_multitenant.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "update_my_contact",
+   "file": "0001_schema.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "update_my_profile",
+   "file": "0005_accounts.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "update_organization",
+   "file": "0021_org_card_footer.sql",
+   "area": "Geral"
+  },
+  {
+   "name": "block_support_writes",
+   "file": "0029_modo_espiao.sql",
+   "area": "Modo espião"
+  },
+  {
+   "name": "in_support_mode",
+   "file": "0029_modo_espiao.sql",
+   "area": "Modo espião"
+  },
+  {
+   "name": "my_support_session",
+   "file": "0029_modo_espiao.sql",
+   "area": "Modo espião"
+  },
+  {
+   "name": "sa_access_daily",
+   "file": "0023_access_log.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_access_day",
+   "file": "0023_access_log.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_assign_admin",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_create_org",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_dashboard",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_delete_org",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_extend_trial",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_guard",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_log",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_org_delete_check",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_org_detail",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_org_export",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_org_notifications",
+   "file": "0030_notificacoes_vencimento.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_orgs",
+   "file": "0025_super_dashboard.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_overview",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_plans",
+   "file": "0028_planos_modulos.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_purge_org",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_restore_org",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_set_contact",
+   "file": "0025_super_dashboard.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_set_notes",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_set_org_plan",
+   "file": "0018_super_admin.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_set_org_status",
+   "file": "0027_super_exclusao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_support_start",
+   "file": "0029_modo_espiao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_support_stop",
+   "file": "0029_modo_espiao.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_update_org",
+   "file": "0026_super_detail.sql",
+   "area": "Painel do SaaS"
+  },
+  {
+   "name": "sa_upsert_plan",
+   "file": "0028_planos_modulos.sql",
+   "area": "Painel do SaaS"
+  }
+ ],
+ "pages": [
+  {
+   "path": "/",
+   "access": "Administrador e Diretoria",
+   "description": "Início: indicadores do mês, gráfico de mensalidades, aniversariantes e artilharia (para quem não está logado mostra o site de divulgação)"
+  },
+  {
+   "path": "/ao-vivo",
+   "access": "Administrador",
+   "description": "Registro de gols durante a partida"
+  },
+  {
+   "path": "/assinatura",
+   "access": "Administrador",
+   "description": "Situação do teste/assinatura, escolha do plano e pagamento; também a tela do grupo bloqueado"
+  },
+  {
+   "path": "/atleta",
+   "access": "Atleta",
+   "description": "Área do Atleta (visão geral, jogos, financeiro e perfil)"
+  },
+  {
+   "path": "/atletas",
+   "access": "Administrador e Diretoria",
+   "description": "Lista e cadastro de atletas"
+  },
+  {
+   "path": "/atletas/[id]",
+   "access": "Administrador e Diretoria",
+   "description": "Ficha do atleta (dados, mensalidades, desempenho e criação de acesso)"
+  },
+  {
+   "path": "/cadastro",
+   "access": "Público",
+   "description": "Cadastro de atleta em um grupo; sem grupo, escolha entre criar conta de cliente e entrar como atleta"
+  },
+  {
+   "path": "/cadastro/status",
+   "access": "Público",
+   "description": "Situação do cadastro do atleta; para conta sem grupo, escolha de criar o grupo ou pedir entrada"
+  },
+  {
+   "path": "/cadastros",
+   "access": "Administrador e Diretoria",
+   "description": "Aprovação ou recusa das solicitações de entrada de atletas"
+  },
+  {
+   "path": "/caixa",
+   "access": "Administrador e Diretoria",
+   "description": "Entradas, despesas e saldo"
+  },
+  {
+   "path": "/conta",
+   "access": "Administrador e Diretoria",
+   "description": "Minha conta: dados do usuário e troca de senha"
+  },
+  {
+   "path": "/demo",
+   "access": "Público",
+   "description": "Demonstração navegável com dados fictícios"
+  },
+  {
+   "path": "/escalacao",
+   "access": "Administrador e Diretoria",
+   "description": "Escalação por jogo e card para compartilhar"
+  },
+  {
+   "path": "/extrato",
+   "access": "Administrador e Diretoria",
+   "description": "Extrato de lançamentos para conferência"
+  },
+  {
+   "path": "/grupo",
+   "access": "Administrador",
+   "description": "Identidade do grupo (nome, logo, cor, site, lema, rodapé do card)"
+  },
+  {
+   "path": "/importar",
+   "access": "Administrador",
+   "description": "Importação de planilha do Google publicada na web"
+  },
+  {
+   "path": "/jogos",
+   "access": "Administrador e Diretoria",
+   "description": "Agenda e resultados dos jogos"
+  },
+  {
+   "path": "/login",
+   "access": "Público",
+   "description": "Entrada no sistema"
+  },
+  {
+   "path": "/mensalidades",
+   "access": "Administrador e Diretoria",
+   "description": "Cobranças por mês, pagamentos, Pix e confirmações"
+  },
+  {
+   "path": "/novo-grupo",
+   "access": "Público",
+   "description": "Cadastro de cliente do SaaS: cria o grupo em teste gratuito"
+  },
+  {
+   "path": "/recuperar",
+   "access": "Público",
+   "description": "Pedido de link para recuperar a senha"
+  },
+  {
+   "path": "/redefinir-senha",
+   "access": "Público",
+   "description": "Definição da nova senha a partir do link do e-mail"
+  },
+  {
+   "path": "/site",
+   "access": "Público",
+   "description": "Site de divulgação (planos lidos do banco)"
+  },
+  {
+   "path": "/super",
+   "access": "Dono da plataforma",
+   "description": "Painel do SaaS: indicadores, clientes, criação de grupos e planos"
+  },
+  {
+   "path": "/super/acessos",
+   "access": "Dono da plataforma",
+   "description": "Log de acessos diários por pessoa e grupo"
+  },
+  {
+   "path": "/super/clientes/[id]",
+   "access": "Dono da plataforma",
+   "description": "Página do cliente: dados, usuários, assinatura, configurações, atividades, modo espião, suspensão e exclusão"
+  },
+  {
+   "path": "/super/documentacao",
+   "access": "Dono da plataforma",
+   "description": "Esta documentação (somente dono da plataforma)"
+  },
+  {
+   "path": "/usuarios",
+   "access": "Administrador",
+   "description": "Usuários e privilégios do grupo"
+  }
+ ],
+ "apis": [
+  {
+   "path": "/api/assinatura",
+   "methods": [
+    "POST"
+   ],
+   "description": "Cria a assinatura no Asaas e devolve o link de pagamento"
+  },
+  {
+   "path": "/api/atletas/acesso",
+   "methods": [
+    "POST"
+   ],
+   "description": "Cria o login de um atleta com senha provisória (administrador)"
+  },
+  {
+   "path": "/api/btg/callback",
+   "methods": [
+    "GET"
+   ],
+   "description": "Retorno da autorização do BTG"
+  },
+  {
+   "path": "/api/btg/conectar",
+   "methods": [
+    "GET"
+   ],
+   "description": "Inicia a conexão com o BTG"
+  },
+  {
+   "path": "/api/cron/vencimentos",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "description": "Rotina diária de avisos de vencimento (protegida por CRON_SECRET)"
+  },
+  {
+   "path": "/api/docs",
+   "methods": [
+    "GET"
+   ],
+   "description": "Entrega a documentação ao dono da plataforma (valida sessão e permissão)"
+  },
+  {
+   "path": "/api/email",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "description": "Envia e-mails de confirmação de pagamento ao atleta"
+  },
+  {
+   "path": "/api/pix/cobrancas",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "description": "Gera cobranças Pix das mensalidades em aberto"
+  },
+  {
+   "path": "/api/planilha",
+   "methods": [
+    "POST"
+   ],
+   "description": "Lê abas de planilha do Google publicada na web"
+  },
+  {
+   "path": "/api/versao",
+   "methods": [],
+   "description": "Identificador do build, usado para avisar o navegador sobre nova versão"
+  },
+  {
+   "path": "/api/webhooks/asaas",
+   "methods": [
+    "POST"
+   ],
+   "description": "Eventos de cobrança do Asaas (ativa, suspende, cancela grupos)"
+  },
+  {
+   "path": "/api/webhooks/btg",
+   "methods": [
+    "POST"
+   ],
+   "description": "Baixas de Pix recebidas do BTG"
+  },
+  {
+   "path": "/api/webhooks/openpix",
+   "methods": [
+    "POST"
+   ],
+   "description": "Baixas de Pix recebidas da OpenPix"
+  },
+  {
+   "path": "/api/whatsapp",
+   "methods": [
+    "GET",
+    "POST"
+   ],
+   "description": "Envia confirmação de pagamento por WhatsApp"
+  }
+ ],
+ "env": [
+  {
+   "name": "APP_URL",
+   "scope": "Servidor",
+   "description": "Endereço público usado nos links dos e-mails de aviso (padrão: domínio principal)",
+   "uses": 1
+  },
+  {
+   "name": "ASAAS_API_KEY",
+   "scope": "Servidor",
+   "description": "Chave da API do Asaas (começa com $: marcar como literal no Coolify)",
+   "uses": 1
+  },
+  {
+   "name": "ASAAS_ENV",
+   "scope": "Servidor",
+   "description": "Ambiente do Asaas: production ou sandbox",
+   "uses": 1
+  },
+  {
+   "name": "ASAAS_WEBHOOK_TOKEN",
+   "scope": "Servidor",
+   "description": "Token que autentica os webhooks do Asaas",
+   "uses": 2
+  },
+  {
+   "name": "BTG_API_BASE",
+   "scope": "Servidor",
+   "description": "Endereço da API do BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_CLIENT_ID",
+   "scope": "Servidor",
+   "description": "Identificador da aplicação no BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_COMPANY_ID",
+   "scope": "Servidor",
+   "description": "CNPJ da empresa no BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_ENV",
+   "scope": "Servidor",
+   "description": "Ambiente do BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_ID_BASE",
+   "scope": "Servidor",
+   "description": "Endereço de autorização do BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_PIX_KEY",
+   "scope": "Servidor",
+   "description": "Chave Pix usada nas cobranças do BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_REDIRECT_URI",
+   "scope": "Servidor",
+   "description": "Endereço de retorno da autorização do BTG",
+   "uses": 1
+  },
+  {
+   "name": "BTG_WEBHOOK_SECRET",
+   "scope": "Servidor",
+   "description": "Segredo do webhook do BTG",
+   "uses": 1
+  },
+  {
+   "name": "CRON_SECRET",
+   "scope": "Servidor",
+   "description": "Segredo da rotina diária de avisos",
+   "uses": 1
+  },
+  {
+   "name": "NEXT_PUBLIC_BASE_DOMAIN",
+   "scope": "Navegador (gravada no build)",
+   "description": "Domínio-base para endereços de grupo (grupo.dominio)",
+   "uses": 1
+  },
+  {
+   "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+   "scope": "Navegador (gravada no build)",
+   "description": "Chave pública do Supabase (navegador)",
+   "uses": 7
+  },
+  {
+   "name": "NEXT_PUBLIC_SUPABASE_URL",
+   "scope": "Navegador (gravada no build)",
+   "description": "Endereço do projeto Supabase",
+   "uses": 8
+  },
+  {
+   "name": "OPENPIX_API_BASE",
+   "scope": "Servidor",
+   "description": "Endereço da API da OpenPix",
+   "uses": 1
+  },
+  {
+   "name": "OPENPIX_APP_ID",
+   "scope": "Servidor",
+   "description": "Credencial da OpenPix",
+   "uses": 1
+  },
+  {
+   "name": "PLATFORM_ALERT_EMAIL",
+   "scope": "Servidor",
+   "description": "E-mail que recebe o resumo diário dos avisos enviados",
+   "uses": 1
+  },
+  {
+   "name": "PLATFORM_ORG_SLUG",
+   "scope": "Servidor",
+   "description": "Endereço do grupo dono do servidor (usa as credenciais globais de Pix, WhatsApp e e-mail); padrão geab",
+   "uses": 1
+  },
+  {
+   "name": "SMTP_FROM",
+   "scope": "Servidor",
+   "description": "Remetente dos e-mails do aplicativo",
+   "uses": 2
+  },
+  {
+   "name": "SMTP_FROM_NAME",
+   "scope": "Servidor",
+   "description": "Nome exibido como remetente dos avisos (padrão Gestão de Futebol)",
+   "uses": 1
+  },
+  {
+   "name": "SMTP_HOST",
+   "scope": "Servidor",
+   "description": "Servidor SMTP (Resend)",
+   "uses": 2
+  },
+  {
+   "name": "SMTP_PASS",
+   "scope": "Servidor",
+   "description": "Senha do SMTP (chave da Resend)",
+   "uses": 2
+  },
+  {
+   "name": "SMTP_PORT",
+   "scope": "Servidor",
+   "description": "Porta do SMTP (465)",
+   "uses": 2
+  },
+  {
+   "name": "SMTP_USER",
+   "scope": "Servidor",
+   "description": "Usuário do SMTP",
+   "uses": 2
+  },
+  {
+   "name": "SUPABASE_SERVICE_ROLE_KEY",
+   "scope": "Servidor",
+   "description": "Chave de serviço do Supabase (só servidor; webhooks, rotina diária e criação de acessos)",
+   "uses": 1
+  },
+  {
+   "name": "WHATSAPP_API_BASE",
+   "scope": "Servidor",
+   "description": "Endereço da API do WhatsApp Cloud",
+   "uses": 1
+  },
+  {
+   "name": "WHATSAPP_LANG",
+   "scope": "Servidor",
+   "description": "Idioma do modelo de mensagem",
+   "uses": 1
+  },
+  {
+   "name": "WHATSAPP_PHONE_ID",
+   "scope": "Servidor",
+   "description": "Identificador do número do WhatsApp",
+   "uses": 1
+  },
+  {
+   "name": "WHATSAPP_TEMPLATE",
+   "scope": "Servidor",
+   "description": "Nome do modelo de mensagem aprovado",
+   "uses": 1
+  },
+  {
+   "name": "WHATSAPP_TOKEN",
+   "scope": "Servidor",
+   "description": "Token da API do WhatsApp",
+   "uses": 1
+  }
+ ],
+ "changelog": [
+  {
+   "version": "1.13.0",
+   "date": "2026-11-14",
+   "title": "Documentação do sistema",
+   "novidades": [
+    "Documentação completa do sistema dentro do Painel do SaaS (menu Documentação), visível somente para o dono da plataforma: visão geral, arquitetura, perfis, segurança, módulos, área do atleta, planos e assinatura, painel do SaaS, cadastro, integrações e operação.",
+    "Seções automáticas geradas do próprio código a cada publicação: versão e histórico, páginas e acessos, rotas de API, tabelas, funções e migrations do banco e variáveis de ambiente (apenas nomes).",
+    "Busca, índice, impressão em PDF e aviso quando um capítulo foi revisado numa versão anterior; a rota da documentação valida a sessão e confirma no banco que a conta é do dono da plataforma."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.12.2",
+   "date": "2026-11-14",
+   "title": "Cadastro com telefone obrigatório",
+   "novidades": [
+    "Cadastro de novo grupo agora pede o WhatsApp do responsável (com máscara e validação de DDD); o nome, o e-mail e o telefone já aparecem como contato do cliente no painel do SaaS."
+   ],
+   "melhorias": [
+    "No cadastro de atleta o apelido passou a ser obrigatório; todos os campos são exigidos já no primeiro cadastro (somente o aceite de mensagens pelo WhatsApp continua opcional, por ser um consentimento).",
+    "O banco também exige nome completo e telefone ao criar um grupo, então a regra vale mesmo fora da tela."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.12.1",
+   "date": "2026-11-14",
+   "title": "Cadastro sem grupo e teste grátis",
+   "novidades": [
+    "Cadastro de cliente no endereço principal: quem abre o cadastro sem indicar um grupo vê a opção Quero usar o sistema no meu grupo (teste grátis) e, separada, a de atleta, que pede o endereço do grupo (ou usa o link com ?grupo=).",
+    "Quem já criou conta sem grupo escolhe ao entrar: criar o próprio grupo com o teste gratuito ou pedir entrada em um grupo existente, com os dados do cadastro aproveitados."
+   ],
+   "melhorias": [
+    "A tela de criar grupo e a confirmação de e-mail mostram os dias de teste grátis do plano de teste (10), em vez de um número fixo.",
+    "Tela de login deixa claro o caminho de atleta e o de criar grupo.",
+    "Site de divulgação: planos, preços, limites de jogadores e administradores, dias de teste e módulos incluídos agora vêm do painel de planos (o plano Pro aparece como Profissional); itens que o plano não inclui aparecem riscados, e o aviso falso de que todos os planos têm os mesmos recursos foi removido.",
+    "Site de divulgação: botão Criar conta grátis no topo e botões dos planos com o nome do plano e os dias de teste."
+   ],
+   "correcoes": [
+    "Corrigida a tela Acesso ainda não liberado para quem se cadastrava pelo endereço principal sem grupo: o cadastro ficava sem destino e sem os 10 dias de teste."
+   ]
+  },
+  {
+   "version": "1.12.0",
+   "date": "2026-11-13",
+   "title": "Notificações de vencimento",
+   "novidades": [
+    "E-mail automático ao administrador do grupo quando o teste termina em 3 dias, no último dia, quando o teste termina e quando o pagamento da assinatura está em atraso; cada aviso sai uma única vez e falhas são tentadas de novo no dia seguinte.",
+    "Rotina diária protegida por segredo (agendamento do servidor) e resumo opcional dos avisos enviados para o dono da plataforma.",
+    "Painel do SaaS ganha o bloco Atenção (testes por vencer, vencidos, pagamentos em atraso e clientes inativos) e a página do cliente mostra o histórico de avisos enviados."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.11.2",
+   "date": "2026-11-13",
+   "title": "Painel do SaaS otimizado para celular",
+   "novidades": [],
+   "melhorias": [
+    "Painel do SaaS no celular: botões e links com área de toque maior, abas do cliente em linha rolável, ações do cliente em grade e filtros em largura total.",
+    "Planos recolhíveis com resumo (preço, limites e grupos) e campos em duas colunas, reduzindo a rolagem na edição de planos.",
+    "Log de acessos: gráfico de dias com barras tocáveis e rolagem horizontal até o dia mais recente."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.11.1",
+   "date": "2026-11-13",
+   "title": "Correção do modo espião",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "Modo espião abria a tela de assinatura em vez do painel do cliente: o bloqueio automático agora reconhece a sessão de suporte."
+   ]
+  },
+  {
+   "version": "1.11.0",
+   "date": "2026-11-13",
+   "title": "Modo espião para suporte",
+   "novidades": [
+    "Modo espião: o dono da plataforma abre o painel de qualquer cliente, como o administrador dele, somente leitura, com motivo obrigatório e duração limitada (até 4 horas).",
+    "Faixa fixa Modo espião com botão para sair; nenhuma alteração é possível durante o acesso, nem por rotas do servidor.",
+    "Início e fim de cada acesso de suporte ficam no histórico do cliente, e o cadastro de novo grupo informa que a equipe pode acessar a conta para suporte."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.10.0",
+   "date": "2026-11-13",
+   "title": "Planos, módulos e limites",
+   "novidades": [
+    "Planos editáveis pelo dono da plataforma: nome, preço, limite de atletas, limite de administradores, duração do teste e módulos incluídos.",
+    "Módulos por plano (importar planilha, gols ao vivo, Pix automático, WhatsApp e e-mail): módulo desligado some do menu e é bloqueado no servidor.",
+    "Plano Premium criado (inativo e sem preço, para o dono definir) e plano Pro renomeado para Profissional, mantendo os preços atuais.",
+    "Campo de referência do plano no gateway de pagamento, como preparação para integração futura."
+   ],
+   "melhorias": [
+    "A duração do teste gratuito de novos grupos passa a vir do plano de teste (padrão 10 dias)."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.9.0",
+   "date": "2026-11-13",
+   "title": "Suspensão e exclusão segura de clientes",
+   "novidades": [
+    "Exclusão lógica de clientes: o acesso é bloqueado, os dados ficam guardados e o grupo pode ser restaurado durante um prazo configurável (padrão 30 dias).",
+    "Exclusão definitiva só depois do prazo, exigindo digitar o nome do grupo, com alerta dos dados afetados e aviso de assinatura ativa; apaga apenas os dados daquele grupo e deixa registro da exclusão.",
+    "Exportação de todos os dados do grupo em arquivo JSON (sem credenciais), com registro na auditoria.",
+    "Suspensão registra data e responsável; o cliente suspenso vê uma mensagem amigável com o motivo e a orientação de falar com o suporte."
+   ],
+   "melhorias": [
+    "Painel e indicadores não contam clientes excluídos; a lista oculta excluídos por padrão e permite filtrá-los."
+   ],
+   "correcoes": [
+    "Eventos de cobrança do Asaas não reativam um grupo excluído."
+   ]
+  },
+  {
+   "version": "1.8.0",
+   "date": "2026-11-13",
+   "title": "Detalhe do cliente no painel do SaaS",
+   "novidades": [
+    "Página de cada cliente com abas: Visão geral, Usuários e atletas, Assinatura, Configurações e Atividades.",
+    "Edição de nome, site, lema, cor, logo, rodapé do card e contato do responsável pelo dono da plataforma, com registro no histórico.",
+    "Botões de suspender acesso, reativar e estender teste no topo da página do cliente; histórico de alterações administrativas e dos últimos acessos."
+   ],
+   "melhorias": [
+    "O nome do cliente na lista de clientes agora abre a página de detalhes."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.7.0",
+   "date": "2026-11-13",
+   "title": "Painel do SaaS modernizado",
+   "novidades": [
+    "Dashboard do dono da plataforma com cards de clientes ativos, suspensos, em teste, assinaturas vencidas, MRR, novos clientes e cancelamentos do mês.",
+    "Gráficos de crescimento de clientes e de evolução do faturamento recorrente (histórico do MRR passa a ser registrado mensalmente).",
+    "Gerenciar clientes: tabela com responsável, contato com link de WhatsApp, vencimento e último acesso; busca, filtros por situação e plano, ordenação, paginação e exportação em CSV.",
+    "Cadastro do responsável de cada cliente e identificação de clientes inativos há 30 dias."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.6.1",
+   "date": "2026-11-12",
+   "title": "Área do atleta no site de vendas",
+   "novidades": [
+    "Site comercial com a seção Uma central para cada atleta, com as telas Visão geral, Jogos, Financeiro e Perfil da nova Área do Atleta (dados fictícios)."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.6.0",
+   "date": "2026-11-12",
+   "title": "Nova Área do Atleta",
+   "novidades": [
+    "Área do Atleta redesenhada como central do atleta: próximo jogo com contagem de dias, mensalidade com pagamento por Pix, desempenho, último jogo, artilharia com a sua posição em destaque e aniversariantes.",
+    "Abas Visão geral, Jogos, Financeiro e Perfil (menu inferior no celular), com histórico dos seus jogos e gols e histórico de pagamentos.",
+    "Edição de dados pessoais, contatos e senha em janelas próprias, com medidor de força da senha e botão para mostrar ou ocultar."
+   ],
+   "melhorias": [
+    "Avisos no sino do topo: mensalidade a vencer ou vencida, jogo próximo e aniversários do dia."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.5",
+   "date": "2026-11-11",
+   "title": "Telas do celular no site de vendas",
+   "novidades": [
+    "Site comercial com a seção Seu grupo na palma da mão, mostrando as telas Painel, Atletas, Jogos e Caixa no celular."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.4",
+   "date": "2026-11-11",
+   "title": "Nome da equipe Branco",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "A segunda equipe passa a se chamar Equipe Branco (antes Equipe Branca), no padrão de novos jogos e nos jogos já cadastrados."
+   ]
+  }
+ ],
+ "stats": {
+  "migrations": 32,
+  "tables": 25,
+  "functions": 91,
+  "pages": 28,
+  "apis": 14
+ }
+}

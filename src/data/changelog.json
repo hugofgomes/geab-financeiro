@@ -2,6 +2,18 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.13.0",
+      "date": "2026-11-14",
+      "title": "Documentação do sistema",
+      "novidades": [
+        "Documentação completa do sistema dentro do Painel do SaaS (menu Documentação), visível somente para o dono da plataforma: visão geral, arquitetura, perfis, segurança, módulos, área do atleta, planos e assinatura, painel do SaaS, cadastro, integrações e operação.",
+        "Seções automáticas geradas do próprio código a cada publicação: versão e histórico, páginas e acessos, rotas de API, tabelas, funções e migrations do banco e variáveis de ambiente (apenas nomes).",
+        "Busca, índice, impressão em PDF e aviso quando um capítulo foi revisado numa versão anterior; a rota da documentação valida a sessão e confirma no banco que a conta é do dono da plataforma."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "version": "1.12.2",
       "date": "2026-11-14",
       "title": "Cadastro com telefone obrigatório",
