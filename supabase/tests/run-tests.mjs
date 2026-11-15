@@ -808,6 +808,153 @@ section("Quadra Esportiva: estrutura (0035)")
   ok("exportação do estabelecimento inclui as tabelas do módulo", await (async () => { let ex; await as(Q.boss, async () => { ex = await one(`select public.sa_org_export($1)`, [Q.o1]) }, true); return ex.tabelas.court_courts?.length >= 2 && ex.tabelas.court_venues?.length === 1 })())
 }
 
+section("Quadra Esportiva: agenda e reservas (0036)")
+{
+  const R = { o1: uid(1301), o2: uid(1302), ra: uid(1311), rg: uid(1312), rr: uid(1313), rf: uid(1314), rb: uid(1315), boss: uid(1316), v1: uid(1321), v2: uid(1322), c1: uid(1331), c1b: uid(1332), c2: uid(1333) }
+  await q(`insert into auth.users (id, email) values ($1,'r-a@x'),($2,'r-g@x'),($3,'r-r@x'),($4,'r-f@x'),($5,'r-b@x'),($6,'r-boss@x')`, [R.ra, R.rg, R.rr, R.rf, R.rb, R.boss])
+  const mk = (o, slug) => q(`insert into public.organizations (id, slug, name, status, kind, plan_id) values ($1,$2,$2,'ativa','quadra',(select id from public.plans where code='quadra_t'))`, [o, slug])
+  await mk(R.o1, "arena-r1"); await mk(R.o2, "arena-r2")
+  const pf = (o, id, role) => q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,$3,$4)`, [o, id, "Pessoa " + id.slice(-3), role])
+  await pf(R.o1, R.ra, "admin"); await pf(R.o1, R.rg, "diretoria"); await pf(R.o1, R.rr, "diretoria"); await pf(R.o1, R.rf, "diretoria"); await pf(R.o2, R.rb, "admin")
+  await q(`insert into public.court_staff (tenant_id, profile_id, role) values ($1,$2,'gerente'),($1,$3,'recepcionista'),($1,$4,'financeiro')`, [R.o1, R.rg, R.rr, R.rf])
+  await q(`insert into public.court_venues (id, tenant_id, trade_name) values ($1,$2,'Arena R1'),($3,$4,'Arena R2')`, [R.v1, R.o1, R.v2, R.o2])
+  await q(`insert into public.court_courts (id, tenant_id, venue_id, name, sport, price_cents) values ($1,$2,$3,'Quadra A','futebol_society',12000),($4,$2,$3,'Quadra B','futsal',10000),($5,$6,$7,'Quadra R2','futsal',9000)`, [R.c1, R.o1, R.v1, R.c1b, R.c2, R.o2, R.v2])
+  await q(`insert into public.organizations (id, slug, name, status, plan_id) values ($1,'dono-r','Dono R','ativa',(select id from public.plans where code='ilimitado'))`, [uid(1303)])
+  await q(`insert into public.profiles (tenant_id, id, full_name, role) values ($1,$2,'Dono','admin')`, [uid(1303), R.boss])
+  await q(`insert into public.platform_admins (user_id) values ($1)`, [R.boss])
+  const T = (dia, h, m = 0) => `2030-${dia}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00-03:00`   // 2030-06-15 é sábado (horário de Brasília)
+  const book = (u, court, kind, name, s, e, extra = "") => as(u, async () => (await db.query(`select public.court_booking_create($1,$2,$3,'(48) 99999-1111',null,$4,$5${extra})`, [court, kind, name, s, e])).rows[0].court_booking_create, true)
+  const tryBook = async (u, court, kind, s, e, name = "Cliente") => { let m = null; await as(u, async () => { m = await err(`select public.court_booking_create('${court}','${kind}','${name}',null,null,'${s}','${e}')`) }); return m }
+
+  // sem horários configurados
+  ok("sem horário de funcionamento configurado, a reserva é recusada com orientação", /Configure os horários/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-15", 20), T("06-15", 21)) ?? ""))
+  await q(`insert into public.court_hours (tenant_id, weekday, opens_min, closes_min) values ($1,6,480,1380),($1,0,480,1380),($1,5,480,1440),($1,1,480,1380),($1,2,480,1380),($1,3,480,1380),($1,4,480,1380)`, [R.o1])
+  await as(R.ra, async () => { ok("janelas de funcionamento sobrepostas são recusadas", /se sobrepõe/.test(await err(`insert into public.court_hours (weekday, opens_min, closes_min) values (6, 600, 700)`) ?? "")) })
+
+  // criação e preço
+  const b1 = await book(R.rr, R.c1, "avulsa", "João Silva", T("06-15", 20), T("06-15", 21))
+  ok("recepcionista cria reserva; código sequencial e valor base da quadra", b1.code === "R-000001" && b1.price_cents === 12000 && b1.status === "confirmada" && b1.client_phone === "5548999991111", JSON.stringify(b1))
+  await as(R.ra, async () => { await db.query(`insert into public.court_price_rules (name, weekdays, from_min, to_min, kind, price_cents) values ('Sábado à noite', array[6], 1080, 1380, 'avulsa', 18000)`) }, true)
+  const b2 = await book(R.ra, R.c1, "avulsa", "Maria", T("06-15", 21), T("06-15", 23))
+  ok("regra de preço por faixa de horário (2 horas × R$ 180)", b2.price_cents === 36000, String(b2.price_cents))
+  const b3 = await book(R.ra, R.c1b, "mensalista", "Carlos", T("06-15", 20), T("06-15", 21))
+  ok("tipo sem regra específica usa o valor base da quadra (mensalista não pega a regra de avulsa)", b3.price_cents === 10000, String(b3.price_cents))
+
+  // conflitos
+  ok("mesmo horário na mesma quadra é recusado, dizendo quem ocupa", /Horário indisponível: já existe R-000001 · João Silva/.test(await tryBook(R.rr, R.c1, "avulsa", T("06-15", 20), T("06-15", 21)) ?? ""))
+  ok("sobreposição parcial também é recusada", /Horário indisponível/.test(await tryBook(R.rr, R.c1, "avulsa", T("06-15", 20), T("06-15", 22)) ?? ""))
+  ok("horários colados (20h–21h e 21h–22h) são permitidos", (await tryBook(R.rr, R.c1, "avulsa", T("06-15", 19), T("06-15", 20), "Antes")) === null)
+  ok("o mesmo horário em outra quadra é permitido", (await tryBook(R.rr, R.c1b, "avulsa", T("06-15", 21), T("06-15", 22), "Outra quadra")) === null)
+
+  // regras de horário
+  ok("fora do horário de funcionamento", /Fora do horário/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-15", 6), T("06-15", 7)) ?? ""))
+  ok("horário fora da grade de 60 minutos", /intervalos de 60/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-15", 10, 30), T("06-15", 11, 30)) ?? ""))
+  await q(`update public.court_venues set slot_minutes = 30 where id=$1`, [R.v1])
+  ok("duração abaixo do mínimo", /duração mínima/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-16", 10), T("06-16", 10, 30)) ?? ""))
+  await q(`update public.court_venues set slot_minutes = 60 where id=$1`, [R.v1])
+  ok("fim antes do início", /depois do inicial/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-16", 11), T("06-16", 10)) ?? ""))
+  ok("reserva até a meia-noite é aceita onde o centro fecha à meia-noite (sexta)", (await tryBook(R.ra, R.c1, "avulsa", T("06-14", 23), "2030-06-15T00:00:00-03:00", "Meia-noite")) === null)
+  ok("tipo inválido e cliente sem nome são recusados", /Tipo de reserva inválido/.test(await tryBook(R.ra, R.c1, "vip", T("06-16", 12), T("06-16", 13)) ?? "") && /nome do cliente/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-16", 12), T("06-16", 13), " ") ?? ""))
+
+  // passado
+  ok("recepcionista não lança reserva no passado", /passado/.test(await tryBook(R.rr, R.c1, "avulsa", "2020-06-13T20:00:00-03:00", "2020-06-13T21:00:00-03:00") ?? ""))
+  ok("gerente lança reserva no passado", (await tryBook(R.rg, R.c1, "avulsa", "2020-06-13T20:00:00-03:00", "2020-06-13T21:00:00-03:00", "Retroativa")) === null)
+
+  // permissões
+  await as(R.rf, async () => {
+    ok("financeiro consulta reservas mas não cria", (await one(`select count(*)::int from public.court_bookings`)) >= 3 && /permissão/.test(await err(`select public.court_booking_create('${R.c1}','avulsa','X Y',null,null,'${T("06-16", 12)}','${T("06-16", 13)}')`) ?? ""))
+  })
+  await as(R.ra, async () => { ok("nem o administrador escreve direto na tabela de reservas", /permission denied/.test(await err(`insert into public.court_bookings (court_id, code, kind, client_name, starts_at, ends_at) values ('${R.c1}','X','avulsa','Fulano','${T("06-20", 10)}','${T("06-20", 11)}')`) ?? "")) })
+
+  // cancelamento libera o horário
+  await as(R.rr, async () => { await db.query(`select public.court_booking_cancel($1,'cliente desistiu')`, [b1.id]) }, true)
+  ok("cancelada mantém histórico e libera a agenda", (await one(`select status from public.court_bookings where id=$1`, [b1.id])) === "cancelada" && await book(R.rr, R.c1, "avulsa", "Novo dono do horário", T("06-15", 20), T("06-15", 21)).then(() => true, () => false))
+  await as(R.rr, async () => { ok("reserva cancelada não pode ser alterada nem cancelada de novo", /cancelada/.test(await err(`select public.court_booking_update('${b1.id}','{"notes":"x"}')`) ?? "") && /já está cancelada/.test(await err(`select public.court_booking_cancel('${b1.id}','x')`) ?? "")) })
+
+  // bloqueios
+  await as(R.rr, async () => { ok("recepcionista não cria bloqueio", /permissão/.test(await err(`select public.court_block_create(array['${R.c1}']::uuid[],'manutencao','${T("06-16", 12)}','${T("06-16", 14)}')`) ?? "")) })
+  await as(R.rg, async () => { await db.query(`select public.court_block_create(array[$1]::uuid[],'manutencao',$2,$3,'Troca de rede')`, [R.c1, T("06-16", 12), T("06-16", 14)]) }, true)
+  ok("bloqueio impede nova reserva no período", /Horário indisponível: já existe bloqueio \(manutencao\)/.test(await tryBook(R.ra, R.c1, "avulsa", T("06-16", 13), T("06-16", 14)) ?? ""))
+  await as(R.rg, async () => {
+    ok("bloqueio sobre reserva existente é recusado, orientando a remarcar", /Cancele ou remarque/.test(await err(`select public.court_block_create(array['${R.c1}']::uuid[],'outro','${T("06-15", 21)}','${T("06-15", 22)}')`) ?? ""))
+    ok("bloqueio pode ficar fora do horário de funcionamento", (await err(`select public.court_block_create(array['${R.c1}']::uuid[],'torneio','${T("06-17", 3)}','${T("06-17", 5)}')`)) === null)
+  })
+
+  // remarcação
+  const rs = await as(R.rr, async () => (await db.query(`select public.court_booking_reschedule($1,$2,$3,$4)`, [b2.id, R.c1b, T("06-16", 18), T("06-16", 20)])).rows[0].court_booking_reschedule, true)
+  ok("remarcar muda quadra e horário", rs.court_id === R.c1b && rs.starts_at.startsWith("2030-06-16T18:00"), JSON.stringify(rs))
+  await as(R.rr, async () => {
+    const msgR = await err(`select public.court_booking_reschedule('${b2.id}','${R.c1}','${T("06-15", 20)}','${T("06-15", 21)}')`)
+    ok("remarcar para horário ocupado é recusado", /Horário indisponível/.test(msgR ?? ""), String(msgR))
+    ok("quadra de outro estabelecimento é recusada", /Quadra não encontrada/.test(await err(`select public.court_booking_reschedule('${b2.id}','${R.c2}','${T("06-16", 18)}','${T("06-16", 20)}')`) ?? ""))
+  })
+
+  // atualização e situação
+  await as(R.rr, async () => {
+    ok("campo não permitido é recusado", /Campo não permitido/.test(await err(`select public.court_booking_update('${b3.id}','{"starts_at":"2030-01-01"}')`) ?? ""))
+    ok("concluir antes do início é recusado", /depois do início/.test(await err(`select public.court_booking_update('${b3.id}','{"status":"concluida"}')`) ?? ""))
+    ok("dados do cliente e pagamento podem ser atualizados", (await err(`select public.court_booking_update('${b3.id}','{"client_name":"Carlos Souza","payment_method":"pix","payment_status":"pago","notes":"pagou adiantado"}')`)) === null)
+    ok("cancelar por update é recusado (há função própria)", /use a opção Cancelar/.test(await err(`select public.court_booking_update('${b3.id}','{"status":"cancelada"}')`) ?? ""))
+  }, true)
+  ok("alteração aplicada", (await q(`select client_name, payment_status from public.court_bookings where id=$1`, [b3.id]))[0].payment_status === "pago")
+  await q(`update public.court_bookings set status='pendente' where id=$1`, [b3.id])
+  await as(R.rr, async () => { ok("pendente → confirmada", (await err(`select public.court_booking_update('${b3.id}','{"status":"confirmada"}')`)) === null) })
+
+  // recorrência
+  const ser = await as(R.rr, async () => (await db.query(`select public.court_series_create($1,'mensalista','Time dos Amigos','48999990000',null,'2030-07-06',1260,60,'semanal',null,4)`, [R.c1])).rows[0].court_series_create, true)
+  ok("recorrência semanal cria uma reserva por semana, cada uma com código e número", ser.created === 4 && ser.conflicts.length === 0 && (await one(`select count(*)::int from public.court_bookings where series_id=$1`, [ser.series_id])) === 4)
+  await book(R.ra, R.c1, "avulsa", "Ocupa a 2ª semana", T("07-20", 19), T("07-20", 20))
+  const ser2 = await as(R.rr, async () => (await db.query(`select public.court_series_create($1,'mensalista','Outro Time',null,null,'2030-07-13',1140,60,'semanal',null,4)`, [R.c1])).rows[0].court_series_create, true)
+  ok("recorrência relata as datas em conflito em vez de pular em silêncio", ser2.created === 3 && ser2.conflicts.length === 1 && ser2.conflicts[0].date === "2030-07-20" && /já existe/.test(ser2.conflicts[0].reason), JSON.stringify(ser2.conflicts))
+  ok("recorrência sem nenhuma ocorrência possível não deixa série órfã", await (async () => { let m; await as(R.rr, async () => { m = await err(`select public.court_series_create('${R.c1}','mensalista','Sem vaga',null,null,'2030-07-06',1260,60,'semanal',null,1)`) }); return /Nenhuma ocorrência/.test(m ?? "") && (await one(`select count(*)::int from public.court_series where client_name='Sem vaga'`)) === 0 })())
+  const mid = await one(`select id from public.court_bookings where series_id=$1 and occurrence_no=2`, [ser.series_id])
+  await as(R.rr, async () => { await db.query(`select public.court_booking_update($1,'{"client_name":"Time Novo","price_cents":15000}','future')`, [mid]) }, true)
+  const nomes = await q(`select occurrence_no, client_name, price_cents from public.court_bookings where series_id=$1 order by occurrence_no`, [ser.series_id])
+  ok("alterar 'esta e as próximas' não mexe nas anteriores", nomes[0].client_name === "Time dos Amigos" && nomes.slice(1).every((n) => n.client_name === "Time Novo" && n.price_cents === 15000), JSON.stringify(nomes))
+  await as(R.rr, async () => { await db.query(`select public.court_booking_cancel($1,'encerrou o contrato','future')`, [mid]) }, true)
+  ok("cancelar 'esta e as próximas' mantém a primeira ocorrência", (await one(`select count(*)::int from public.court_bookings where series_id=$1 and status='cancelada'`, [ser.series_id])) === 3 && (await one(`select status from public.court_bookings where series_id=$1 and occurrence_no=1`, [ser.series_id])) === "confirmada")
+  const mensal = await as(R.rr, async () => (await db.query(`select public.court_series_create($1,'avulsa','Mensal Fulano',null,null,'2030-08-03',720,60,'mensal',null,3)`, [R.c1])).rows[0].court_series_create, true)
+  ok("recorrência mensal mantém o dia do mês (03/08, 03/09, 03/10)", (await q(`select to_char(starts_at at time zone 'America/Sao_Paulo','DD/MM') d from public.court_bookings where series_id=$1 order by starts_at`, [mensal.series_id])).map((r) => r.d).join() === "03/08,03/09,03/10", JSON.stringify(mensal))
+
+  // histórico
+  await as(R.rr, async () => {
+    const h = await q(`select action, by_name from public.court_booking_history('${b3.id}')`)
+    ok("histórico mostra criação e alterações, com quem fez", h.length >= 3 && h[0].action === "INSERT" && h[0].by_name.startsWith("Pessoa") && h.every((r) => !!r.by_name), JSON.stringify(h))
+  })
+
+  // isolamento
+  await as(R.rb, async () => {
+    ok("outro estabelecimento não vê reservas, séries nem horários", (await one(`select count(*)::int from public.court_bookings`)) === 0 && (await one(`select count(*)::int from public.court_series`)) === 0 && (await one(`select count(*)::int from public.court_hours`)) === 0)
+    ok("outro estabelecimento não altera nem cancela reservas alheias", /não encontrada/.test(await err(`select public.court_booking_cancel('${b3.id}','x')`) ?? "") && /não encontrada/.test(await err(`select public.court_booking_update('${b3.id}','{"notes":"x"}')`) ?? ""))
+    ok("outro estabelecimento não reserva quadra alheia", /Quadra não encontrada|Configure os horários/.test(await err(`select public.court_booking_create('${R.c1}','avulsa','Invasor',null,null,'${T("06-22", 12)}','${T("06-22", 13)}')`) ?? ""))
+  })
+  await as(R.rr, async () => { ok("recepcionista não altera horários de funcionamento nem preços", (await q(`update public.court_hours set active=false returning 1`)).length === 0 && /row-level security|violates/i.test(await err(`insert into public.court_price_rules (name, weekdays, from_min, to_min, price_cents) values ('X Y', array[1], 0, 60, 1)`) ?? "")) })
+
+  // modo espião
+  await as(R.boss, async () => { await db.query(`select public.sa_support_start($1,'conferir agenda',30)`, [R.o1]) }, true)
+  await as(R.boss, async () => {
+    ok("modo espião: dono lê a agenda", (await one(`select count(*)::int from public.court_bookings`)) >= 3)
+    ok("modo espião: não cria nem cancela reservas", /somente leitura/.test(await err(`select public.court_booking_create('${R.c1}','avulsa','Teste Espião',null,null,'${T("06-23", 12)}','${T("06-23", 13)}')`) ?? "") && /somente leitura/.test(await err(`select public.court_booking_cancel('${b3.id}','x')`) ?? ""))
+  })
+  await q(`delete from public.support_sessions`)
+
+  // simultaneidade: duas pessoas tentam o mesmo horário ao mesmo tempo
+  const c2 = new pg.Client({ connectionString: "postgresql://postgres:test@localhost:54331/geab_test" }); await c2.connect()
+  const slot = [R.c1, "avulsa", "Concorrente", null, null, T("07-27", 15), T("07-27", 16)]
+  const call = `select public.court_booking_create($1,$2,$3,$4,$5,$6,$7)`
+  await c2.query("begin"); await c2.query("set local role authenticated"); await c2.query("select set_config('request.jwt.claim.sub', $1, true)", [R.rr])
+  await c2.query(call, slot)                                      // a primeira pessoa reservou, ainda sem confirmar a transação
+  await db.query("begin"); await db.query("set local role authenticated"); await db.query("select set_config('request.jwt.claim.sub', $1, true)", [R.ra])
+  const segunda = db.query(call, slot.map((v, i) => (i === 2 ? "Segunda pessoa" : v))).then(() => null, (e) => e.message)   // a segunda fica esperando
+  await new Promise((r) => setTimeout(r, 500))
+  await c2.query("commit"); const msg = await segunda; await db.query("rollback"); await c2.end()
+  ok("duas reservas simultâneas do mesmo horário: só uma vence", /Horário indisponível/.test(msg ?? "") && (await one(`select count(*)::int from public.court_bookings where court_id=$1 and starts_at=$2 and status <> 'cancelada'`, [R.c1, T("07-27", 15)])) === 1, String(msg))
+
+  // exportação e prévia de preço
+  ok("exportação do estabelecimento inclui reservas, séries e horários", await (async () => { let ex; await as(R.boss, async () => { ex = await one(`select public.sa_org_export($1)`, [R.o1]) }, true); return ex.tabelas.court_bookings?.length >= 5 && ex.tabelas.court_series?.length >= 2 && ex.tabelas.court_hours?.length >= 3 })())
+  await as(R.rr, async () => { ok("prévia de preço usa as regras", (await one(`select public.court_price_preview('${R.c1}','avulsa','${T("06-22", 19)}','${T("06-22", 21)}')`)) === 36000) })
+}
+
 section("Auditoria")
 await as(U.peladaAdmin, async () => {
   await db.query(`insert into public.expenses (spent_at, description, amount) values (current_date,'Auditada',3)`)
