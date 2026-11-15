@@ -1,4 +1,4 @@
-<!-- revisado: 1.20.0 -->
+<!-- revisado: 1.24.0 -->
 # Painel do SaaS (dono da plataforma)
 
 Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Comunicados**, **Documentação**, **Site comercial** e **Demonstração**.

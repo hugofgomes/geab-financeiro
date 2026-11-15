@@ -2,7 +2,7 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
-      "version": "1.20.0",
+      "version": "1.24.0",
       "date": "2026-11-15",
       "title": "Lista de clientes mais limpa, com vencimento do teste",
       "novidades": [
