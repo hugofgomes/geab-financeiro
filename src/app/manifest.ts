@@ -1,18 +1,19 @@
+import { BRAND_PRIMARY, IS_PARTIDOU } from "@/lib/brand"
 import type { MetadataRoute } from "next"
 
 /** App instalável (PWA): aparece como "Instalar app" no Android/Chrome e "Adicionar à Tela de Início" no iPhone. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "GEAB Futebol · Gestão do grupo",
-    short_name: "GEAB",
-    description: "Atletas, mensalidades, jogos e escalações do seu grupo de futebol.",
+    name: IS_PARTIDOU ? "Partidou · Gestão de quadras" : "GEAB Futebol · Gestão do grupo",
+    short_name: IS_PARTIDOU ? "Partidou" : "GEAB",
+    description: IS_PARTIDOU ? "Agenda, reservas e financeiro do seu centro esportivo." : "Atletas, mensalidades, jogos e escalações do seu grupo de futebol.",
     lang: "pt-BR",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#1E3A5F",
-    theme_color: "#1E3A5F",
+    background_color: BRAND_PRIMARY,
+    theme_color: BRAND_PRIMARY,
     categories: ["sports", "business", "productivity"],
     icons: [
       { src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

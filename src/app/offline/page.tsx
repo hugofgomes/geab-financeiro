@@ -5,7 +5,7 @@ import { WifiOff } from "lucide-react"
 /** Mostrada pelo app instalável quando não há conexão. Pública e sem dados. */
 export default function OfflinePage() {
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#1E3A5F] p-4">
+    <div className="grid min-h-dvh place-items-center bg-primary p-4">
       <div className="w-full max-w-sm space-y-4 rounded-2xl bg-card p-6 text-center shadow-xl">
         <WifiOff className="mx-auto size-10 text-muted-foreground" aria-hidden />
         <h1 className="text-lg font-semibold">Sem conexão</h1>

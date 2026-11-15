@@ -1,3 +1,4 @@
+import { IS_PARTIDOU } from "@/lib/brand"
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { isAdminOnlyPath, isStaff } from "@/lib/roles"
@@ -34,7 +35,7 @@ export async function middleware(req: NextRequest) {
   if (path === "/site" || path === "/demo" || path === "/privacidade" || path === "/termos") return res
   // Quadras: busca, página pública do centro e gestão da partida pelo organizador (código secreto no link). Não exigem login.
   if (path === "/quadras" || path.startsWith("/quadras/") || path.startsWith("/partida/")) return res
-  if (!user && path === "/") { const u = req.nextUrl.clone(); u.pathname = "/site"; return NextResponse.rewrite(u) }
+  if (!user && path === "/") { if (IS_PARTIDOU) return go("/quadras"); const u = req.nextUrl.clone(); u.pathname = "/site"; return NextResponse.rewrite(u) }
   if (!user) return path === "/login" || path === "/cadastro" || path === "/novo-grupo" ? res : go("/login")
 
   // organizations(id) só volta se o grupo estiver utilizável (ativo ou teste dentro do prazo): é assim que o bloqueio automático chega à tela.

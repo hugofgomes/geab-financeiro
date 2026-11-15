@@ -104,7 +104,7 @@ export default function AthletePortal() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#F5F7FA]">
       {/* Topo */}
-      <header className="sticky top-0 z-30 bg-[#1E3A5F] text-white shadow-md">
+      <header className="sticky top-0 z-30 bg-primary text-white shadow-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 md:h-[72px]">
           <span className="truncate text-base font-bold tracking-wide uppercase md:text-lg">{org?.name ?? "GEAB Futebol"}</span>
           <div className="flex items-center gap-1 sm:gap-2">
@@ -170,7 +170,7 @@ export default function AthletePortal() {
             {/* Boas-vindas */}
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#1E3A5F] sm:text-3xl">Olá, {first}! 👋</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">Olá, {first}! 👋</h1>
                 <p className="mt-1 text-sm text-muted-foreground">Confira seus jogos, pagamentos e desempenho no GEAB Futebol.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs">

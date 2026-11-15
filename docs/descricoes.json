@@ -81,6 +81,7 @@
     "BTG_REDIRECT_URI": "Endereço de retorno da autorização do BTG",
     "BTG_WEBHOOK_SECRET": "Segredo do webhook do BTG",
     "CRON_SECRET": "Segredo da rotina diária de avisos",
+    "NEXT_PUBLIC_BRAND": "Marca da instalação: \"partidou\" liga a identidade visual do Partidou no sistema todo (variável de build); vazio mantém a do GEAB",
     "NEXT_PUBLIC_BASE_DOMAIN": "Domínio-base para endereços de grupo (grupo.dominio)",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "Chave pública do Supabase (navegador)",
     "NEXT_PUBLIC_SUPABASE_URL": "Endereço do projeto Supabase",

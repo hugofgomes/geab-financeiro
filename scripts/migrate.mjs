@@ -2,6 +2,7 @@
 // O controle fica na tabela public.schema_migrations. Lê DATABASE_URL de .env.deploy (arquivo local, fora do Git).
 //   node --env-file=.env.deploy scripts/migrate.mjs --status          lista aplicadas e pendentes
 //   node --env-file=.env.deploy scripts/migrate.mjs --baseline 0021   (1ª vez) marca até 0021 como já aplicadas, sem executar
+//   node --env-file=.env.deploy scripts/migrate.mjs --fresh           (banco NOVO e vazio) aplica todas desde a 0001; recusa se já houver tabelas
 //   node --env-file=.env.deploy scripts/migrate.mjs                    aplica as pendentes
 import pg from "pg"
 import fs from "node:fs"
@@ -29,7 +30,10 @@ try {
   }
   const pending = files.filter((f) => !done.has(f))
   if (args.includes("--status")) { for (const f of files) console.log(`${done.has(f) ? "aplicada " : "PENDENTE "} ${f}`); process.exit(0) }
-  if (done.size === 0 && pending.length > 1) throw new Error("Controle vazio: rode antes --baseline NNNN com a última migration que o banco já tem (veja --status).")
+  if (args.includes("--fresh")) {
+    const n = (await db.query(`select count(*)::int n from information_schema.tables where table_schema = 'public' and table_name <> 'schema_migrations'`)).rows[0].n
+    if (n > 0 || done.size > 0) throw new Error(`--fresh só vale para banco vazio (há ${n} tabela(s) e ${done.size} migration(s) registrada(s))`)
+  } else if (done.size === 0 && pending.length > 1) throw new Error("Controle vazio: rode antes --baseline NNNN com a última migration que o banco já tem (veja --status).")
   if (!pending.length) { console.log("Nada a aplicar: banco em dia."); process.exit(0) }
   for (const f of pending) {
     try {

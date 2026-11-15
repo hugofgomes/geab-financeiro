@@ -114,7 +114,7 @@ export default function AccessLogPage() {
                 <button key={s.day} type="button" onClick={() => setSel(s.day)} aria-pressed={s.day === day}
                   aria-label={`${shortDay(s.day)}: ${s.users} ${s.users === 1 ? "pessoa" : "pessoas"}`} title={`${shortDay(s.day)} · ${s.users} ${s.users === 1 ? "pessoa" : "pessoas"}`}
                   className="group flex h-full w-10 shrink-0 flex-col justify-end outline-none sm:w-auto sm:min-w-0 sm:flex-1">
-                  <span className={cn("block w-full rounded-t transition-colors", s.day === day ? "bg-[#EF3028]" : s.users ? "bg-[#1E3A5F] group-hover:bg-[#2A5A8C]" : "bg-[#E2E8F0]")}
+                  <span className={cn("block w-full rounded-t transition-colors", s.day === day ? "bg-[#EF3028]" : s.users ? "bg-primary group-hover:bg-[#2A5A8C]" : "bg-[#E2E8F0]")}
                     style={{ height: s.users ? `${Math.max(8, (s.users / maxUsers) * 100)}%` : "4px" }} />
                 </button>
               ))}

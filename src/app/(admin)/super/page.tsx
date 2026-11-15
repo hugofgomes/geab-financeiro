@@ -1,5 +1,7 @@
 "use client"
 
+import { BRAND_PRIMARY } from "@/lib/brand"
+
 import { NativeSelect } from "@/components/native-select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -105,7 +107,7 @@ function GrowthChart({ data }: { data: Dash["growth"] }) {
           <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
           <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
           <Tooltip contentStyle={CHART_TIP} />
-          <Area type="monotone" dataKey="total" name="Clientes (acumulado)" stroke="#1E3A5F" fill="#1E3A5F" fillOpacity={0.12} strokeWidth={2} isAnimationActive={false} />
+          <Area type="monotone" dataKey="total" name="Clientes (acumulado)" stroke={BRAND_PRIMARY} fill={BRAND_PRIMARY} fillOpacity={0.12} strokeWidth={2} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -121,7 +123,7 @@ function MrrChart({ data }: { data: Dash["mrr"] }) {
           <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
           <Tooltip formatter={(v) => formatBRL(Number(v))} contentStyle={CHART_TIP} cursor={{ fill: "rgb(30 58 95 / 0.05)" }} />
-          <Bar dataKey="mrr" name="MRR" fill="#1E3A5F" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          <Bar dataKey="mrr" name="MRR" fill={BRAND_PRIMARY} radius={[4, 4, 0, 0]} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -1,4 +1,4 @@
-<!-- revisado: 1.13.0 -->
+<!-- revisado: 1.25.0 -->
 # Operação, deploy e manutenção
 
 ## Hospedagem
@@ -43,6 +43,9 @@ O aplicativo é o mesmo (um só Supabase e um só contêiner); o domínio é ape
 3. **Supabase** → Authentication → URL Configuration: incluir `https://app.partidou.com.br/**` em *Redirect URLs* (necessário para convite de funcionários, recuperação de senha e login). Se o *Site URL* for trocado para o Partidou, ajustar também `SITE_URL` no Coolify.
 4. **Aplicativo:** nada a alterar no código; links de retorno usam o endereço público da requisição (`publicOrigin`). Se a página inicial do Partidou for outra, `app.` fica reservado ao sistema.
 Observação: a página pública das quadras (`/quadras/<nome>`) é da Fase 6 e ainda não existe.
+
+## Marca por instalação (Partidou × GEAB)
+O mesmo código serve as duas marcas. Na aplicação do Partidou, defina a variável de **build** `NEXT_PUBLIC_BRAND=partidou`: as variáveis CSS da classe `.brand-partidou` (em `globals.css`) trocam as cores do sistema inteiro para verde-escuro `#142C25`, lima `#B9F344`, branco gelo `#F6F8F4` e grafite `#19221D`; título, manifesto e cor do app passam a ser do Partidou, e visitantes na raiz vão para `/quadras`. Sem a variável (GEAB), nada muda. Como é variável de build, exige novo deploy. Os ícones do app (`public/pwa`) e o logotipo ainda são os do GEAB.
 
 ## Problemas conhecidos e dicas
 - Deploy com a VPS sem memória: se o build travar, repetir o deploy ou aumentar a memória/swap.

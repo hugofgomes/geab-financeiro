@@ -162,6 +162,45 @@
   --shell-active-fg: #142C25;
 }
 
+/* Identidade do Partidou no sistema inteiro (ligada por NEXT_PUBLIC_BRAND=partidou, na <html>):
+   verde-escuro #142C25, lima #B9F344, branco gelo #F6F8F4 e grafite #19221D. Vermelho segue só para erro/atraso. */
+.brand-partidou {
+  --background: #F6F8F4;
+  --foreground: #19221D;
+  --card: #FFFFFF;
+  --card-foreground: #19221D;
+  --popover: #FFFFFF;
+  --popover-foreground: #19221D;
+  --primary: #142C25;
+  --primary-foreground: #B9F344;
+  --secondary: #E8EDE3;
+  --secondary-foreground: #142C25;
+  --muted: #EDF1E8;
+  --muted-foreground: #55655B;
+  --accent: #E8F5C8;
+  --accent-foreground: #142C25;
+  --destructive: #D92D20;
+  --border: #DCE3D6;
+  --input: #C5CFBE;
+  --ring: #B9F344;
+  --chart-1: #142C25;
+  --chart-2: #B9F344;
+  --chart-3: #55655B;
+  --chart-4: #8FA08F;
+  --chart-5: #C5CFBE;
+  --sidebar: #142C25;
+  --sidebar-foreground: #F6F8F4;
+  --sidebar-primary: #B9F344;
+  --sidebar-primary-foreground: #142C25;
+  --sidebar-accent: rgb(185 243 68 / 0.12);
+  --sidebar-accent-foreground: #F6F8F4;
+  --sidebar-border: rgb(246 248 244 / 0.12);
+  --sidebar-ring: #B9F344;
+  --shell-bg: #142C25;
+  --shell-active: #B9F344;
+  --shell-active-fg: #142C25;
+}
+
 /* Site comercial */
 @keyframes site-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 .site-float { animation: site-float 6s ease-in-out infinite }

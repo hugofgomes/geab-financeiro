@@ -35,7 +35,7 @@ export default function BuscaQuadras() {
   React.useEffect(() => { void search() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="quadra-theme min-h-dvh bg-background text-foreground">
-      <header className="bg-primary px-4 py-5 text-primary-foreground"><div className="mx-auto max-w-4xl"><p className="text-sm font-semibold tracking-wide">PARTIDOU</p><h1 className="text-2xl font-bold">Encontre onde jogar</h1><p className="text-sm opacity-90">Veja quadras, horários livres e solicite sua reserva.</p></div></header>
+      <header className="bg-primary px-4 py-5 text-primary-foreground"><div className="mx-auto max-w-4xl"><div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold tracking-wide">PARTIDOU</p><Link href="/login" className="text-sm font-medium underline">Sou um centro esportivo · Entrar</Link></div><h1 className="text-2xl font-bold">Encontre onde jogar</h1><p className="text-sm opacity-90">Veja quadras, horários livres e solicite sua reserva.</p></div></header>
       <main className="mx-auto max-w-4xl space-y-4 px-4 py-6">
         <form onSubmit={search} className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1"><Label htmlFor="s">Modalidade</Label><NativeSelect id="s" value={f.sport} onChange={(e) => setF({ ...f, sport: e.target.value })}><option value="">Todas</option>{SPORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</NativeSelect></div>

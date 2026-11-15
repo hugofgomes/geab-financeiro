@@ -2,6 +2,20 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.25.0",
+      "date": "2026-11-15",
+      "title": "Identidade visual do Partidou no sistema inteiro",
+      "novidades": [
+        "Paleta oficial do Partidou aplicada a todas as telas (menu, botões, login, cadastro, gráficos e e-mails): verde-escuro #142C25, lima #B9F344, branco gelo #F6F8F4 e grafite #19221D. Vermelho segue só para erro e atraso.",
+        "A marca é ligada por instalação (variável NEXT_PUBLIC_BRAND=partidou): o GEAB continua com a identidade dele.",
+        "No endereço do Partidou, quem não está logado cai na busca de quadras (/quadras), que ganhou o link “Sou um centro esportivo · Entrar”; título, manifesto e cor do app passam a ser do Partidou."
+      ],
+      "melhorias": [
+        "Telas de entrada, gráficos e e-mails de comunicado usam a cor principal da marca em vez de cor fixa."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.24.0",
       "date": "2026-11-15",
       "title": "Lista de clientes mais limpa, com vencimento do teste",

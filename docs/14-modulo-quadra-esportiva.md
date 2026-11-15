@@ -1,4 +1,4 @@
-<!-- revisado: 1.23.0 -->
+<!-- revisado: 1.25.0 -->
 # Módulo Quadra Esportiva
 
 Módulo para a gestão profissional de quadras, arenas e centros esportivos. Está sendo implantado **neste sistema** para depois ser **migrado para o Partidou** (`partidou.com.br`). Por isso foi construído de forma **portátil** (ver "Contrato de portabilidade").
@@ -18,7 +18,7 @@ No menu, os itens das fases pendentes aparecem desativados (ícone de relógio).
 ## Como funciona
 - **Estabelecimento = organização.** Um centro esportivo é uma organização (tenant) com `organizations.kind = 'quadra'` e um plano que inclui o módulo `quadras`. O dono da plataforma define o tipo na aba Configurações do cliente e o módulo no plano.
 - **Menu:** quem tem perfil no módulo vê o submenu **Quadra Esportiva** (Dashboard, Agenda de Quadras, Centro Esportivo, Reservas, Lista de Espera, Clientes, Funcionários, Financeiro, Relatórios, Configurações). Em organizações do tipo centro esportivo o menu do grupo de futebol (atletas, mensalidades etc.) fica oculto e a página inicial é o módulo.
-- **Visual:** identidade do Partidou aplicada só ao módulo (classe `.quadra-theme`: verde-lima `#B9F344`, verde-escuro `#142C25`, grafite `#19221D`, branco gelo `#F6F8F4`).
+- **Visual:** na instalação do Partidou (`NEXT_PUBLIC_BRAND=partidou`) a identidade vale para o **sistema inteiro** (classe `.brand-partidou`); no GEAB ela vale só no módulo (classe `.quadra-theme`: verde-lima `#B9F344`, verde-escuro `#142C25`, grafite `#19221D`, branco gelo `#F6F8F4`).
 - **Telas da Fase 1:** `/quadra` (Dashboard: indicadores do cadastro e primeiros passos) e `/quadra/centro` (abas Perfil, Endereço e Quadras). Os indicadores de reservas e faturamento chegam nas próximas fases; nada é exibido com dados inventados.
 
 ## Agenda e reservas (Fase 2)

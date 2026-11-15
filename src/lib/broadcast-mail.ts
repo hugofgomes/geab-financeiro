@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer"
+import { BRAND_PRIMARY } from "@/lib/brand"
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!)
 const brand = () => process.env.SMTP_FROM_NAME || "Gestão de Futebol"
@@ -31,7 +32,7 @@ export function buildBroadcastEmail(subject: string, body: string, imageUrl?: st
   return {
     text: `${body.trim()}${img ? `\n\nImagem: ${img}` : ""}\n\n—\n${footer}`,
     html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;max-width:560px;margin:0 auto">
-<div style="background:#1E3A5F;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;font-size:18px;font-weight:bold">${esc(brand())}</div>
+<div style="background:${BRAND_PRIMARY};color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;font-size:18px;font-weight:bold">${esc(brand())}</div>
 <div style="border:1px solid #e5e7eb;border-top:0;padding:20px;border-radius:0 0 12px 12px">
 <h1 style="font-size:20px;margin:0 0 16px;color:#17365D">${esc(subject)}</h1>${img ? `<img src="${esc(img)}" alt="${esc(subject)}" width="520" style="display:block;max-width:100%;height:auto;border-radius:8px;margin:0 0 16px">` : ""}${paragraphs(body)}
 <p style="margin:24px 0 0;font-size:12px;color:#6b7280">${esc(footer)}</p></div></div>`,

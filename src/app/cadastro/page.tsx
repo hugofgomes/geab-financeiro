@@ -19,7 +19,7 @@ const COOLDOWN = 60
 function Shell({ children, group, subtitle = "Cadastro de atleta" }: { children: React.ReactNode; group?: string | null; subtitle?: string }) {
   const { org } = usePublicOrg(group)
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#1E3A5F] p-4">
+    <div className="grid min-h-dvh place-items-center bg-primary p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl bg-card p-6 shadow-xl">
         <OrgHeading org={org} subtitle={subtitle} />
         {children}

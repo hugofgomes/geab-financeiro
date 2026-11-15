@@ -1,5 +1,7 @@
 "use client"
 
+import { BRAND_PRIMARY } from "@/lib/brand"
+
 import { SetupNotice } from "@/components/setup-notice"
 import { StatusBadge } from "@/components/status-badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -98,7 +100,7 @@ export default function Dashboard() {
                 contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 8px 24px rgb(15 23 42 / 0.10)", fontSize: 12, padding: "8px 12px" }} labelStyle={{ fontWeight: 600, color: "#1F2937", marginBottom: 4 }} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               <Bar dataKey="Previsto" fill="#C3D1E3" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-              <Bar dataKey="Recebido" fill="#1E3A5F" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="Recebido" fill={BRAND_PRIMARY} radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
           )}
