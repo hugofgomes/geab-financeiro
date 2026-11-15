@@ -8,16 +8,32 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLoad } from "@/hooks/use-load"
 import { supabase } from "@/lib/supabase/client"
-import { Loader2, Megaphone, Send } from "lucide-react"
+import { ImagePlus, Loader2, Megaphone, Send, X } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 
 type Row = { id: string; subject: string; send_email: boolean; show_in_app: boolean; in_app_until: string | null; status: string; orgs_count: number; emails_count: number; sent_count: number; failed_count: number; created_at: string; finished_at: string | null; audience: { statuses?: string[]; plans?: string[] } }
-type Detail = { broadcast: { id: string; subject: string; body: string; show_in_app: boolean; in_app_until: string | null }; recipients: { email: string; org: string; status: string; error: string | null; sent_at: string | null }[]; dismissed: number }
+type Detail = { broadcast: { id: string; subject: string; body: string; image_url: string | null; show_in_app: boolean; in_app_until: string | null }; recipients: { email: string; org: string; status: string; error: string | null; sent_at: string | null }[]; dismissed: number }
 type Plan = { code: string; name: string; active: boolean }
 
 const STATUSES: [string, string][] = [["ativa", "Ativas"], ["teste", "Em teste"], ["suspensa", "Suspensas"], ["cancelada", "Canceladas"]]
 const dtm = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+
+/** Reduz a imagem (máx. 1200 px de largura) e converte para JPEG: e-mail leve, sem metadados (localização do celular) e compatível com todos os leitores. */
+async function prepareImage(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file)
+  const scale = Math.min(1, 1200 / bmp.width)
+  const c = document.createElement("canvas")
+  c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale)
+  const ctx = c.getContext("2d")!
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height)   // PNG com fundo transparente vira fundo branco
+  ctx.drawImage(bmp, 0, 0, c.width, c.height)
+  for (const q of [0.85, 0.7, 0.55]) {
+    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", q))
+    if (blob && blob.size <= 1_900_000) return blob
+  }
+  throw new Error("A imagem ficou grande demais. Use uma menor.")
+}
 
 async function load() {
   const db = supabase()
@@ -40,6 +56,9 @@ export default function ComunicadosPage() {
   const [busy, setBusy] = React.useState(false)
   const [progress, setProgress] = React.useState<{ id: string; sent: number; failed: number; pending: number; total: number } | null>(null)
   const [detail, setDetail] = React.useState<Detail | null>(null)
+  const [image, setImage] = React.useState<string | null>(null)
+  const [uploading, setUploading] = React.useState(false)
+  const fileRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     if (!statuses.length) { setPreview(null); return }
@@ -47,6 +66,23 @@ export default function ComunicadosPage() {
     const t = setTimeout(() => { supabase().rpc("sa_broadcast_preview", { p_statuses: statuses, p_plans: plans }).then((r) => { if (alive && !r.error) setPreview(r.data as { orgs: number; emails: number }) }) }, 300)
     return () => { alive = false; clearTimeout(t) }
   }, [statuses, plans])
+
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    e.target.value = ""
+    if (!f) return
+    if (!/^image\/(png|jpe?g|webp)$/.test(f.type)) return toast.error("Use uma imagem PNG, JPG ou WebP.")
+    if (f.size > 12_000_000) return toast.error("Imagem muito grande (máximo 12 MB).")
+    setUploading(true)
+    try {
+      const blob = await prepareImage(f)
+      const path = `${crypto.randomUUID()}.jpg`
+      const up = await supabase().storage.from("comunicados").upload(path, blob, { contentType: "image/jpeg", upsert: false })
+      if (up.error) throw new Error(up.error.message)
+      setImage(supabase().storage.from("comunicados").getPublicUrl(path).data.publicUrl)
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Não foi possível enviar a imagem.") }
+    setUploading(false)
+  }
 
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
 
@@ -66,16 +102,16 @@ export default function ComunicadosPage() {
 
   async function send() {
     setBusy(true)
-    const r = await supabase().rpc("sa_broadcast_send", { p_subject: subject, p_body: body, p_email: email, p_in_app: inApp, p_statuses: statuses, p_plans: plans, p_in_app_days: Number(days) })
+    const r = await supabase().rpc("sa_broadcast_send", { p_subject: subject, p_body: body, p_email: email, p_in_app: inApp, p_statuses: statuses, p_plans: plans, p_in_app_days: Number(days), p_image_url: image })
     setBusy(false); setConfirm(false)
     if (r.error) return toast.error(r.error.message)
     toast.success(email ? "Comunicado criado. Enviando e-mails…" : "Aviso publicado no painel dos clientes.")
-    setSubject(""); setBody("")
+    setSubject(""); setBody(""); setImage(null)
     if (email) await deliver(r.data as string, preview?.emails ?? 0); else reload()
   }
 
   async function test() {
-    const r = await fetch("/api/super/comunicados/teste", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ subject, body }) })
+    const r = await fetch("/api/super/comunicados/teste", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ subject, body, imageUrl: image }) })
     const j = (await r.json().catch(() => ({}))) as { error?: string; to?: string }
     if (r.ok) toast.success(`Teste enviado para ${j.to}.`); else toast.error(j.error ?? "Falha no teste.")
   }
@@ -123,6 +159,23 @@ export default function ComunicadosPage() {
           <p className="text-right text-xs text-muted-foreground">{body.length}/5000</p>
         </div>
 
+        <div className="space-y-2">
+          <Label>Imagem <span className="font-normal text-muted-foreground">(opcional · PNG, JPG ou WebP)</span></Label>
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={pick} aria-label="Escolher imagem" />
+          {image ? (
+            <div className="relative w-full max-w-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="Imagem do comunicado" className="max-h-56 w-full rounded-lg border object-cover" />
+              <button type="button" onClick={() => setImage(null)} aria-label="Remover imagem" className="absolute top-2 right-2 grid size-10 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"><X className="size-4" /></button>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" disabled={uploading} onClick={() => fileRef.current?.click()}>
+              {uploading ? <Loader2 className="animate-spin" /> : <ImagePlus />} {uploading ? "Enviando imagem…" : "Adicionar imagem"}
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">A imagem é reduzida para 1200 px e convertida para JPG. Alguns leitores de e-mail pedem para o cliente liberar a exibição de imagens.</p>
+        </div>
+
         <fieldset className="space-y-1">
           <legend className="text-sm font-medium">Canais</legend>
           <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5" checked={email} onChange={(e) => setEmail(e.target.checked)} /> E-mail para os administradores e o responsável de cada grupo</label>
@@ -141,8 +194,8 @@ export default function ComunicadosPage() {
           {preview ? <>Vai para <b>{preview.orgs}</b> grupo(s){email ? <> e <b>{preview.emails}</b> e-mail(s)</> : null}. Clientes excluídos e quem pediu para não receber ficam de fora.</> : "Escolha a situação para ver quantos clientes recebem."}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" disabled={!email || subject.trim().length < 3 || body.trim().length < 3} onClick={test}>Enviar teste para mim</Button>
-          <Button variant="brand" className="h-11 w-full sm:h-9 sm:w-auto" disabled={!valid || busy || !!progress} onClick={() => setConfirm(true)}><Send /> Enviar comunicado</Button>
+          <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" disabled={!email || uploading || subject.trim().length < 3 || body.trim().length < 3} onClick={test}>Enviar teste para mim</Button>
+          <Button variant="brand" className="h-11 w-full sm:h-9 sm:w-auto" disabled={!valid || busy || uploading || !!progress} onClick={() => setConfirm(true)}><Send /> Enviar comunicado</Button>
         </div>
       </CardContent></Card>
 
@@ -168,7 +221,7 @@ export default function ComunicadosPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Enviar comunicado?</DialogTitle><DialogDescription>Esta ação não pode ser desfeita.</DialogDescription></DialogHeader>
           <div className="space-y-1 text-sm"><p className="font-medium">{subject}</p>
-            <p>{preview?.orgs} grupo(s){email ? `, ${preview?.emails} e-mail(s)` : ""}{inApp ? ` · aviso no painel por ${days} dia(s)` : ""}.</p></div>
+            <p>{preview?.orgs} grupo(s){email ? `, ${preview?.emails} e-mail(s)` : ""}{inApp ? ` · aviso no painel por ${days} dia(s)` : ""}{image ? " · com imagem" : ""}.</p></div>
           <DialogFooter><Button variant="outline" onClick={() => setConfirm(false)}>Cancelar</Button><Button variant="brand" disabled={busy} onClick={send}>{busy && <Loader2 className="animate-spin" />} Enviar agora</Button></DialogFooter>
         </DialogContent>
       </Dialog>
@@ -177,6 +230,8 @@ export default function ComunicadosPage() {
         <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto">
           {detail && <>
             <DialogHeader><DialogTitle>{detail.broadcast.subject}</DialogTitle><DialogDescription>{detail.recipients.length} destinatário(s){detail.broadcast.show_in_app ? ` · ${detail.dismissed} dispensaram o aviso no painel` : ""}</DialogDescription></DialogHeader>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {detail.broadcast.image_url && <img src={detail.broadcast.image_url} alt="" className="max-h-56 w-full rounded-lg border object-cover" />}
             <p className="whitespace-pre-wrap rounded-lg bg-secondary/60 p-3 text-sm">{detail.broadcast.body}</p>
             <ul className="divide-y text-sm">
               {detail.recipients.map((x) => (

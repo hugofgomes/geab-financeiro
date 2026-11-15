@@ -720,6 +720,14 @@ section("Comunicados em massa (0033)")
   await as(uid(600), async () => {
     await db.query(`select public.sa_set_broadcast_opt_out($1, true)`, [C.o2])
   }, true)
+  let id2
+  await as(uid(600), async () => {
+    ok("imagem fora do bucket de comunicados é recusada", /Imagem inválida/.test(await err(`select public.sa_broadcast_send('Com imagem','Mensagem',false,true,array['ativa'],null,7,'https://evil.example.com/a.png')`) ?? "") && /Imagem inválida/.test(await err(`select public.sa_broadcast_send('Com imagem','Mensagem',false,true,array['ativa'],null,7,'http://x.supabase.co/storage/v1/object/public/comunicados/a.png')`) ?? ""))
+    const img = "https://abc.supabase.co/storage/v1/object/public/comunicados/9f2c-1.jpg"
+    id2 = await one(`select public.sa_broadcast_send('Com imagem','Mensagem com figura',true,true,array['ativa'],null,7,$1)`, [img])
+  }, true)
+  ok("imagem válida é guardada e vai no conteúdo do envio", (await q(`select image_url from public.broadcast_content($1)`, [id2]))[0].image_url === "https://abc.supabase.co/storage/v1/object/public/comunicados/9f2c-1.jpg")
+  await as(C.a1, async () => { ok("aviso do painel traz a imagem", (await q(`select image_url from public.my_announcements()`)).some((r) => r.image_url?.endsWith("9f2c-1.jpg"))) })
   ok("opt-out tira o grupo de novos envios", (await one(`select count(*)::int from public.broadcast_audience_orgs(array['teste'], null) x where x = $1`, [C.o2])) === 0)
   ok("opt-out fica na auditoria do cliente", (await one(`select count(*)::int from public.audit_log where action='SA_BROADCAST_OPT_OUT' and tenant_id=$1`, [C.o2])) === 1)
 }

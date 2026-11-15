@@ -2,6 +2,19 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.16.0",
+      "date": "2026-11-15",
+      "title": "Imagem nos comunicados",
+      "novidades": [
+        "Comunicados aceitam uma imagem (PNG, JPG ou WebP): ela aparece no e-mail e no aviso dentro do painel dos clientes, com miniatura e botão de remover antes de enviar.",
+        "A imagem é reduzida para 1200 px e convertida em JPG antes do envio, o que deixa o e-mail leve e remove dados ocultos da foto, como a localização."
+      ],
+      "melhorias": [
+        "O teste enviado ao dono e o detalhe do histórico também mostram a imagem."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.15.0",
       "date": "2026-11-14",
       "title": "Comunicados em massa para os clientes",
