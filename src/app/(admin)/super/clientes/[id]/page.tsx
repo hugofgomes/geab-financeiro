@@ -288,7 +288,7 @@ export default function ClientePage() {
               <Field label="Plano">{o.plan_name}</Field>
               <Field label="Valor mensal">{formatBRL(o.plan_price_cents / 100)}</Field>
               <Field label="Situação">{STATUS[o.status] ?? o.status}</Field>
-              <Field label="Fim do teste">{o.status === "teste" ? dt(o.trial_ends_at) : "—"}</Field>
+              <Field label="Fim do teste (cadastro + 10 dias)">{o.status === "teste" || o.plan_code === "teste" ? dt(o.trial_ends_at ?? new Date(new Date(o.created_at).getTime() + 10 * 86_400_000).toISOString()) : "—"}</Field>
               <Field label="Pago até">{dt(b.paid_until)}</Field>
               <Field label="Assinatura no Asaas">{b.has_subscription ? "Vinculada" : "Não contratada"}</Field>
               <Field label="Último evento de cobrança">{b.last_event}</Field>

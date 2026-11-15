@@ -7,7 +7,7 @@
       "title": "Lista de clientes mais limpa, com vencimento do teste",
       "novidades": [
         "Gerenciar clientes redesenhado: avatar, datas de cadastro e último acesso em texto simples, responsável com WhatsApp, plano em selo, atletas com barra de uso do limite e ações reunidas no menu ⋯.",
-        "Coluna Vencimento mostra a data e o prazo (em N dias, vence hoje, venceu há N dias) também para clientes em teste, inclusive os no plano de teste com situação Ativa, com cores de alerta.",
+        "Coluna Vencimento mostra a data e o prazo (em N dias, vence hoje, venceu há N dias) para clientes em teste, calculada como data de cadastro + dias do teste (10) quando o fim do teste não está gravado, inclusive para os no plano de teste com situação Ativa, com cores de alerta. Somente exibição: nenhum cliente é alterado.",
         "Abas de filtro com contagem (Todos, Em teste, Ativos, Suspensos, Cancelados e Vencem em até 7 dias) e ordenação por vencimento, nome, atletas e último acesso."
       ],
       "melhorias": [
@@ -15,7 +15,7 @@
         "O bloco Atenção também avisa testes a vencer e vencidos de clientes ativados manualmente no plano de teste."
       ],
       "correcoes": [
-        "A coluna Vencimento aparecia vazia para clientes no plano de teste com situação Ativa."
+        "A coluna Vencimento aparecia vazia para clientes no plano de teste (com situação Ativa ou sem a data de fim do teste gravada)."
       ]
     },
     {

@@ -49,10 +49,14 @@ const BADGE: Record<string, string> = {
 const mes = (m: string) => { const [y, n] = m.split("-"); return `${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][Number(n) - 1]}/${y.slice(2)}` }
 /** Vencimento: fim do período pago, ou fim do teste (também para quem está no plano de teste com situação Ativa). Plano interno e clientes cancelados/excluídos não têm. */
 type Due = { iso: string; kind: "paid" | "trial"; days: number }
+let trialDays = 10   // dias do teste gratuito (vem do plano de teste; atualizado quando o painel carrega os planos)
 const dueInfo = (g: Org): Due | null => {
   if (g.status === "excluida" || g.status === "cancelada") return null
-  const iso = g.paid_until ?? (g.plan_code !== "ilimitado" ? g.trial_ends_at : null)
-  return iso ? { iso, kind: g.paid_until ? "paid" : "trial", days: Math.ceil((new Date(iso).getTime() - Date.now()) / DAY) } : null
+  const calc = (iso: string, kind: Due["kind"]): Due => ({ iso, kind, days: Math.ceil((new Date(iso).getTime() - Date.now()) / DAY) })
+  if (g.paid_until) return calc(g.paid_until, "paid")
+  // Em teste (ou no plano de teste): fim do teste gravado; se não houver, cadastro + dias do teste. Só exibição: nada é alterado no cliente.
+  if (g.status === "teste" || g.plan_code === "teste") return calc(g.trial_ends_at ?? new Date(new Date(g.created_at).getTime() + trialDays * DAY).toISOString(), "trial")
+  return null
 }
 const dueOf = (g: Org) => dueInfo(g)?.iso ?? null
 const ago = (iso: string | null) => { if (!iso) return "nunca"; const d = Math.floor((Date.now() - new Date(iso).getTime()) / DAY); return d <= 0 ? "hoje" : d === 1 ? "ontem" : d < 30 ? `há ${d} dias` : dt(iso) }
@@ -67,7 +71,7 @@ function DueCell({ g }: { g: Org }) {
   const tone = d.days < 0 ? "text-red-700" : d.days <= 3 ? "text-amber-700" : "text-muted-foreground"
   const txt = d.days < 0 ? `venceu há ${plural(-d.days)}` : d.days === 0 ? "vence hoje" : `em ${plural(d.days)}`
   return (
-    <div className="leading-tight" title={d.kind === "trial" && g.status === "ativa" ? "Ativado manualmente: o acesso não bloqueia nesta data" : undefined}>
+    <div className="leading-tight" title={d.kind === "trial" ? (g.status === "ativa" ? "Fim do teste (cadastro + dias do teste). Cliente ativado: o acesso não é bloqueado nesta data" : "Fim do teste (cadastro + dias do teste)") : undefined}>
       <div className="font-medium tabular-nums">{dt(d.iso)}</div>
       <div className={`text-xs ${tone}`}>{d.kind === "trial" ? "Teste · " : ""}{txt}</div>
     </div>
@@ -197,6 +201,7 @@ export default function SuperPage() {
   if (loading && !data) return <Skeleton className="h-60" />
   if (!data) return null
   const { overview: o, orgs, plans, dash } = data
+  trialDays = plans.find((p) => p.code === "teste")?.trial_days ?? 10
   const val = (g: Org): string | number => {
     switch (sort.key) {
       case "name": return g.name.toLowerCase()
