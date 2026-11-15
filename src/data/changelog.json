@@ -2,6 +2,23 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.19.0",
+      "date": "2026-11-15",
+      "title": "Quadra Esportiva, Fase 2: agenda e reservas",
+      "novidades": [
+        "Agenda de Quadras com visões diária, semanal e mensal: blocos coloridos por categoria (avulsa, mensalista, mensalista com professor e bloqueios), legenda, filtros por quadra, modalidade, categoria e situação, navegação por data, horários fechados sombreados e atualização automática.",
+        "Reservas avulsas com preço calculado pelas regras do centro, confirmação, conclusão, não comparecimento, edição, remarcação, cancelamento com motivo, histórico de alterações e link de WhatsApp.",
+        "Bloqueios de horário (manutenção, torneio e outros) em uma ou várias quadras.",
+        "Reservas recorrentes (semanal, quinzenal ou mensal) com controle individual de cada ocorrência e escolha entre alterar somente uma ou as próximas; datas em conflito são listadas.",
+        "Lista de Reservas com busca, período e filtros; Configurações com horários de funcionamento (inclusive por quadra), regras de preço por dia, faixa e tipo, e regras de cancelamento e antecedência.",
+        "O banco impede duas reservas na mesma quadra ao mesmo tempo, mesmo quando duas pessoas reservam no mesmo instante; as regras de horário, duração, valor e permissão são validadas no servidor."
+      ],
+      "melhorias": [
+        "No celular a agenda abre na lista do dia, por quadra."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.18.0",
       "date": "2026-11-15",
       "title": "Quadra Esportiva, Fase 1: estrutura",

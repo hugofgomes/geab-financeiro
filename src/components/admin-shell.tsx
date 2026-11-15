@@ -43,15 +43,15 @@ const ADMIN = [
 /** Módulo Quadra Esportiva. Itens sem `ready` ainda não existem (chegam nas próximas fases) e aparecem desativados. */
 const QUADRA = [
   { href: "/quadra", label: "Dashboard", icon: LayoutDashboard, ready: true },
-  { href: "/quadra/agenda", label: "Agenda de Quadras", icon: CalendarRange },
+  { href: "/quadra/agenda", label: "Agenda de Quadras", icon: CalendarRange, ready: true },
   { href: "/quadra/centro", label: "Centro Esportivo", icon: MapPin, ready: true },
-  { href: "/quadra/reservas", label: "Reservas", icon: ClipboardList },
+  { href: "/quadra/reservas", label: "Reservas", icon: ClipboardList, ready: true },
   { href: "/quadra/espera", label: "Lista de Espera", icon: Hourglass },
   { href: "/quadra/clientes", label: "Clientes", icon: Contact },
   { href: "/quadra/funcionarios", label: "Funcionários", icon: Users },
   { href: "/quadra/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/quadra/relatorios", label: "Relatórios", icon: ChartColumn },
-  { href: "/quadra/configuracoes", label: "Configurações", icon: Settings2 },
+  { href: "/quadra/configuracoes", label: "Configurações", icon: Settings2, ready: true },
 ]
 
 const ACCOUNT = { href: "/conta", label: "Minha conta", icon: UserCog }

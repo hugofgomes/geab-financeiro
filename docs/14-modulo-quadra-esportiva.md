@@ -1,4 +1,4 @@
-<!-- revisado: 1.18.0 -->
+<!-- revisado: 1.19.0 -->
 # Módulo Quadra Esportiva
 
 Módulo para a gestão profissional de quadras, arenas e centros esportivos. Está sendo implantado **neste sistema** para depois ser **migrado para o Partidou** (`partidou.com.br`). Por isso foi construído de forma **portátil** (ver "Contrato de portabilidade").
@@ -7,7 +7,7 @@ Módulo para a gestão profissional de quadras, arenas e centros esportivos. Est
 | Fase | Conteúdo | Situação |
 |---|---|---|
 | 1 | Estrutura: módulo no plano, menu, centro esportivo e quadras | **Entregue (v1.18.0)** |
-| 2 | Agenda (dia, semana, mês), reservas avulsas, bloqueios, recorrência e conflitos | Pendente |
+| 2 | Agenda (dia, semana, mês), reservas avulsas, bloqueios, recorrência e conflitos | **Entregue (v1.19.0)** |
 | 3 | Clientes, funcionários e permissões, lista de espera, histórico | Pendente |
 | 4 | Financeiro: contas a receber, baixas, mensalistas | Pendente |
 | 5 | Dashboard completo e relatórios (PDF e Excel) | Pendente |
@@ -20,6 +20,23 @@ No menu, os itens das fases pendentes aparecem desativados (ícone de relógio).
 - **Menu:** quem tem perfil no módulo vê o submenu **Quadra Esportiva** (Dashboard, Agenda de Quadras, Centro Esportivo, Reservas, Lista de Espera, Clientes, Funcionários, Financeiro, Relatórios, Configurações). Em organizações do tipo centro esportivo o menu do grupo de futebol (atletas, mensalidades etc.) fica oculto e a página inicial é o módulo.
 - **Visual:** identidade do Partidou aplicada só ao módulo (classe `.quadra-theme`: verde-lima `#B9F344`, verde-escuro `#142C25`, grafite `#19221D`, branco gelo `#F6F8F4`).
 - **Telas da Fase 1:** `/quadra` (Dashboard: indicadores do cadastro e primeiros passos) e `/quadra/centro` (abas Perfil, Endereço e Quadras). Os indicadores de reservas e faturamento chegam nas próximas fases; nada é exibido com dados inventados.
+
+## Agenda e reservas (Fase 2)
+**Telas:** `/quadra/agenda` (visões Dia, Semana e Mês), `/quadra/reservas` (lista completa com filtros) e `/quadra/configuracoes` (funcionamento, preços e regras).
+- **Agenda:** grade de horários com blocos coloridos — **laranja** reserva avulsa, **verde** mensalista, **roxo** mensalista com professor, **cinza** manutenção, torneios e bloqueios; borda tracejada = pendente; bolinha vermelha, amarela ou verde = pagamento em aberto, parcial ou pago. Filtros por quadra, modalidade, categoria e situação. Clicar num horário livre abre a criação; clicar num bloco abre os detalhes (confirmar, concluir, não compareceu, editar, remarcar, cancelar, histórico e link de WhatsApp). Horários fechados ficam sombreados; a visão do dia mostra quantos horários livres restam por quadra. Atualiza sozinha a cada minuto e ao voltar para a aba. No celular a visão padrão é a lista do dia, por quadra.
+- **Reservas recorrentes:** semanal, quinzenal ou mensal (mesmo dia do mês), por quantidade (até 104) ou data final (até 2 anos). Cada ocorrência é uma reserva própria (presença, cancelamento e pagamento individuais). Editar ou cancelar permite escolher **somente esta** ou **esta e as próximas**. Datas em conflito são listadas ao final, nunca ignoradas em silêncio.
+- **Bloqueios:** em uma ou mais quadras, por manutenção, torneio ou outro motivo; podem ficar fora do horário de funcionamento. Só administrador e gerente.
+- **Configurações (administrador):** janelas de funcionamento por dia (várias por dia criam intervalos indisponíveis; a quadra pode ter horários próprios), regras de preço **por hora** por dia, faixa de horário, quadra e tipo (vale a regra mais específica e, depois, a de maior prioridade; sem regra vale o valor base da quadra) e regras da agenda (grade de 30 ou 60 minutos, duração mínima, antecedência mínima e máxima para a página pública da Fase 6, janela de cancelamento sem custo e percentual de cancelamento tardio, aplicado no Financeiro da Fase 4).
+
+**Regras garantidas no banco (`0036_quadra_fase2.sql`):**
+- **Conflito:** a restrição `court_bookings_no_overlap` (extensão `btree_gist`) impede duas reservas ou bloqueios ativos sobrepostos na mesma quadra, inclusive com **duas pessoas reservando ao mesmo tempo** (testado). Reservas canceladas não bloqueiam; horários colados (20h–21h e 21h–22h) são permitidos.
+- **Escrita só por funções** transacionais (`court_booking_create`, `court_block_create`, `court_booking_update`, `court_booking_reschedule`, `court_booking_cancel`, `court_series_create`), que validam permissão, horário de funcionamento, grade e duração mínima, valor e conflito no servidor, devolvendo mensagens claras ("Horário indisponível: já existe R-000001 · João"). Nem o administrador escreve direto na tabela.
+- **Fora do funcionamento:** só bloqueios podem ficar fora. **Passado:** só administrador e gerente lançam reservas no passado.
+- **Situação:** pendente → confirmada → concluída ou não compareceu (só depois do início); cancelar é uma ação própria, que guarda motivo e marca **cancelamento tardio** quando faltam menos horas que o limite configurado. Reserva cancelada nunca é apagada.
+- **Código sequencial** por estabelecimento (`R-000001`), **fuso** do centro (horários em UTC) e **histórico** de cada reserva (quem fez o quê, a partir da auditoria).
+- **Perfis:** administrador, gerente e recepcionista criam e alteram reservas; só administrador e gerente criam bloqueios; só o administrador altera configurações; o financeiro consulta.
+
+Tabelas: `court_bookings` (reservas e bloqueios), `court_series`, `court_hours`, `court_price_rules` e `court_counters`. Nesta fase o cliente da reserva é guardado como nome e telefone digitados; o cadastro de clientes (Fase 3) vai vincular as reservas.
 
 ## Perfis do módulo
 | Perfil | Como é definido | Pode (Fase 1) |
