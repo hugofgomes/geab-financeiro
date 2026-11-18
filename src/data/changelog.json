@@ -2,6 +2,16 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.25.2",
+      "date": "2026-11-18",
+      "title": "Ranking da artilharia mais limpo",
+      "novidades": [],
+      "melhorias": [
+        "Artilharia redesenhada: lista única do 1º ao 5º lugar, com número da posição (ouro, prata e bronze nos três primeiros), barra proporcional de gols e total à direita."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.25.1",
       "date": "2026-11-16",
       "title": "Roteiro de migração para outro servidor e ajuste na tela Ao vivo",

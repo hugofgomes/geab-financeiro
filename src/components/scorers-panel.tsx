@@ -13,8 +13,7 @@ import { cn } from "@/lib/utils"
 import * as React from "react"
 
 const REFRESH_MS = 60_000
-const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" }
-const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase()
+const RANK: Record<number, string> = { 1: "bg-amber-400 text-amber-950", 2: "bg-slate-300 text-slate-800", 3: "bg-orange-300 text-orange-950" }
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const brief = (n: string) => n.replace(/^equipe\s+/i, "")
 
@@ -61,13 +60,6 @@ function useOpenMatches(enabled: boolean) {
     return () => { alive = false; window.removeEventListener(MATCHES_CHANGED, load) }
   }, [enabled])
   return rows
-}
-
-function Avatar({ name, size, leader }: { name: string; size: "lg" | "md"; leader?: boolean }) {
-  return (
-    <span aria-hidden className={cn("grid shrink-0 place-items-center rounded-full font-semibold", size === "lg" ? "size-14 text-lg" : "size-10 text-sm",
-      leader ? "bg-white text-primary ring-4 ring-amber-300" : "bg-secondary text-primary")}>{initials(name)}</span>
-  )
 }
 
 function StatsDialog({ athleteId, season, onClose }: { athleteId: string | null; season: number | null; onClose: () => void }) {
@@ -154,29 +146,32 @@ export function ScorersCard() {
         </div>
       )}
       {error && !rows?.length && <p role="alert" className="text-sm text-destructive">Não foi possível carregar a artilharia: {error}</p>}
-      {rows === null && !error && <div className="space-y-2"><Skeleton className="h-24" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div>}
+      {rows === null && !error && <Skeleton className="h-72 rounded-2xl" />}
       {rows && rows.length === 0 && !error && <p className="rounded-xl border border-dashed p-3 text-center text-sm text-muted-foreground">Ainda não há gols registrados nesta temporada. ⚽</p>}
       {rows && rows.length > 0 && (
-        <ol className="space-y-2">
-          {rows.map((r) => {
-            const lead = r.pos === 1, podium = r.pos <= 3
+        <ol className="divide-y overflow-hidden rounded-2xl border bg-card shadow-sm">
+          {rows.slice(0, 5).map((r) => {
+            const top = rows[0]?.goals || 1
             return (
               <li key={r.athlete_id}>
                 <button
                   type="button" onClick={() => setOpen(r.athlete_id)}
                   aria-label={`${r.pos}º lugar: ${r.display_name}, ${plural(r.goals, "gol", "gols")}. Ver estatísticas`}
-                  className={cn("flex w-full items-center gap-3 rounded-xl border text-left outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring",
-                    lead ? "bg-gradient-to-br from-[#1E3A5F] to-[#2A5A8C] p-3.5 text-white shadow-md hover:shadow-lg" : podium ? "bg-card p-2.5 shadow-sm hover:bg-secondary" : "bg-card px-2.5 py-2 hover:bg-secondary")}
+                  className={cn("flex w-full items-center gap-3 px-3.5 py-3 text-left outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset", r.pos === 1 && "bg-amber-50/70")}
                 >
-                  {podium ? <Avatar name={r.display_name} size={lead ? "lg" : "md"} leader={lead} /> : <span aria-hidden className="grid size-7 shrink-0 place-items-center text-sm font-semibold text-muted-foreground">{r.pos}º</span>}
+                  <span aria-hidden className={cn("grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold tabular-nums", RANK[r.pos] ?? "bg-secondary text-muted-foreground")}>{r.pos}</span>
                   <span className="min-w-0 flex-1">
-                    {lead && <span className="block text-[11px] font-semibold tracking-wide text-amber-300 uppercase">Líder da artilharia</span>}
-                    <span className={cn("block truncate", lead ? "text-base font-semibold" : "text-sm font-medium")}>{podium && <span aria-hidden className="mr-1">{MEDAL[r.pos]}</span>}{r.display_name}</span>
-                    <span className={cn("block text-xs", lead ? "text-blue-100" : "text-muted-foreground")}>{plural(r.games, "partida", "partidas")}</span>
+                    <span className="flex items-baseline gap-2">
+                      <span className="truncate text-sm font-semibold">{r.display_name}</span>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{plural(r.games, "partida", "partidas")}</span>
+                    </span>
+                    <span aria-hidden className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <span className={cn("block h-full rounded-full", r.pos === 1 ? "bg-amber-400" : "bg-primary/60")} style={{ width: `${Math.max(6, Math.round((r.goals / top) * 100))}%` }} />
+                    </span>
                   </span>
-                  <span className="shrink-0 text-right">
-                    <span className={cn("block font-bold tabular-nums", lead ? "text-3xl" : "text-xl text-primary")}>{r.goals}</span>
-                    <span className={cn("block text-[11px]", lead ? "text-blue-100" : "text-muted-foreground")}>{r.goals === 1 ? "gol" : "gols"}</span>
+                  <span className="w-10 shrink-0 text-right leading-none">
+                    <span className="block text-xl font-bold text-primary tabular-nums">{r.goals}</span>
+                    <span className="mt-0.5 block text-[10px] text-muted-foreground">{r.goals === 1 ? "gol" : "gols"}</span>
                   </span>
                 </button>
               </li>

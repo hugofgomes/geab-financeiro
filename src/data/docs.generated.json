@@ -1,6 +1,6 @@
 {
- "version": "1.25.1",
- "versionDate": "2026-11-16",
+ "version": "1.25.2",
+ "versionDate": "2026-11-18",
  "stack": {
   "next": "15.5.29",
   "react": "19.1.0",
@@ -1829,6 +1829,16 @@
  ],
  "changelog": [
   {
+   "version": "1.25.2",
+   "date": "2026-11-18",
+   "title": "Ranking da artilharia mais limpo",
+   "novidades": [],
+   "melhorias": [
+    "Artilharia redesenhada: lista única do 1º ao 5º lugar, com número da posição (ouro, prata e bronze nos três primeiros), barra proporcional de gols e total à direita."
+   ],
+   "correcoes": []
+  },
+  {
    "version": "1.25.1",
    "date": "2026-11-16",
    "title": "Roteiro de migração para outro servidor e ajuste na tela Ao vivo",
@@ -2040,18 +2050,6 @@
    "melhorias": [
     "Cabeçalho respeita a área segura do iPhone com entalhe."
    ],
-   "correcoes": []
-  },
-  {
-   "version": "1.13.0",
-   "date": "2026-11-14",
-   "title": "Documentação do sistema",
-   "novidades": [
-    "Documentação completa do sistema dentro do Painel do SaaS (menu Documentação), visível somente para o dono da plataforma: visão geral, arquitetura, perfis, segurança, módulos, área do atleta, planos e assinatura, painel do SaaS, cadastro, integrações e operação.",
-    "Seções automáticas geradas do próprio código a cada publicação: versão e histórico, páginas e acessos, rotas de API, tabelas, funções e migrations do banco e variáveis de ambiente (apenas nomes).",
-    "Busca, índice, impressão em PDF e aviso quando um capítulo foi revisado numa versão anterior; a rota da documentação valida a sessão e confirma no banco que a conta é do dono da plataforma."
-   ],
-   "melhorias": [],
    "correcoes": []
   }
  ],
