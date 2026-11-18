@@ -197,8 +197,8 @@ export default function LivePage() {
           </div>
 
           <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-3 rounded-2xl bg-background/90 p-2 shadow-lg backdrop-blur max-sm:pb-[max(.5rem,env(safe-area-inset-bottom))] sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
-            <Button variant="brand" className="h-24 text-base whitespace-normal sm:h-20" disabled={busy} onClick={() => setPicking("a")}>⚽ Gol<br />{live.team_a}</Button>
-            <Button variant="brand" className="h-24 text-base whitespace-normal sm:h-20" disabled={busy} onClick={() => setPicking("b")}>⚽ Gol<br />{live.team_b}</Button>
+            <Button variant="brand" className="h-24 flex-col gap-0.5 px-2 text-base leading-tight whitespace-normal md:h-20 md:px-2" disabled={busy} onClick={() => setPicking("a")}>⚽ Gol<br />{live.team_a}</Button>
+            <Button variant="brand" className="h-24 flex-col gap-0.5 px-2 text-base leading-tight whitespace-normal md:h-20 md:px-2" disabled={busy} onClick={() => setPicking("b")}>⚽ Gol<br />{live.team_b}</Button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
