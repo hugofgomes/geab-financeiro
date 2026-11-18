@@ -1,5 +1,5 @@
 {
- "version": "1.25.2",
+ "version": "1.26.0",
  "versionDate": "2026-11-18",
  "stack": {
   "next": "15.5.29",
@@ -16,8 +16,8 @@
   {
    "id": "arquitetura",
    "title": "Arquitetura",
-   "revisado": "1.14.0",
-   "markdown": "# Arquitetura\n\n## Camadas\n1. **Navegador**: páginas React. Conversa com o Supabase diretamente (com a chave pública *anon* e a sessão da pessoa) e com as rotas `/api/*` do próprio sistema.\n2. **Aplicativo Next.js** (`src/app`): páginas por perfil, rotas de API, *middleware* de proteção e rotinas do servidor.\n3. **Supabase**: banco PostgreSQL com funções (RPC), gatilhos e **RLS (regras de acesso por linha)**; Autenticação (e-mail e senha, recuperação, convite).\n4. **Serviços externos**: Asaas (cobrança), Resend/SMTP (e-mails), BTG e OpenPix (Pix automático), WhatsApp Cloud API (mensagens).\n\n## Princípio central: o banco é a barreira de verdade\nAs telas escondem o que a pessoa não pode usar, mas **quem decide o acesso é o banco** (RLS, funções `SECURITY DEFINER` e gatilhos). Mesmo que alguém altere o navegador, as regras do banco continuam valendo. Por isso a lógica sensível (limites de plano, bloqueio de grupo, somente leitura do modo espião, exclusão) está em SQL.\n\n## Estrutura do código\n| Pasta | Conteúdo |\n|---|---|\n| `src/app/(admin)` | Painel do administrador/diretoria e do dono da plataforma (`/super`) |\n| `src/app/atleta` | Área do atleta |\n| `src/app/(site)` | Site de divulgação e demonstração |\n| `src/app/api` | Rotas de servidor (cobrança, webhooks, e-mail, WhatsApp, Pix, rotina diária, documentação) |\n| `src/components` | Componentes (menu, rodapé, faixas de aviso, mockups do site etc.) |\n| `src/lib` | Regras compartilhadas (perfis, formatação, Supabase, Pix, tenant) |\n| `src/data/changelog.json` | Histórico de versões (fonte única) |\n| `supabase/migrations` | Evolução do banco, numerada e em ordem |\n| `supabase/tests` | Testes do banco (rodam em um PostgreSQL embutido) |\n| `scripts` | Ferramentas de operação (migrations, backup, configuração do Coolify/Asaas) |\n| `tools` | Verificações de build (histórico de versões, geração desta documentação) |\n| `docs` | Capítulos escritos à mão desta documentação |\n\n## Proteção de rotas (middleware)\nO *middleware* (`src/middleware.ts`) roda antes de cada página: exige login, encaminha cada perfil para a sua área (administrador/diretoria para o painel, atleta para `/atleta`) e **bloqueia grupos sem acesso** (teste vencido, suspenso, cancelado ou excluído), levando-os à tela de assinatura. Ficam fora dele apenas `/api/versao`, `/api/webhooks/*` e `/api/cron/*` (que têm autenticação própria por segredo) e arquivos estáticos.\n\n## App instalável (PWA)\nO sistema pode ser instalado no celular como aplicativo (manifesto, ícones e *service worker* que não guarda dados de usuário). Detalhes no capítulo \"Aplicativo para celular\".\n\n## Versão e atualização no navegador\nA versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões."
+   "revisado": "1.26.0",
+   "markdown": "# Arquitetura\n\n## Camadas\n1. **Navegador**: páginas React. Conversa com o Supabase diretamente (com a chave pública *anon* e a sessão da pessoa) e com as rotas `/api/*` do próprio sistema.\n2. **Aplicativo Next.js** (`src/app`): páginas por perfil, rotas de API, *middleware* de proteção e rotinas do servidor.\n3. **Supabase**: banco PostgreSQL com funções (RPC), gatilhos e **RLS (regras de acesso por linha)**; Autenticação (e-mail e senha, recuperação, convite).\n4. **Serviços externos**: Asaas (cobrança), Resend/SMTP (e-mails), BTG e OpenPix (Pix automático), WhatsApp Cloud API (mensagens).\n\n## Princípio central: o banco é a barreira de verdade\nAs telas escondem o que a pessoa não pode usar, mas **quem decide o acesso é o banco** (RLS, funções `SECURITY DEFINER` e gatilhos). Mesmo que alguém altere o navegador, as regras do banco continuam valendo. Por isso a lógica sensível (limites de plano, bloqueio de grupo, somente leitura do modo espião, exclusão) está em SQL.\n\n## Estrutura do código\n| Pasta | Conteúdo |\n|---|---|\n| `src/app/(admin)` | Painel do administrador/diretoria e do dono da plataforma (`/super`) |\n| `src/app/atleta` | Área do atleta |\n| `src/app/(site)` | Site de divulgação e demonstração |\n| `src/app/api` | Rotas de servidor (cobrança, webhooks, e-mail, WhatsApp, Pix, rotina diária, documentação) |\n| `src/components` | Componentes (menu, rodapé, faixas de aviso, mockups do site etc.) |\n| `src/lib` | Regras compartilhadas (perfis, formatação, Supabase, Pix, tenant) |\n| `src/data/changelog.json` | Histórico de versões (fonte única) |\n| `supabase/migrations` | Evolução do banco, numerada e em ordem |\n| `supabase/tests` | Testes do banco (rodam em um PostgreSQL embutido) |\n| `scripts` | Ferramentas de operação (migrations, backup, configuração do Coolify/Asaas) |\n| `tools` | Verificações de build (histórico de versões, geração desta documentação) |\n| `docs` | Capítulos escritos à mão desta documentação |\n\n## Proteção de rotas (middleware)\nO *middleware* (`src/middleware.ts`) roda antes de cada página: exige login, encaminha cada perfil para a sua área (administrador/diretoria para o painel, atleta para `/atleta`) e **bloqueia grupos sem acesso** (teste vencido, suspenso, cancelado ou excluído), levando-os à tela de assinatura. Ficam fora dele apenas `/api/versao`, `/api/webhooks/*` e `/api/cron/*` (que têm autenticação própria por segredo) e arquivos estáticos.\n\n## App instalável (PWA)\nO sistema pode ser instalado no celular como aplicativo (manifesto, ícones e *service worker* que não guarda dados de usuário). Detalhes no capítulo \"Aplicativo para celular\".\n\n## Versão e atualização no navegador\nA versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões.\n\n## Padrão visual (design system)\nIdentidade discreta: fundo cinza muito claro, azul-marinho como cor principal, vermelho só para erro e atraso, tipografia Inter, bordas finas e cantos de 7 a 10 px (token `--radius` em `globals.css`). Sombras só onde há sobreposição (menus, janelas). Os componentes base ficam em `src/components/ui`; indicadores do dashboard seguem o padrão compacto (texto pequeno, número em destaque, sem ícone decorativo). Menu lateral com página ativa em destaque suave e opção de recolher. Mudanças visuais globais devem partir dos tokens, nunca de classes soltas em cada tela."
   },
   {
    "id": "perfis-e-permissoes",
@@ -1829,6 +1829,18 @@
  ],
  "changelog": [
   {
+   "version": "1.26.0",
+   "date": "2026-11-18",
+   "title": "Redesign clean: fundação visual, menu lateral e dashboard",
+   "novidades": [],
+   "melhorias": [
+    "Visual mais limpo em todo o sistema: cantos menos arredondados, cartões sem sombra e títulos mais discretos.",
+    "Menu lateral mais compacto, com a página ativa em destaque suave (sem bloco vermelho).",
+    "Dashboard com quatro indicadores compactos em uma única faixa (atletas ativos, recebido, pendente e saldo em caixa), sem ícones decorativos e sem informação duplicada."
+   ],
+   "correcoes": []
+  },
+  {
    "version": "1.25.2",
    "date": "2026-11-18",
    "title": "Ranking da artilharia mais limpo",
@@ -2036,20 +2048,6 @@
     "Clientes podem ser marcados como não querendo receber comunicados (aba Configurações do cliente); clientes excluídos nunca recebem."
    ],
    "melhorias": [],
-   "correcoes": []
-  },
-  {
-   "version": "1.14.0",
-   "date": "2026-11-14",
-   "title": "Aplicativo instalável para celular",
-   "novidades": [
-    "Sistema instalável no celular como aplicativo (PWA) para Android e iPhone: tela cheia, ícone do GEAB e atalhos de Mensalidades, Jogos e Atletas.",
-    "Faixa Instale o app no celular (botão Instalar no Android; instrução Adicionar à Tela de Início no iPhone), que some depois de instalar ou dispensar.",
-    "Página de Sem conexão quando o aparelho está sem internet; o aplicativo nunca guarda páginas, respostas de API ou dados de quem está logado."
-   ],
-   "melhorias": [
-    "Cabeçalho respeita a área segura do iPhone com entalhe."
-   ],
    "correcoes": []
   }
  ],

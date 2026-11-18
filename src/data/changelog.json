@@ -2,6 +2,18 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.26.0",
+      "date": "2026-11-18",
+      "title": "Redesign clean: fundação visual, menu lateral e dashboard",
+      "novidades": [],
+      "melhorias": [
+        "Visual mais limpo em todo o sistema: cantos menos arredondados, cartões sem sombra e títulos mais discretos.",
+        "Menu lateral mais compacto, com a página ativa em destaque suave (sem bloco vermelho).",
+        "Dashboard com quatro indicadores compactos em uma única faixa (atletas ativos, recebido, pendente e saldo em caixa), sem ícones decorativos e sem informação duplicada."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.25.2",
       "date": "2026-11-18",
       "title": "Ranking da artilharia mais limpo",

@@ -1,4 +1,4 @@
-<!-- revisado: 1.14.0 -->
+<!-- revisado: 1.26.0 -->
 # Arquitetura
 
 ## Camadas
@@ -34,3 +34,7 @@ O sistema pode ser instalado no celular como aplicativo (manifesto, ícones e *s
 
 ## Versão e atualização no navegador
 A versão exibida no rodapé vem do `package.json` e precisa ter entrada no histórico (`src/data/changelog.json`); o build recusa versões sem histórico. A rota `/api/versao` devolve o identificador do build para o navegador avisar sobre novas versões.
+
+## Padrão visual (design system)
+Identidade discreta: fundo cinza muito claro, azul-marinho como cor principal, vermelho só para erro e atraso, tipografia Inter, bordas finas e cantos de 7 a 10 px (token `--radius` em `globals.css`). Sombras só onde há sobreposição (menus, janelas). Os componentes base ficam em `src/components/ui`; indicadores do dashboard seguem o padrão compacto (texto pequeno, número em destaque, sem ícone decorativo). Menu lateral com página ativa em destaque suave e opção de recolher. Mudanças visuais globais devem partir dos tokens, nunca de classes soltas em cada tela.
+

@@ -10,7 +10,6 @@ import { useLoad } from "@/hooks/use-load"
 import { addMonths, formatBRL, formatCompetence, formatDate, monthKey } from "@/lib/format"
 import { supabase, supabaseConfigured } from "@/lib/supabase/client"
 import type { Charge, Payment } from "@/lib/types"
-import { AlertTriangle, CalendarClock, CircleDollarSign, Hourglass, Landmark, Users, type LucideIcon } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 async function loadDashboard() {
@@ -32,18 +31,13 @@ async function loadDashboard() {
   }
 }
 
-function Kpi({ label, value, hint, tone, icon: Icon }: { label: string; value: string; hint?: string; tone?: "bad" | "good"; icon: LucideIcon }) {
+function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "bad" | "good" }) {
   return (
-    <Card className="gap-0 rounded-xl py-0 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_4px_12px_rgb(15_23_42/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgb(15_23_42/0.06),0_10px_24px_rgb(15_23_42/0.07)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-      <CardContent className="flex items-start justify-between gap-3 p-3.5 sm:p-5">
-        <div className="min-w-0">
-          <div className="text-[13px] leading-tight font-medium text-muted-foreground">{label}</div>
-          <div className={`mt-2 text-xl leading-none font-bold tracking-tight tabular-nums sm:text-[26px] ${tone === "bad" ? "text-[#B4151B]" : tone === "good" ? "text-[#059669]" : "text-primary"}`}>{value}</div>
-          {hint && <div className="mt-2 text-xs text-muted-foreground">{hint}</div>}
-        </div>
-        <span aria-hidden className={`grid size-8 shrink-0 place-items-center rounded-lg sm:size-10 sm:rounded-xl ${tone === "bad" ? "bg-[#EF3028]/10 text-[#EF3028]" : tone === "good" ? "bg-[#059669]/10 text-[#059669]" : "bg-secondary text-primary"}`}><Icon className="size-4 sm:size-5" /></span>
-      </CardContent>
-    </Card>
+    <div className="px-4 py-3.5 sm:px-5 sm:py-4">
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
+      <div className={`mt-1.5 text-xl leading-none font-semibold tracking-tight tabular-nums sm:text-2xl ${tone === "bad" ? "text-[#B4151B]" : tone === "good" ? "text-[#047857]" : "text-foreground"}`}>{value}</div>
+      {hint && <div className="mt-1.5 truncate text-xs text-muted-foreground">{hint}</div>}
+    </div>
   )
 }
 
@@ -51,7 +45,7 @@ export default function Dashboard() {
   const { data, error, loading } = useLoad(loadDashboard, [])
   if (!supabaseConfigured) return <SetupNotice />
   if (error) return <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>
-  if (loading || !data) return <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>
+  if (loading || !data) return <Skeleton className="h-24 rounded-xl" />
 
   const name = new Map(data.athletes.map((a) => [a.id, a.nickname || a.full_name]))
   const month = monthKey()
@@ -75,14 +69,12 @@ export default function Dashboard() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">Visão geral <span className="text-base font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
-        <Kpi icon={Users} label="Atletas ativos" value={String(data.athletes.filter((a) => a.active).length)} />
-        <Kpi icon={CalendarClock} label="Previsto no mês" value={formatBRL(planned)} hint={cur.length ? `${cur.length} mensalidades` : "Nenhuma mensalidade gerada neste mês"} />
-        <Kpi icon={CircleDollarSign} label="Recebido no mês" value={formatBRL(receivedMonth)} hint={planned ? `${Math.round((paidCur / planned) * 100)}% do previsto` : undefined} tone="good" />
-        <Kpi icon={Hourglass} label="Pendente no mês" value={formatBRL(pending)} />
-        <Kpi icon={AlertTriangle} label="Atletas inadimplentes" value={String(lateByAthlete.size)} hint={late.length ? `${late.length} mensalidade(s) em atraso` : "Ninguém em atraso"} tone={lateByAthlete.size ? "bad" : undefined} />
-        <Kpi icon={Landmark} label="Saldo em caixa" value={formatBRL(data.totalIn - data.totalOut)} hint="Pagamentos − despesas (total)" />
+      <h1 className="text-xl font-semibold tracking-tight">Visão geral <span className="text-sm font-normal text-muted-foreground">· {formatCompetence(month)}</span></h1>
+      <div className="grid grid-cols-2 divide-x divide-y rounded-xl bg-card ring-1 ring-border xl:grid-cols-4 xl:divide-y-0 [&>*:nth-child(-n+2)]:border-t-0 max-xl:[&>*:nth-child(odd)]:border-l-0">
+        <Kpi label="Atletas ativos" value={String(data.athletes.filter((a) => a.active).length)} />
+        <Kpi label="Recebido no mês" value={formatBRL(receivedMonth)} hint={planned ? `${Math.round((paidCur / planned) * 100)}% de ${formatBRL(planned)} previstos` : "Nenhuma mensalidade gerada"} tone="good" />
+        <Kpi label="Pendente no mês" value={formatBRL(pending)} hint={lateByAthlete.size ? `${lateByAthlete.size} inadimplente(s) · ${late.length} em atraso` : "Ninguém em atraso"} tone={lateByAthlete.size ? "bad" : undefined} />
+        <Kpi label="Saldo em caixa" value={formatBRL(data.totalIn - data.totalOut)} hint="Pagamentos − despesas" />
       </div>
 
       <Card>
@@ -97,7 +89,7 @@ export default function Dashboard() {
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={(v) => formatBRL(Number(v)).replace(",00", "")} tick={{ fontSize: 12, fill: "#5C6B80" }} axisLine={false} tickLine={false} width={76} />
               <Tooltip formatter={(v) => formatBRL(Number(v))} cursor={{ fill: "rgb(30 58 95 / 0.05)" }}
-                contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 8px 24px rgb(15 23 42 / 0.10)", fontSize: 12, padding: "8px 12px" }} labelStyle={{ fontWeight: 600, color: "#1F2937", marginBottom: 4 }} />
+                contentStyle={{ borderRadius: 8, border: "1px solid #E2E8F0", boxShadow: "0 4px 12px rgb(15 23 42 / 0.06)", fontSize: 12, padding: "8px 12px" }} labelStyle={{ fontWeight: 600, color: "#1F2937", marginBottom: 4 }} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               <Bar dataKey="Previsto" fill="#C3D1E3" radius={[4, 4, 0, 0]} isAnimationActive={false} />
               <Bar dataKey="Recebido" fill={BRAND_PRIMARY} radius={[4, 4, 0, 0]} isAnimationActive={false} />

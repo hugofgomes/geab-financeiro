@@ -131,9 +131,9 @@ function SideLink({ href, label, icon: Icon, path, badge }: { href: string; labe
         aria-current={active ? "page" : undefined}
         {...handlers}
         className={cn(
-          "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 outline-none transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70",
+          "group relative flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-white/70 outline-none transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70",
           collapsed && "lg:justify-center lg:px-0",
-          active && "bg-[var(--shell-active,#EF3028)] text-[var(--shell-active-fg,#fff)] shadow-sm hover:bg-[var(--shell-active,#EF3028)]",
+          active && "bg-[var(--shell-active,rgb(255_255_255/0.14))] text-[var(--shell-active-fg,#fff)] hover:bg-[var(--shell-active,rgb(255_255_255/0.14))]",
         )}
       >
         <Icon className="size-[18px] shrink-0" aria-hidden />
@@ -238,7 +238,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         id="menu-lateral"
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[var(--shell-bg,#1E3A5F)] text-white shadow-xl transition-[transform,width] duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-[var(--shell-bg,#1E3A5F)] text-white shadow-xl transition-[transform,width] duration-200 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none",
           collapsed && "lg:w-[72px]",
           open ? "translate-x-0" : "max-lg:invisible max-lg:-translate-x-full",
         )}
@@ -291,8 +291,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className={cn("flex min-h-dvh flex-1 flex-col transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-[72px]" : "lg:pl-64")}>
-        <header className="sticky top-0 z-20 flex h-[calc(4rem+env(safe-area-inset-top))] items-center gap-3 border-b bg-white px-4 pt-[env(safe-area-inset-top)] shadow-sm sm:px-6">
+      <div className={cn("flex min-h-dvh flex-1 flex-col transition-[padding] duration-200 motion-reduce:transition-none", collapsed ? "lg:pl-[72px]" : "lg:pl-60")}>
+        <header className="sticky top-0 z-20 flex h-[calc(4rem+env(safe-area-inset-top))] items-center gap-3 border-b bg-white px-4 pt-[env(safe-area-inset-top)] sm:px-6">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -303,7 +303,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           >
             <MenuIcon className="size-5" />
           </button>
-          <div className="flex-1 truncate text-lg font-semibold tracking-tight text-primary">{titleOf(path)}</div>
+          <div className="flex-1 truncate text-base font-semibold tracking-tight text-foreground">{titleOf(path)}</div>
           <Link
             href="/cadastros"
             aria-label={pending > 0 ? `Notificações: ${pending} cadastro(s) pendente(s)` : "Notificações: nenhuma pendência"}

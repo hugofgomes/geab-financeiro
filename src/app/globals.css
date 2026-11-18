@@ -75,7 +75,7 @@
   --chart-3: #64748B;
   --chart-4: #94A3B8;
   --chart-5: #CBD5E1;
-  --radius: 0.5357rem; /* rounded-xl = 12px */
+  --radius: 0.45rem; /* lg ≈ 7px · xl ≈ 10px (visual discreto) */
   --sidebar: #1E3A5F;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #EF3028;
