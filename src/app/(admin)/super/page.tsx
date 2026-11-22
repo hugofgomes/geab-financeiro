@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase/client"
 import { slugify } from "@/lib/tenant"
 import { maskPhone } from "@/lib/whatsapp"
 import { Menu } from "@base-ui/react/menu"
-import { Download, ExternalLink, MoreHorizontal, StickyNote, UserPen } from "lucide-react"
+import { Download, ExternalLink, MoreHorizontal, StickyNote, Trash2, UserPen } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import * as React from "react"
@@ -258,6 +258,8 @@ export default function SuperPage() {
           {g.status === "suspensa" || g.status === "cancelada"
             ? <Menu.Item onClick={() => act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "ativa", p_reason: null }), "Grupo reativado.")} className={itemCls}>Reativar acesso</Menu.Item>
             : <Menu.Item onClick={() => { const r = window.prompt(`Suspender “${g.name}”? O grupo perde o acesso imediatamente. Motivo (opcional):`); if (r !== null) act(() => db().rpc("sa_set_org_status", { p_org: g.id, p_status: "suspensa", p_reason: r }), "Grupo suspenso.") }} className={`${itemCls} text-red-700`}>Suspender acesso</Menu.Item>}
+          <Menu.Separator className="my-1 h-px bg-border" />
+          <Menu.Item onClick={() => router.push(`/super/clientes/${g.id}?excluir=1`)} className={`${itemCls} text-red-700 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700`}><Trash2 className="size-4" /> Excluir conta</Menu.Item>
         </>}
       </Menu.Popup></Menu.Positioner></Menu.Portal>
     </Menu.Root>

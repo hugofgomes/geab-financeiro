@@ -1,4 +1,4 @@
-<!-- revisado: 1.24.0 -->
+<!-- revisado: 1.26.1 -->
 # Painel do SaaS (dono da plataforma)
 
 Acesso: apenas contas em `platform_admins`. O menu mostra **Painel do SaaS**, **Log de acessos**, **Comunicados**, **Documentação**, **Site comercial** e **Demonstração**.
@@ -45,3 +45,7 @@ Para avisar os clientes sobre novidades, manutenções e recados gerais.
 
 ## Funções do banco usadas (`sa_*`)
 Todas começam validando `sa_guard()` (só dono). Lista completa e atualizada na seção "Funções do banco" desta documentação.
+
+### Excluir conta pela lista
+No menu "⋯" de cada cliente (Gerenciar clientes) há **Excluir conta**. Ele abre a janela de exclusão da ficha do cliente, com os mesmos cuidados: resumo dos dados afetados, aviso de assinatura no Asaas, exportação em JSON, motivo, prazo de recuperação (7 a 365 dias) e confirmação digitando o nome do grupo. A conta fica bloqueada e pode ser restaurada até o fim do prazo; a exclusão definitiva é feita depois, na ficha.
+

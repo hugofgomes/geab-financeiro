@@ -164,6 +164,12 @@ export default function ClientePage() {
   const [busy, setBusy] = React.useState(false)
   const [spy, setSpy] = React.useState(false)
   const [del, setDel] = React.useState<"soft" | "purge" | null>(null)
+  // Vindo do menu da lista ("Excluir conta"): abre direto a janela de exclusão (com confirmação pelo nome).
+  React.useEffect(() => {
+    if (!data || data.org.status === "excluida") return
+    const u = new URL(window.location.href)
+    if (u.searchParams.get("excluir") === "1") { setDel("soft"); u.searchParams.delete("excluir"); window.history.replaceState(null, "", u.pathname + u.search) }
+  }, [data])
   const [f, setF] = React.useState({ name: "", website: "", tagline: "", color: "", logo: "", footer: "" })
   const [c, setC] = React.useState({ name: "", email: "", phone: "" })
   React.useEffect(() => {
