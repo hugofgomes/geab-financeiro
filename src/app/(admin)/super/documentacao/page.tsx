@@ -29,7 +29,7 @@ const minor = (v: string) => v.split(".").slice(0, 2).map(Number)
 const stale = (rev: string | null, cur: string) => { if (!rev) return true; const a = minor(rev), b = minor(cur); return a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]) }
 
 const AUTO = [
-  { id: "a-historico", title: "Histórico de versões" },
+  { id: "a-historico", title: "Últimas atualizações" },
   { id: "a-paginas", title: "Páginas e acessos" },
   { id: "a-apis", title: "Rotas de API" },
   { id: "a-tabelas", title: "Tabelas do banco" },
@@ -74,8 +74,9 @@ export default function DocumentacaoPage() {
   const fns = d.functions.filter((f) => hit(f.name, f.area, f.file))
   const migs = d.migrations.filter((m) => hit(m.file, m.summary))
   const env = d.env.filter((e) => hit(e.name, e.description, e.scope))
+  const revDate = (v: string | null) => dt(d.changelog.find((e) => e.version === v)?.date ?? null)
   const outdated = d.chapters.filter((c) => stale(c.revisado, d.version))
-  const nav = [...d.chapters.map((c) => ({ id: c.id, title: c.title })), ...AUTO]
+  const nav = [AUTO[0], ...d.chapters.map((c) => ({ id: c.id, title: c.title })), ...AUTO.slice(1)]
 
   return (
     <>
@@ -111,16 +112,8 @@ export default function DocumentacaoPage() {
           {term && !chapters.length && !pages.length && !apis.length && !tables.length && !fns.length && !migs.length && !env.length && !n("histórico versões").includes(term) &&
             <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nada encontrado para “{q}”.</p>}
 
-          {chapters.map((c) => (
-            <Card key={c.id} id={c.id} className="scroll-mt-20"><CardContent className="space-y-3 pt-4">
-              {stale(c.revisado, d.version) && <p className="rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900 print:hidden">Revisado na v{c.revisado ?? "?"}: pode estar desatualizado.</p>}
-              <Markdown source={c.markdown} />
-              {!stale(c.revisado, d.version) && <p className="text-xs text-muted-foreground print:hidden">Revisado na v{c.revisado}</p>}
-            </CardContent></Card>
-          ))}
-
           <Card id="a-historico" className="scroll-mt-20"><CardContent className="space-y-3 pt-4">
-            <h2 className="text-lg font-semibold text-primary">Histórico de versões</h2>
+            <h2 className="text-lg font-semibold text-primary">Últimas atualizações <span className="text-sm font-normal text-muted-foreground">· mais recentes primeiro</span></h2>
             {d.changelog.map((e) => (
               <div key={e.version} className="border-t pt-3 first:border-0 first:pt-0">
                 <h3 className="text-sm font-semibold">v{e.version} · {e.title} <span className="font-normal text-muted-foreground">({dt(e.date)})</span></h3>
@@ -130,6 +123,14 @@ export default function DocumentacaoPage() {
               </div>
             ))}
           </CardContent></Card>
+
+          {chapters.map((c) => (
+            <Card key={c.id} id={c.id} className="scroll-mt-20"><CardContent className="space-y-3 pt-4">
+              {stale(c.revisado, d.version) && <p className="rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900 print:hidden">Revisado na v{c.revisado ?? "?"} ({revDate(c.revisado)}): pode estar desatualizado.</p>}
+              <Markdown source={c.markdown} />
+              {!stale(c.revisado, d.version) && <p className="text-xs text-muted-foreground print:hidden">Revisado na v{c.revisado} ({revDate(c.revisado)})</p>}
+            </CardContent></Card>
+          ))}
 
           <Card id="a-paginas" className="scroll-mt-20"><CardContent className="space-y-3 pt-4">
             <h2 className="text-lg font-semibold text-primary">Páginas e acessos ({pages.length})</h2>

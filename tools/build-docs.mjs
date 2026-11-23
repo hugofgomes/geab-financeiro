@@ -87,7 +87,7 @@ const out = {
   version: pkg.version, versionDate: cur?.date ?? null,
   stack: { next: pkg.dependencies?.next ?? null, react: pkg.dependencies?.react ?? null, supabase: pkg.dependencies?.["@supabase/supabase-js"] ?? null },
   chapters, migrations, tables: [...tables].map(([name, file]) => ({ name, file })).sort((a, b) => a.name.localeCompare(b.name)),
-  functions, pages, apis, env: envList, changelog: entries.slice(0, 15),
+  functions, pages, apis, env: envList, changelog: entries,
   stats: { migrations: migrations.length, tables: tables.size, functions: functions.length, pages: pages.length, apis: apis.length },
 }
 const file = path.join(root, "src/data/docs.generated.json")

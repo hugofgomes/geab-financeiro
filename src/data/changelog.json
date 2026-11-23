@@ -2,6 +2,17 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.27.1",
+      "date": "2026-11-23",
+      "title": "Documentação com últimas atualizações em primeiro",
+      "novidades": [],
+      "melhorias": [
+        "Documentação do sistema: a seção Últimas atualizações (com a data de cada versão) agora aparece no topo, com as mais recentes primeiro.",
+        "Cada capítulo mostra a data da versão em que foi revisado."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.27.0",
       "date": "2026-11-22",
       "title": "Redesign clean em todas as telas",

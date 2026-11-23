@@ -1,6 +1,6 @@
 {
- "version": "1.27.0",
- "versionDate": "2026-11-22",
+ "version": "1.27.1",
+ "versionDate": "2026-11-23",
  "stack": {
   "next": "15.5.29",
   "react": "19.1.0",
@@ -1829,6 +1829,17 @@
  ],
  "changelog": [
   {
+   "version": "1.27.1",
+   "date": "2026-11-23",
+   "title": "Documentação com últimas atualizações em primeiro",
+   "novidades": [],
+   "melhorias": [
+    "Documentação do sistema: a seção Últimas atualizações (com a data de cada versão) agora aparece no topo, com as mais recentes primeiro.",
+    "Cada capítulo mostra a data da versão em que foi revisado."
+   ],
+   "correcoes": []
+  },
+  {
    "version": "1.27.0",
    "date": "2026-11-22",
    "title": "Redesign clean em todas as telas",
@@ -2046,6 +2057,372 @@
     "O detalhe do comunicado abria cortado e com rolagem horizontal quando havia e-mails com erro longo. Agora cabe na tela e ocupa a largura prevista.",
     "O e-mail de comunicado (e o teste ao dono) falhava com \"The email address needs to follow...\" quando o remetente configurado já vinha no formato Nome <endereço>. Agora o remetente é aceito nos dois formatos."
    ]
+  },
+  {
+   "version": "1.16.0",
+   "date": "2026-11-15",
+   "title": "Imagem nos comunicados",
+   "novidades": [
+    "Comunicados aceitam uma imagem (PNG, JPG ou WebP): ela aparece no e-mail e no aviso dentro do painel dos clientes, com miniatura e botão de remover antes de enviar.",
+    "A imagem é reduzida para 1200 px e convertida em JPG antes do envio, o que deixa o e-mail leve e remove dados ocultos da foto, como a localização."
+   ],
+   "melhorias": [
+    "O teste enviado ao dono e o detalhe do histórico também mostram a imagem."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.15.0",
+   "date": "2026-11-14",
+   "title": "Comunicados em massa para os clientes",
+   "novidades": [
+    "Nova área Comunicados no Painel do SaaS: o dono envia novidades e avisos aos clientes por e-mail e/ou como aviso dentro do painel dos grupos (administrador e diretoria, com botão para dispensar).",
+    "Público por situação do cliente e por plano, com contagem ao vivo de grupos e e-mails, envio de teste só para o dono e confirmação antes de enviar.",
+    "Envio em lotes com barra de progresso, retomada (Continuar envio), resultado por destinatário e reenvio das falhas; histórico dos comunicados.",
+    "Clientes podem ser marcados como não querendo receber comunicados (aba Configurações do cliente); clientes excluídos nunca recebem."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.14.0",
+   "date": "2026-11-14",
+   "title": "Aplicativo instalável para celular",
+   "novidades": [
+    "Sistema instalável no celular como aplicativo (PWA) para Android e iPhone: tela cheia, ícone do GEAB e atalhos de Mensalidades, Jogos e Atletas.",
+    "Faixa Instale o app no celular (botão Instalar no Android; instrução Adicionar à Tela de Início no iPhone), que some depois de instalar ou dispensar.",
+    "Página de Sem conexão quando o aparelho está sem internet; o aplicativo nunca guarda páginas, respostas de API ou dados de quem está logado."
+   ],
+   "melhorias": [
+    "Cabeçalho respeita a área segura do iPhone com entalhe."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.13.0",
+   "date": "2026-11-14",
+   "title": "Documentação do sistema",
+   "novidades": [
+    "Documentação completa do sistema dentro do Painel do SaaS (menu Documentação), visível somente para o dono da plataforma: visão geral, arquitetura, perfis, segurança, módulos, área do atleta, planos e assinatura, painel do SaaS, cadastro, integrações e operação.",
+    "Seções automáticas geradas do próprio código a cada publicação: versão e histórico, páginas e acessos, rotas de API, tabelas, funções e migrations do banco e variáveis de ambiente (apenas nomes).",
+    "Busca, índice, impressão em PDF e aviso quando um capítulo foi revisado numa versão anterior; a rota da documentação valida a sessão e confirma no banco que a conta é do dono da plataforma."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.12.2",
+   "date": "2026-11-14",
+   "title": "Cadastro com telefone obrigatório",
+   "novidades": [
+    "Cadastro de novo grupo agora pede o WhatsApp do responsável (com máscara e validação de DDD); o nome, o e-mail e o telefone já aparecem como contato do cliente no painel do SaaS."
+   ],
+   "melhorias": [
+    "No cadastro de atleta o apelido passou a ser obrigatório; todos os campos são exigidos já no primeiro cadastro (somente o aceite de mensagens pelo WhatsApp continua opcional, por ser um consentimento).",
+    "O banco também exige nome completo e telefone ao criar um grupo, então a regra vale mesmo fora da tela."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.12.1",
+   "date": "2026-11-14",
+   "title": "Cadastro sem grupo e teste grátis",
+   "novidades": [
+    "Cadastro de cliente no endereço principal: quem abre o cadastro sem indicar um grupo vê a opção Quero usar o sistema no meu grupo (teste grátis) e, separada, a de atleta, que pede o endereço do grupo (ou usa o link com ?grupo=).",
+    "Quem já criou conta sem grupo escolhe ao entrar: criar o próprio grupo com o teste gratuito ou pedir entrada em um grupo existente, com os dados do cadastro aproveitados."
+   ],
+   "melhorias": [
+    "A tela de criar grupo e a confirmação de e-mail mostram os dias de teste grátis do plano de teste (10), em vez de um número fixo.",
+    "Tela de login deixa claro o caminho de atleta e o de criar grupo.",
+    "Site de divulgação: planos, preços, limites de jogadores e administradores, dias de teste e módulos incluídos agora vêm do painel de planos (o plano Pro aparece como Profissional); itens que o plano não inclui aparecem riscados, e o aviso falso de que todos os planos têm os mesmos recursos foi removido.",
+    "Site de divulgação: botão Criar conta grátis no topo e botões dos planos com o nome do plano e os dias de teste."
+   ],
+   "correcoes": [
+    "Corrigida a tela Acesso ainda não liberado para quem se cadastrava pelo endereço principal sem grupo: o cadastro ficava sem destino e sem os 10 dias de teste."
+   ]
+  },
+  {
+   "version": "1.12.0",
+   "date": "2026-11-13",
+   "title": "Notificações de vencimento",
+   "novidades": [
+    "E-mail automático ao administrador do grupo quando o teste termina em 3 dias, no último dia, quando o teste termina e quando o pagamento da assinatura está em atraso; cada aviso sai uma única vez e falhas são tentadas de novo no dia seguinte.",
+    "Rotina diária protegida por segredo (agendamento do servidor) e resumo opcional dos avisos enviados para o dono da plataforma.",
+    "Painel do SaaS ganha o bloco Atenção (testes por vencer, vencidos, pagamentos em atraso e clientes inativos) e a página do cliente mostra o histórico de avisos enviados."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.11.2",
+   "date": "2026-11-13",
+   "title": "Painel do SaaS otimizado para celular",
+   "novidades": [],
+   "melhorias": [
+    "Painel do SaaS no celular: botões e links com área de toque maior, abas do cliente em linha rolável, ações do cliente em grade e filtros em largura total.",
+    "Planos recolhíveis com resumo (preço, limites e grupos) e campos em duas colunas, reduzindo a rolagem na edição de planos.",
+    "Log de acessos: gráfico de dias com barras tocáveis e rolagem horizontal até o dia mais recente."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.11.1",
+   "date": "2026-11-13",
+   "title": "Correção do modo espião",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "Modo espião abria a tela de assinatura em vez do painel do cliente: o bloqueio automático agora reconhece a sessão de suporte."
+   ]
+  },
+  {
+   "version": "1.11.0",
+   "date": "2026-11-13",
+   "title": "Modo espião para suporte",
+   "novidades": [
+    "Modo espião: o dono da plataforma abre o painel de qualquer cliente, como o administrador dele, somente leitura, com motivo obrigatório e duração limitada (até 4 horas).",
+    "Faixa fixa Modo espião com botão para sair; nenhuma alteração é possível durante o acesso, nem por rotas do servidor.",
+    "Início e fim de cada acesso de suporte ficam no histórico do cliente, e o cadastro de novo grupo informa que a equipe pode acessar a conta para suporte."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.10.0",
+   "date": "2026-11-13",
+   "title": "Planos, módulos e limites",
+   "novidades": [
+    "Planos editáveis pelo dono da plataforma: nome, preço, limite de atletas, limite de administradores, duração do teste e módulos incluídos.",
+    "Módulos por plano (importar planilha, gols ao vivo, Pix automático, WhatsApp e e-mail): módulo desligado some do menu e é bloqueado no servidor.",
+    "Plano Premium criado (inativo e sem preço, para o dono definir) e plano Pro renomeado para Profissional, mantendo os preços atuais.",
+    "Campo de referência do plano no gateway de pagamento, como preparação para integração futura."
+   ],
+   "melhorias": [
+    "A duração do teste gratuito de novos grupos passa a vir do plano de teste (padrão 10 dias)."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.9.0",
+   "date": "2026-11-13",
+   "title": "Suspensão e exclusão segura de clientes",
+   "novidades": [
+    "Exclusão lógica de clientes: o acesso é bloqueado, os dados ficam guardados e o grupo pode ser restaurado durante um prazo configurável (padrão 30 dias).",
+    "Exclusão definitiva só depois do prazo, exigindo digitar o nome do grupo, com alerta dos dados afetados e aviso de assinatura ativa; apaga apenas os dados daquele grupo e deixa registro da exclusão.",
+    "Exportação de todos os dados do grupo em arquivo JSON (sem credenciais), com registro na auditoria.",
+    "Suspensão registra data e responsável; o cliente suspenso vê uma mensagem amigável com o motivo e a orientação de falar com o suporte."
+   ],
+   "melhorias": [
+    "Painel e indicadores não contam clientes excluídos; a lista oculta excluídos por padrão e permite filtrá-los."
+   ],
+   "correcoes": [
+    "Eventos de cobrança do Asaas não reativam um grupo excluído."
+   ]
+  },
+  {
+   "version": "1.8.0",
+   "date": "2026-11-13",
+   "title": "Detalhe do cliente no painel do SaaS",
+   "novidades": [
+    "Página de cada cliente com abas: Visão geral, Usuários e atletas, Assinatura, Configurações e Atividades.",
+    "Edição de nome, site, lema, cor, logo, rodapé do card e contato do responsável pelo dono da plataforma, com registro no histórico.",
+    "Botões de suspender acesso, reativar e estender teste no topo da página do cliente; histórico de alterações administrativas e dos últimos acessos."
+   ],
+   "melhorias": [
+    "O nome do cliente na lista de clientes agora abre a página de detalhes."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.7.0",
+   "date": "2026-11-13",
+   "title": "Painel do SaaS modernizado",
+   "novidades": [
+    "Dashboard do dono da plataforma com cards de clientes ativos, suspensos, em teste, assinaturas vencidas, MRR, novos clientes e cancelamentos do mês.",
+    "Gráficos de crescimento de clientes e de evolução do faturamento recorrente (histórico do MRR passa a ser registrado mensalmente).",
+    "Gerenciar clientes: tabela com responsável, contato com link de WhatsApp, vencimento e último acesso; busca, filtros por situação e plano, ordenação, paginação e exportação em CSV.",
+    "Cadastro do responsável de cada cliente e identificação de clientes inativos há 30 dias."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.6.1",
+   "date": "2026-11-12",
+   "title": "Área do atleta no site de vendas",
+   "novidades": [
+    "Site comercial com a seção Uma central para cada atleta, com as telas Visão geral, Jogos, Financeiro e Perfil da nova Área do Atleta (dados fictícios)."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.6.0",
+   "date": "2026-11-12",
+   "title": "Nova Área do Atleta",
+   "novidades": [
+    "Área do Atleta redesenhada como central do atleta: próximo jogo com contagem de dias, mensalidade com pagamento por Pix, desempenho, último jogo, artilharia com a sua posição em destaque e aniversariantes.",
+    "Abas Visão geral, Jogos, Financeiro e Perfil (menu inferior no celular), com histórico dos seus jogos e gols e histórico de pagamentos.",
+    "Edição de dados pessoais, contatos e senha em janelas próprias, com medidor de força da senha e botão para mostrar ou ocultar."
+   ],
+   "melhorias": [
+    "Avisos no sino do topo: mensalidade a vencer ou vencida, jogo próximo e aniversários do dia."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.5",
+   "date": "2026-11-11",
+   "title": "Telas do celular no site de vendas",
+   "novidades": [
+    "Site comercial com a seção Seu grupo na palma da mão, mostrando as telas Painel, Atletas, Jogos e Caixa no celular."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.4",
+   "date": "2026-11-11",
+   "title": "Nome da equipe Branco",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "A segunda equipe passa a se chamar Equipe Branco (antes Equipe Branca), no padrão de novos jogos e nos jogos já cadastrados."
+   ]
+  },
+  {
+   "version": "1.5.3",
+   "date": "2026-11-11",
+   "title": "Crédito no rodapé",
+   "novidades": [],
+   "melhorias": [
+    "Rodapé com o crédito de desenvolvimento e link para vendadigital.com."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.2",
+   "date": "2026-11-11",
+   "title": "Log de acessos mais rápido de ler",
+   "novidades": [],
+   "melhorias": [
+    "Log de acessos com resumo do dia, gráfico de pessoas por dia (toque numa barra para abrir o dia), navegação entre dias, busca e atualização automática.",
+    "No celular, cada acesso aparece como cartão, sem rolagem lateral."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.1",
+   "date": "2026-11-11",
+   "title": "Recuperação de senha",
+   "novidades": [
+    "Link Esqueci minha senha no login: a pessoa recebe um e-mail e cria uma nova senha."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.5.0",
+   "date": "2026-11-11",
+   "title": "Teste de 10 dias e assinatura",
+   "novidades": [
+    "Grupos novos têm 10 dias de teste grátis (até 30 jogadores). Terminado o prazo, o acesso é bloqueado com aviso e nenhum dado é apagado.",
+    "Tela Assinatura para o administrador contratar o plano Básico (R$ 99/mês) ou Pro (R$ 150/mês) pelo Asaas, com Pix, boleto ou cartão.",
+    "Pagamento confirmado libera o grupo automaticamente; mensalidade em atraso suspende o acesso."
+   ],
+   "melhorias": [
+    "Aviso com os dias restantes do teste no topo do sistema."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.4.0",
+   "date": "2026-11-11",
+   "title": "Log de acessos diários",
+   "novidades": [
+    "Nova tela Log de acessos no menu SaaS, exclusiva do administrador geral: mostra por dia quem abriu o sistema, de qual grupo, o horário do primeiro e do último acesso e o aparelho."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.3.1",
+   "date": "2026-11-11",
+   "title": "Acesso do atleta sem depender de e-mail",
+   "novidades": [],
+   "melhorias": [
+    "O administrador cria o acesso do atleta direto: o sistema gera uma senha provisória, mostra na tela para repassar e o atleta já aparece em Usuários."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.3.0",
+   "date": "2026-11-11",
+   "title": "Acesso do atleta criado pelo administrador",
+   "novidades": [
+    "Ao cadastrar ou editar um atleta, o administrador pode criar o acesso ao sistema: o atleta recebe um convite por e-mail e já aparece em Usuários."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
+   "version": "1.2.1",
+   "date": "2026-11-11",
+   "title": "Artilharia e jogos em aberto",
+   "novidades": [],
+   "melhorias": [
+    "Aviso na artilharia quando existe jogo ainda não finalizado, com atalho para finalizá-lo."
+   ],
+   "correcoes": [
+    "Gols de um jogo ainda aberto não apareciam na artilharia e não havia nenhuma explicação na tela."
+   ]
+  },
+  {
+   "version": "1.2.0",
+   "date": "2026-11-10",
+   "title": "Visual moderno",
+   "novidades": [
+    "Rodapé com a versão do sistema e este histórico de atualizações.",
+    "Menu lateral recolhível, com dicas ao passar o mouse nos ícones."
+   ],
+   "melhorias": [
+    "Nova paleta de cores e tipografia mais legível (Inter).",
+    "Cards de indicadores do painel redesenhados.",
+    "Gráfico de arrecadação com valores em reais, dicas e estado vazio.",
+    "Melhorias de responsividade em celular, tablet e desktop."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.1.0",
+   "date": null,
+   "title": "Jogos, escalação e plataforma",
+   "novidades": [
+    "Gols ao vivo: marcar os gols durante a partida; o administrador edita e exclui.",
+    "Escalação com times Azul e Branco e card para WhatsApp (1080×1920).",
+    "Três níveis de acesso: atleta, diretoria e administrador.",
+    "Vários grupos na mesma plataforma, com painel do dono (planos e limites).",
+    "Site comercial e demonstração navegável."
+   ],
+   "melhorias": [
+    "Telas otimizadas para celular.",
+    "Atletas em ordem alfabética em todas as telas."
+   ],
+   "correcoes": []
+  },
+  {
+   "version": "1.0.0",
+   "date": null,
+   "title": "Lançamento inicial",
+   "novidades": [
+    "Cadastro de atletas e pré-cadastro com aprovação.",
+    "Controle de mensalidades, caixa e extrato.",
+    "Cadastro de jogos e artilharia.",
+    "Importação de planilha.",
+    "Cobrança por Pix e avisos por WhatsApp e e-mail."
+   ],
+   "melhorias": [],
+   "correcoes": []
   }
  ],
  "stats": {
