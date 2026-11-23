@@ -146,10 +146,10 @@ export function ScorersCard() {
         </div>
       )}
       {error && !rows?.length && <p role="alert" className="text-sm text-destructive">Não foi possível carregar a artilharia: {error}</p>}
-      {rows === null && !error && <Skeleton className="h-72 rounded-2xl" />}
+      {rows === null && !error && <Skeleton className="h-72 rounded-xl" />}
       {rows && rows.length === 0 && !error && <p className="rounded-xl border border-dashed p-3 text-center text-sm text-muted-foreground">Ainda não há gols registrados nesta temporada. ⚽</p>}
       {rows && rows.length > 0 && (
-        <ol className="divide-y overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <ol className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm">
           {rows.slice(0, 5).map((r) => {
             const top = rows[0]?.goals || 1
             return (

@@ -1,4 +1,4 @@
-<!-- revisado: 1.25.0 -->
+<!-- revisado: 1.27.0 -->
 # Operação, deploy e manutenção
 
 ## Hospedagem
@@ -51,3 +51,7 @@ O mesmo código serve as duas marcas. Na aplicação do Partidou, defina a vari�
 - Deploy com a VPS sem memória: se o build travar, repetir o deploy ou aumentar a memória/swap.
 - Imagens do site em `public/site` precisam das extensões liberadas no `matcher` do middleware (já inclui svg, png, jpg, jpeg, webp, gif, ico).
 - Chave do Asaas começa com `$`: marcar a variável como literal no Coolify.
+
+## Servidor atual (desde 22/11/2026)
+O GEAB roda no VPS `187.53.116.243`, no Coolify acessível em `https://partidou.cloud`, projeto **Geab**, ambiente `production`, aplicação `geab-financeiro` (UUID no `.env.deploy`, campo `COOLIFY_APP_UUID`). Domínios: `geab.vendadigital.com` e `futebol.vendadigital.com` (DNS no Cloudflare, registros A em "somente DNS"). O servidor é compartilhado com o Partidou e o webmail. O VPS anterior (`143.95.168.36`) foi mantido temporariamente como plano de volta e deve ser desligado depois. Passo a passo de uma nova migração: capítulo 15. Observação: um nome sem registro DNS na lista de domínios impede o Coolify de emitir o certificado de todos os outros.
+

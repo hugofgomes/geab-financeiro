@@ -47,7 +47,7 @@ export default function ReservasPage() {
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="text-2xl font-bold tracking-tight">Reservas</h1><p className="text-sm text-muted-foreground">Todas as reservas e bloqueios do período. Toque numa linha para ver, confirmar, remarcar ou cancelar.</p></div>
+        <div><h1 className="text-xl font-semibold tracking-tight">Reservas</h1><p className="text-sm text-muted-foreground">Todas as reservas e bloqueios do período. Toque numa linha para ver, confirmar, remarcar ou cancelar.</p></div>
         {canBook && <Button className="h-11 w-full sm:h-9 sm:w-auto" onClick={() => setCreate(true)}><Plus /> Nova reserva</Button>}
       </div>
       <div className="flex flex-wrap items-center gap-2">

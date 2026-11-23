@@ -155,7 +155,7 @@ export default function FinanceiroPage() {
 }
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" }) {
-  return <Card className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className={cn("text-xl font-semibold tabular-nums", tone === "bad" && "text-red-700", tone === "good" && "text-green-700")}>{value}</p>{sub && <p className="text-xs text-muted-foreground">{sub}</p>}</Card>
+  return <Card className="px-4 py-3.5"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className={cn("mt-1.5 text-xl font-semibold tracking-tight tabular-nums", tone === "bad" && "text-red-700", tone === "good" && "text-[#047857]")}>{value}</p>{sub && <p className="text-xs text-muted-foreground">{sub}</p>}</Card>
 }
 function Breakdown({ title, rows }: { title: string; rows: (string | number)[][] }) {
   return <Card className="p-4"><h2 className="text-sm font-semibold">{title}</h2>{rows.length === 0 ? <p className="mt-2 text-xs text-muted-foreground">Sem dados no período.</p> : <ul className="mt-2 space-y-1 text-sm">{rows.map(([k, v]) => <li key={String(k)} className="flex justify-between gap-2"><span className="truncate">{k}</span><span className="tabular-nums">{formatBRL(Number(v) / 100)}</span></li>)}</ul>}</Card>

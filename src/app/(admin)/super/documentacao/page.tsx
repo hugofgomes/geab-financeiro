@@ -81,7 +81,7 @@ export default function DocumentacaoPage() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Documentação do sistema</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Documentação do sistema</h1>
           <p className="text-sm text-muted-foreground">Versão <b>{d.version}</b> ({dt(d.versionDate)}) · gerada a partir do código a cada publicação · visível só para o dono da plataforma.</p>
         </div>
         <Button variant="outline" className="h-10 sm:h-8" onClick={() => window.print()}><Printer /> Imprimir / PDF</Button>

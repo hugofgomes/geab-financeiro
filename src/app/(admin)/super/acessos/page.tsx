@@ -82,7 +82,7 @@ export default function AccessLogPage() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Log de acessos</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Log de acessos</h1>
           <p className="text-sm text-muted-foreground">Quem abriu o sistema em cada dia (horário de Brasília). Visível só para o administrador geral.</p>
         </div>
         <div className="flex items-center gap-2">

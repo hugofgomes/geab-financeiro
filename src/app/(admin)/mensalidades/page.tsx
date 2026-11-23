@@ -237,7 +237,7 @@ export default function ChargesPage() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Mensalidades</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Mensalidades</h1>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(month, -1))} aria-label="Mês anterior"><ChevronLeft /></Button>
           <span className="min-w-36 text-center font-medium capitalize">{formatCompetence(month)}</span>

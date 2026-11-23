@@ -54,7 +54,7 @@ export default function SubscriptionPage() {
       <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-4 py-10 text-center">
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{b.org_name}</p>
-          <h1 className="text-2xl font-bold text-primary">{blk.kind === "excluida" ? "Este grupo está indisponível" : "Acesso temporariamente indisponível"}</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-primary">{blk.kind === "excluida" ? "Este grupo está indisponível" : "Acesso temporariamente indisponível"}</h1>
           <p className="text-sm text-muted-foreground">
             {blk.kind === "excluida"
               ? "O grupo foi encerrado na plataforma. Se isso não era esperado, fale com o suporte: seus dados podem ainda estar disponíveis para recuperação."
@@ -73,7 +73,7 @@ export default function SubscriptionPage() {
     <main className="mx-auto min-h-dvh max-w-xl space-y-6 px-4 py-10">
       <div className="space-y-1 text-center">
         <p className="text-sm text-muted-foreground">{b.org_name}</p>
-        <h1 className="text-2xl font-bold text-primary">{h.t}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-primary">{h.t}</h1>
         <p className="text-sm text-muted-foreground">{h.d}</p>
       </div>
 

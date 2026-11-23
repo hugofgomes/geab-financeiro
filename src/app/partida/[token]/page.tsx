@@ -34,14 +34,14 @@ export default function GerirPartida() {
     const r = await supabase().rpc("court_match_manage_cancel", { p_token: token }); if (r.error) toast.error(r.error.message); else void load()
   }
   if (m === undefined) return <div className="quadra-theme min-h-dvh bg-background p-6"><Skeleton className="mx-auto h-60 max-w-xl" /></div>
-  if (m === null) return <div className="quadra-theme grid min-h-dvh place-items-center bg-background p-6 text-center"><div><h1 className="text-xl font-bold">Link inválido</h1><p className="mt-1 text-sm text-muted-foreground">Confira se copiou o link completo da sua partida.</p></div></div>
+  if (m === null) return <div className="quadra-theme grid min-h-dvh place-items-center bg-background p-6 text-center"><div><h1 className="text-xl font-semibold">Link inválido</h1><p className="mt-1 text-sm text-muted-foreground">Confira se copiou o link completo da sua partida.</p></div></div>
   const b = m.booking, tz = b.timezone
   const approved = m.players.filter((p) => p.status === "aprovado")
   const wa = (p: M["players"][number]) => `https://wa.me/${p.phone}?text=${encodeURIComponent(`Oi, ${p.name.split(" ")[0]}! Sobre a partida "${m.title}" (${fmtDateBR(localParts(tz, b.starts_at).date)} ${fmtRange(tz, b.starts_at, b.ends_at)}, ${b.venue}).`)}`
   const share = `${m.title} · ${b.venue}, ${b.court}, ${fmtDateBR(localParts(tz, b.starts_at).date)} ${fmtRange(tz, b.starts_at, b.ends_at)}. Faltam ${m.slots_total - approved.length} jogador(es)! Peça sua vaga: ${typeof window === "undefined" ? "" : window.location.origin}/quadras/${b.slug}`
   return (
     <div className="quadra-theme min-h-dvh bg-background text-foreground">
-      <header className="bg-primary px-4 py-5 text-primary-foreground"><div className="mx-auto max-w-xl"><img src="/brand/partidou-logo.png" alt="Partidou" className="mb-1 h-7 w-auto" /><p className="text-xs font-semibold tracking-wide opacity-80">SUA PARTIDA</p><h1 className="text-2xl font-bold">{m.title}</h1><p className="text-sm opacity-90">{b.venue} · {b.court} · {fmtDateBR(localParts(tz, b.starts_at).date)} {fmtRange(tz, b.starts_at, b.ends_at)}</p></div></header>
+      <header className="bg-primary px-4 py-5 text-primary-foreground"><div className="mx-auto max-w-xl"><img src="/brand/partidou-logo.png" alt="Partidou" className="mb-1 h-7 w-auto" /><p className="text-xs font-semibold tracking-wide opacity-80">SUA PARTIDA</p><h1 className="text-xl font-semibold tracking-tight">{m.title}</h1><p className="text-sm opacity-90">{b.venue} · {b.court} · {fmtDateBR(localParts(tz, b.starts_at).date)} {fmtRange(tz, b.starts_at, b.ends_at)}</p></div></header>
       <main className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <div className="rounded-xl border bg-card p-3 text-sm"><p>Reserva <strong>{b.code}</strong>: {b.status === "confirmada" ? "confirmada pelo centro" : b.status === "pendente" ? "aguardando confirmação do centro (a partida só aparece na vitrine depois de confirmada)" : b.status === "cancelada" ? "cancelada" : b.status}.</p>
           <p className="mt-1">Vagas: <strong>{approved.length}/{m.slots_total}</strong> preenchidas · partida <strong>{m.status}</strong>.</p></div>

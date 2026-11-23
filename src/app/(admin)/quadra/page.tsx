@@ -64,7 +64,7 @@ export default function QuadraDashboard() {
   const pending = steps.filter((s) => !s.ok)
   const canSetup = role === "admin" || role === "gerente"
   const kpi = (label: string, value: string, hint?: string, tone?: "bad" | "good") => (
-    <div className="rounded-xl border bg-card p-4"><div className={cn("text-2xl font-bold tabular-nums text-primary sm:text-3xl", tone === "bad" && "text-red-700")}>{value}</div><div className="text-sm text-muted-foreground">{label}</div>{hint && <div className="text-xs text-muted-foreground">{hint}</div>}</div>
+    <div className="rounded-xl border bg-card px-4 py-3.5"><div className="text-xs font-medium text-muted-foreground">{label}</div><div className={cn("mt-1.5 text-xl font-semibold tracking-tight tabular-nums sm:text-2xl", tone === "bad" ? "text-red-700" : tone === "good" ? "text-[#047857]" : "text-foreground")}>{value}</div>{hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}</div>
   )
   const rate = dash ? pct(dash.occupancy.booked_min, dash.occupancy.open_min) : 0
   const daily = (dash?.daily ?? []).map((d) => ({ dia: d.day.slice(8) + "/" + d.day.slice(5, 7), taxa: pct(d.booked_min, d.open_min) }))
@@ -77,7 +77,7 @@ export default function QuadraDashboard() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{venue?.trade_name ?? "Quadra Esportiva"}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{venue?.trade_name ?? "Quadra Esportiva"}</h1>
           <p className="text-sm text-muted-foreground">Visão geral do seu centro esportivo{venue?.city ? ` · ${venue.city}${venue.state ? `/${venue.state}` : ""}` : ""}.</p>
         </div>
         <div className="flex flex-wrap items-end gap-2">

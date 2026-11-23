@@ -149,7 +149,7 @@ export default function ExtratoPage() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Extrato bancário</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Extrato bancário</h1>
         <div data-write>
           <input ref={fileRef} type="file" accept=".ofx,.OFX,.txt" className="sr-only" id="ofx" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
           <Button variant="brand" disabled={reading} onClick={() => fileRef.current?.click()}>{reading ? <Loader2 className="animate-spin" /> : <FileUp />} Importar extrato (OFX)</Button>

@@ -308,7 +308,7 @@ export function PerfilAtleta({ athlete, onEdit }: { athlete: Athlete; onEdit: ()
     ["Mensalidade", `${formatBRL(athlete.monthly_fee)} · vence dia ${athlete.due_day}`],
   ]
   return (
-    <section aria-label="Meu perfil" className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
+    <section aria-label="Meu perfil" className="rounded-xl border bg-card p-4 sm:p-6">
       <div className="flex flex-wrap items-center gap-4">
         <AvatarAtleta name={athlete.nickname || athlete.full_name} size="lg" />
         <div className="min-w-0 flex-1"><h2 className="text-lg leading-snug font-bold break-words">{athlete.full_name}</h2>{athlete.nickname && <p className="text-sm text-muted-foreground">Apelido: {athlete.nickname}</p>}</div>

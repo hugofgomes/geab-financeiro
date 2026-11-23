@@ -11,7 +11,7 @@ export function BirthdayCard({ names, self, onClose }: { names: string[]; self: 
   const nome = org?.name ?? "grupo"
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent showCloseButton={false} className="max-w-sm overflow-hidden border-0 bg-gradient-to-b from-[#1E3A5F] to-[#2A5A8C] p-0 text-center text-white sm:max-w-sm">
+      <DialogContent showCloseButton={false} className="max-w-sm overflow-hidden border-0 bg-primary p-0 text-center text-white sm:max-w-sm">
         <div className="relative px-6 pb-6 pt-8">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-2 flex justify-between px-5 text-2xl motion-safe:animate-bounce">
             <span>🎈</span><span>🎉</span><span>🎈</span>

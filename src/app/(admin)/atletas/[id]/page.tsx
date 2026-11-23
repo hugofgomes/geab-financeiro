@@ -34,7 +34,7 @@ export default function AthleteHistory() {
     <>
       <Link href="/atletas" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Atletas</Link>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{athlete.full_name}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{athlete.full_name}</h1>
         <p className="text-sm text-muted-foreground">{formatBRL(athlete.monthly_fee)}/mês · vence dia {athlete.due_day} · {athlete.active ? "ativo" : "inativo"}{owed > 0 && <span className="font-medium text-red-700"> · em atraso: {formatBRL(owed)}</span>}</p>
       </div>
       <Card>

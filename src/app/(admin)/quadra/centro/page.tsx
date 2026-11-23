@@ -63,7 +63,7 @@ export default function CentroPage() {
   const canCourts = role === "admin" || role === "gerente"
   return (
     <>
-      <div><h1 className="text-2xl font-bold tracking-tight">Centro Esportivo</h1>
+      <div><h1 className="text-xl font-semibold tracking-tight">Centro Esportivo</h1>
         <p className="text-sm text-muted-foreground">Cadastro do estabelecimento e das quadras.{!canVenue && " Você tem acesso de consulta ao perfil do centro."}</p></div>
       <Tabs defaultValue={data.venue ? "quadras" : "perfil"}>
         <TabsList className="h-12 w-full justify-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

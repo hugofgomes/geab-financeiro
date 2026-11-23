@@ -66,7 +66,7 @@ export default function AgendaPage() {
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="text-2xl font-bold tracking-tight">Agenda de Quadras</h1><p className="text-sm text-muted-foreground">Clique num horário livre para reservar. Atualiza sozinha.</p></div>
+        <div><h1 className="text-xl font-semibold tracking-tight">Agenda de Quadras</h1><p className="text-sm text-muted-foreground">Clique num horário livre para reservar. Atualiza sozinha.</p></div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           {canBook && <Button className="h-11 flex-1 sm:h-9 sm:flex-none" onClick={() => setForm({ open: true, initial: { date: d, courtId: f.court || undefined } })}><Plus /> Nova reserva</Button>}
           {canBlock && <Button variant="outline" className="h-11 flex-1 sm:h-9 sm:flex-none" onClick={() => setBlock({ open: true, initial: { date: d, courtId: f.court || undefined } })}><Lock /> Bloquear horário</Button>}

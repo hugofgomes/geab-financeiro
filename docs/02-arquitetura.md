@@ -1,4 +1,4 @@
-<!-- revisado: 1.26.0 -->
+<!-- revisado: 1.27.0 -->
 # Arquitetura
 
 ## Camadas
@@ -38,3 +38,4 @@ A versão exibida no rodapé vem do `package.json` e precisa ter entrada no hist
 ## Padrão visual (design system)
 Identidade discreta: fundo cinza muito claro, azul-marinho como cor principal, vermelho só para erro e atraso, tipografia Inter, bordas finas e cantos de 7 a 10 px (token `--radius` em `globals.css`). Sombras só onde há sobreposição (menus, janelas). Os componentes base ficam em `src/components/ui`; indicadores do dashboard seguem o padrão compacto (texto pequeno, número em destaque, sem ícone decorativo). Menu lateral com página ativa em destaque suave e opção de recolher. Mudanças visuais globais devem partir dos tokens, nunca de classes soltas em cada tela.
 
+Padrões aplicados em todas as telas: título de página `text-xl font-semibold`; tabelas com cabeçalho em cinza discreto e células de `py-2.5`; cartões sem sombra (borda fina); indicadores compactos (rótulo pequeno, número em destaque, sem caixa de ícone); sem gradientes nas telas internas. Páginas públicas (site comercial, demonstração e busca de quadras) têm identidade própria e não seguem este padrão.

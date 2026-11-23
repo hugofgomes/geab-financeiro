@@ -74,7 +74,7 @@ export default function NewGroupPage() {
     <div className="grid min-h-dvh place-items-center bg-primary p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl bg-card p-6 shadow-xl">
         <div className="text-center">
-          <h1 className="text-xl font-bold tracking-wide uppercase">Criar meu grupo</h1>
+          <h1 className="text-xl font-semibold tracking-wide uppercase">Criar meu grupo</h1>
           <p className="text-sm text-muted-foreground">Mensalidades, jogos, escalações e artilharia do seu grupo de futebol</p>
           <p className="mt-1 inline-block rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-800">{days} dias grátis para testar, sem cartão</p>
         </div>

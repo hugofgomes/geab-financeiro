@@ -122,7 +122,7 @@ export default function ComunicadosPage() {
   return (
     <>
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Megaphone className="size-6" aria-hidden /> Comunicados</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight"><Megaphone className="size-6" aria-hidden /> Comunicados</h1>
         <p className="text-sm text-muted-foreground">Envie novidades e avisos aos administradores dos grupos clientes, por e-mail e/ou como aviso no painel deles.</p>
       </div>
 

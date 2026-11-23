@@ -31,7 +31,7 @@ const itemCls = "flex w-full cursor-default items-center gap-2 rounded-md px-2.5
 function CardsSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2" aria-busy="true" aria-label="Carregando">
-      <Skeleton className="h-36 rounded-2xl md:col-span-2" /><Skeleton className="h-44 rounded-2xl" /><Skeleton className="h-44 rounded-2xl" /><Skeleton className="h-36 rounded-2xl md:col-span-2" />
+      <Skeleton className="h-36 rounded-xl md:col-span-2" /><Skeleton className="h-44 rounded-xl" /><Skeleton className="h-44 rounded-xl" /><Skeleton className="h-36 rounded-xl md:col-span-2" />
     </div>
   )
 }
@@ -104,7 +104,7 @@ export default function AthletePortal() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#F5F7FA]">
       {/* Topo */}
-      <header className="sticky top-0 z-30 bg-primary text-white shadow-md">
+      <header className="sticky top-0 z-30 bg-primary text-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 md:h-[72px]">
           <span className="truncate text-base font-bold tracking-wide uppercase md:text-lg">{org?.name ?? "GEAB Futebol"}</span>
           <div className="flex items-center gap-1 sm:gap-2">
@@ -170,7 +170,7 @@ export default function AthletePortal() {
             {/* Boas-vindas */}
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">Olá, {first}! 👋</h1>
+                <h1 className="text-xl font-semibold tracking-tight text-primary sm:text-3xl">Olá, {first}! 👋</h1>
                 <p className="mt-1 text-sm text-muted-foreground">Confira seus jogos, pagamentos e desempenho no GEAB Futebol.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -228,7 +228,7 @@ export default function AthletePortal() {
                   </>
                 )}
               </div>
-              {showAside && (ex && goalsBlock ? <aside aria-label="Artilharia e aniversariantes" className="min-w-0 lg:sticky lg:top-36 lg:self-start">{goalsBlock}</aside> : <Skeleton className="h-64 rounded-2xl" />)}
+              {showAside && (ex && goalsBlock ? <aside aria-label="Artilharia e aniversariantes" className="min-w-0 lg:sticky lg:top-36 lg:self-start">{goalsBlock}</aside> : <Skeleton className="h-64 rounded-xl" />)}
             </div>
           </>
         )}

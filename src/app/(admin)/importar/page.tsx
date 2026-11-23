@@ -206,7 +206,7 @@ export default function ImportPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Importar da planilha</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Importar da planilha</h1>
         <p className="text-sm text-muted-foreground">Lê a planilha publicada do GEAB (uma aba por mês), mostra uma prévia e só grava depois que você confirmar. A planilha original não é alterada.</p>
       </div>
 

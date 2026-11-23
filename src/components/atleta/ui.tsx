@@ -45,7 +45,7 @@ export function CardResumo({ title, icon: Icon, action, children, className, ton
   title: string; icon?: LucideIcon; action?: React.ReactNode; children: React.ReactNode; className?: string; tone?: "light" | "brand"
 }) {
   return (
-    <section aria-label={title} className={cn("rounded-2xl border p-4 shadow-sm sm:p-5", tone === "brand" ? "border-transparent bg-gradient-to-br from-[#1E3A5F] to-[#2A5A8C] text-white" : "bg-card", className)}>
+    <section aria-label={title} className={cn("rounded-xl border p-4 sm:p-5", tone === "brand" ? "border-transparent bg-primary text-white" : "bg-card", className)}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className={cn("flex items-center gap-2 text-xs font-semibold tracking-wide uppercase", tone === "brand" ? "text-white/80" : "text-muted-foreground")}>
           {Icon && <Icon className="size-4" aria-hidden />}{title}
@@ -63,7 +63,7 @@ export function EmptyLine({ children }: { children: React.ReactNode }) {
 
 export function ErrorBox({ children, onRetry }: { children: React.ReactNode; onRetry?: () => void }) {
   return (
-    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#EF3028]/30 bg-[#EF3028]/5 p-4 text-sm text-[#B4151B]">
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#EF3028]/30 bg-[#EF3028]/5 p-4 text-sm text-[#B4151B]">
       <span>{children}</span>
       {onRetry && <button type="button" onClick={onRetry} className="min-h-11 rounded-lg border border-[#EF3028]/40 bg-white px-4 font-medium hover:bg-[#EF3028]/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">Tentar novamente</button>}
     </div>

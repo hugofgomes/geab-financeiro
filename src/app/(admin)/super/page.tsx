@@ -295,7 +295,7 @@ export default function SuperPage() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Painel do SaaS</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Painel do SaaS</h1>
           <p className="text-sm text-muted-foreground">Visão do dono da plataforma. Nomes de atletas e pagamentos dos grupos não aparecem aqui.</p>
         </div>
       </div>

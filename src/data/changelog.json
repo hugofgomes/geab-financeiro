@@ -2,6 +2,19 @@
   "_nota": "Fonte única do histórico de versões. Cada versão publicada ganha uma entrada NOVA no topo; registros antigos não são alterados. 'date' é a data real da publicação (AAAA-MM-DD) ou null quando não foi registrada. A versão exibida no rodapé vem do package.json e precisa ter entrada aqui (verificado em npm run build).",
   "entries": [
     {
+      "version": "1.27.0",
+      "date": "2026-11-22",
+      "title": "Redesign clean em todas as telas",
+      "novidades": [],
+      "melhorias": [
+        "Títulos de página padronizados (menores e mais sóbrios) em todas as telas, inclusive Atletas, Jogos, Escalação, Financeiro, Mensalidades, Configurações, Painel do SaaS e Quadra.",
+        "Tabelas com cabeçalho discreto (sem faixa colorida) e linhas mais espaçadas.",
+        "Menos efeitos: gradientes e sombras removidos dos cartões da área do atleta e dos avisos; cantos menos arredondados.",
+        "Indicadores da Quadra (dashboard e financeiro) no mesmo padrão compacto do dashboard do grupo."
+      ],
+      "correcoes": []
+    },
+    {
       "version": "1.26.1",
       "date": "2026-11-18",
       "title": "Excluir conta direto da lista de clientes",

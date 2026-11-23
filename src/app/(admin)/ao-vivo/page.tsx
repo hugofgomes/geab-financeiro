@@ -165,7 +165,7 @@ export default function LivePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">Gols ao vivo</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Gols ao vivo</h1>
       {error && <p role="alert" className="text-sm text-destructive">Erro ao carregar: {error}</p>}
       {loading && !data && <Skeleton className="h-60" />}
 
@@ -188,7 +188,7 @@ export default function LivePage() {
 
       {data && live && (
         <div className="space-y-4">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border bg-card p-4 text-center">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border bg-card p-4 text-center">
             <div className="text-sm leading-tight font-medium break-words">{live.team_a}</div><div />
             <div className="text-sm leading-tight font-medium break-words">{live.team_b}</div>
             <div className="text-7xl font-bold tabular-nums text-primary sm:text-6xl">{live.score_a ?? 0}</div>
@@ -196,7 +196,7 @@ export default function LivePage() {
             <div className="text-7xl font-bold tabular-nums text-primary sm:text-6xl">{live.score_b ?? 0}</div>
           </div>
 
-          <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-3 rounded-2xl bg-background/90 p-2 shadow-lg backdrop-blur max-sm:pb-[max(.5rem,env(safe-area-inset-bottom))] sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-3 rounded-xl bg-background/90 p-2 shadow-lg backdrop-blur max-sm:pb-[max(.5rem,env(safe-area-inset-bottom))] sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
             <Button variant="brand" className="h-24 flex-col gap-0.5 px-2 text-base leading-tight whitespace-normal md:h-20 md:px-2" disabled={busy} onClick={() => setPicking("a")}>⚽ Gol<br />{live.team_a}</Button>
             <Button variant="brand" className="h-24 flex-col gap-0.5 px-2 text-base leading-tight whitespace-normal md:h-20 md:px-2" disabled={busy} onClick={() => setPicking("b")}>⚽ Gol<br />{live.team_b}</Button>
           </div>

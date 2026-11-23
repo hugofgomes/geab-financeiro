@@ -203,7 +203,7 @@ export default function ClientePage() {
         <Link href="/super" className="inline-flex min-h-10 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Voltar aos clientes</Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight">{o.name}
+            <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight">{o.name}
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${BADGE[o.status] ?? "bg-secondary"}`}>{STATUS[o.status] ?? o.status}</span></h1>
             <p className="text-sm text-muted-foreground">{o.slug} · {o.plan_name} · cliente desde {dt(o.created_at)}</p>
             {o.status_reason && <p className="text-sm text-amber-800">Motivo: {o.status_reason}</p>}

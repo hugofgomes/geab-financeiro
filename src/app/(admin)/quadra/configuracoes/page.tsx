@@ -46,7 +46,7 @@ export default function ConfiguracoesPage() {
   const canEdit = role === "admin"
   return (
     <>
-      <div><h1 className="text-2xl font-bold tracking-tight">Configurações</h1><p className="text-sm text-muted-foreground">Funcionamento, preços e regras da agenda.{!canEdit && " Somente o administrador altera estas configurações."}</p></div>
+      <div><h1 className="text-xl font-semibold tracking-tight">Configurações</h1><p className="text-sm text-muted-foreground">Funcionamento, preços e regras da agenda.{!canEdit && " Somente o administrador altera estas configurações."}</p></div>
       <Tabs defaultValue="funcionamento">
         <TabsList className="h-12 w-full justify-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="funcionamento" className="h-10 shrink-0 px-4">Funcionamento</TabsTrigger>

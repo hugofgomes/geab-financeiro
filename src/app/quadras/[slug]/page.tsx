@@ -52,7 +52,7 @@ export default function CentroPublico() {
   React.useEffect(() => { void loadSlots() }, [loadSlots])
 
   if (data === undefined) return <div className="quadra-theme min-h-dvh bg-background p-6"><Skeleton className="mx-auto h-60 max-w-3xl" /></div>
-  if (data === null) return <div className="quadra-theme grid min-h-dvh place-items-center bg-background p-6 text-center"><div><h1 className="text-xl font-bold">Centro esportivo não encontrado</h1><p className="mt-1 text-sm text-muted-foreground">O endereço pode estar errado ou o centro não publicou a página.</p><Link href="/quadras" className="mt-3 inline-block font-medium text-primary underline">Buscar outras quadras</Link></div></div>
+  if (data === null) return <div className="quadra-theme grid min-h-dvh place-items-center bg-background p-6 text-center"><div><h1 className="text-xl font-semibold">Centro esportivo não encontrado</h1><p className="mt-1 text-sm text-muted-foreground">O endereço pode estar errado ou o centro não publicou a página.</p><Link href="/quadras" className="mt-3 inline-block font-medium text-primary underline">Buscar outras quadras</Link></div></div>
   const { venue, courts } = data
   const durations: number[] = []; for (let m = venue.min_duration_minutes; m <= 240 && durations.length < 4; m += venue.slot_minutes) durations.push(m)
   const days = Array.from({ length: 14 }, (_, i) => addDays(today, i)).filter((d) => d <= addDays(today, venue.max_advance_days))
@@ -66,7 +66,7 @@ export default function CentroPublico() {
       <header className="bg-primary px-4 py-6 text-primary-foreground">
         <div className="mx-auto flex max-w-4xl items-center gap-4">
           {venue.logo_url ? <img src={venue.logo_url} alt="" className="size-16 shrink-0 rounded-xl bg-white object-cover" /> : null}
-          <div className="min-w-0"><Link href="/quadras" aria-label="Partidou: buscar outras quadras" className="inline-block"><img src="/brand/partidou-logo.png" alt="Partidou" className="h-7 w-auto" /></Link><h1 className="text-2xl font-bold leading-tight">{venue.name}</h1>
+          <div className="min-w-0"><Link href="/quadras" aria-label="Partidou: buscar outras quadras" className="inline-block"><img src="/brand/partidou-logo.png" alt="Partidou" className="h-7 w-auto" /></Link><h1 className="text-xl font-semibold tracking-tight leading-tight">{venue.name}</h1>
             <p className="flex items-center gap-1 text-sm opacity-90"><MapPin className="size-4 shrink-0" />{addressLine(venue)}</p></div>
         </div>
       </header>
